@@ -1,13 +1,19 @@
 import Groq from "groq-sdk";
 import { NextRequest, NextResponse } from "next/server";
 
-const groq = new Groq({
+// Initialize Groq client only if API key is available (prevents build errors)
+const groq = process.env.GROQ_API_KEY ? new Groq({
   apiKey: process.env.GROQ_API_KEY,
-});
+}) : null;
 
 export async function POST(request: NextRequest) {
   try {
     const { message, goals, userContext } = await request.json();
+
+    // Check if Groq client is available
+    if (!groq) {
+      throw new Error('AI service temporarily unavailable');
+    }
 
     const systemPrompt = `You are an AI accountability coach for Momentum AI. Your role is to help users stay emotionally connected to their goals through gentle, supportive coaching.
 

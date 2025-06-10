@@ -1,13 +1,19 @@
 import Groq from "groq-sdk";
 import { NextRequest, NextResponse } from "next/server";
 
-const groq = new Groq({
+// Initialize Groq client only if API key is available (prevents build errors)
+const groq = process.env.GROQ_API_KEY ? new Groq({
   apiKey: process.env.GROQ_API_KEY,
-});
+}) : null;
 
 export async function POST(request: NextRequest) {
   try {
     const { goals, progressData } = await request.json();
+
+    // Check if Groq client is available
+    if (!groq) {
+      throw new Error('AI service temporarily unavailable');
+    }
 
     const systemPrompt = `You are an AI coach analyzing user goal progress. Generate 3 personalized insights based on their data.
 
