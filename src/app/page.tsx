@@ -6,10 +6,13 @@ import GoalCard from '@/components/GoalCard';
 import AICoachPanel from '@/components/AICoachPanel';
 import ProgressDashboard from '@/components/ProgressDashboard';
 import GoalCreationModal from '@/components/GoalCreationModal';
+import { DailyCheckInModal } from '@/components/DailyCheckInModal';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
+  const [isDailyCheckInOpen, setIsDailyCheckInOpen] = useState(false);
+  const [showCheckInReminder, setShowCheckInReminder] = useState(true);
   
   // Mock data - in real app this would come from API/database
   const [userGoals, setUserGoals] = useState([
@@ -20,7 +23,16 @@ export default function Home() {
       progress: 65,
       emotionalContext: 'This represents my dream of financial freedom and creative fulfillment',
       deadline: '2025-12-31',
-      status: 'on-track' as const
+      status: 'on-track' as const,
+      currentStreak: 12,
+      bestStreak: 18,
+      completionRate: 85,
+      lastCheckIn: new Date().toISOString(),
+      habits: [
+        { id: 'h1', text: 'Code for 2 hours', completed: true },
+        { id: 'h2', text: 'Write 1 blog post', completed: false },
+        { id: 'h3', text: 'Talk to 1 potential user', completed: true }
+      ]
     },
     {
       id: '2', 
@@ -29,12 +41,47 @@ export default function Home() {
       progress: 40,
       emotionalContext: 'I want to feel confident and energetic for my family',
       deadline: '2025-10-15',
-      status: 'at-risk' as const
+      status: 'at-risk' as const,
+      currentStreak: 3,
+      bestStreak: 14,
+      completionRate: 67,
+      lastCheckIn: new Date(Date.now() - 1000 * 60 * 60 * 25).toISOString(), // 25 hours ago
+      habits: [
+        { id: 'h4', text: 'Workout for 30 minutes', completed: false },
+        { id: 'h5', text: 'Eat healthy meals', completed: true },
+        { id: 'h6', text: 'Track calories', completed: false }
+      ]
     }
   ]);
 
   const handleAddGoal = (newGoal: any) => {
     setUserGoals(prev => [...prev, newGoal]);
+  };
+
+  const handleDailyCheckIn = (completedHabits: { [goalId: string]: string[] }) => {
+    const now = new Date().toISOString();
+    
+    setUserGoals(prev => prev.map(goal => {
+      const completedHabitIds = completedHabits[goal.id] || [];
+      const updatedHabits = goal.habits.map(habit => ({
+        ...habit,
+        completed: completedHabitIds.includes(habit.id)
+      }));
+      
+      const habitCompletionRate = updatedHabits.filter(h => h.completed).length / updatedHabits.length;
+      const shouldIncreaseStreak = habitCompletionRate >= 0.6; // 60% completion threshold
+      
+      return {
+        ...goal,
+        habits: updatedHabits,
+        lastCheckIn: now,
+        currentStreak: shouldIncreaseStreak ? goal.currentStreak + 1 : 0,
+        bestStreak: shouldIncreaseStreak && (goal.currentStreak + 1) > goal.bestStreak 
+          ? goal.currentStreak + 1 
+          : goal.bestStreak,
+        completionRate: Math.round((goal.completionRate + habitCompletionRate * 100) / 2) // Moving average
+      };
+    }));
   };
 
   return (
@@ -89,6 +136,17 @@ export default function Home() {
                 <MessageSquare className="w-4 h-4" />
                 <span>AI Coach</span>
               </button>
+              <button
+                onClick={() => setActiveTab('community')}
+                className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
+                  activeTab === 'community' 
+                    ? 'bg-blue-100 text-blue-700' 
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <Heart className="w-4 h-4" />
+                <span>Community</span>
+              </button>
             </nav>
           </div>
         </div>
@@ -115,6 +173,37 @@ export default function Home() {
           </p>
         </div>
       </section>
+
+      {/* Daily Check-In Reminder */}
+      {showCheckInReminder && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
+          <div className="bg-gradient-to-r from-orange-500 to-pink-500 rounded-xl p-6 text-white relative">
+            <button
+              onClick={() => setShowCheckInReminder(false)}
+              className="absolute top-4 right-4 text-white/80 hover:text-white"
+            >
+              ✕
+            </button>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-bold mb-2">🔥 Ready for your daily check-in?</h3>
+                <p className="text-orange-100 mb-4">
+                  Keep your momentum going! Track your habits and celebrate today's wins.
+                </p>
+                <button
+                  onClick={() => setIsDailyCheckInOpen(true)}
+                  className="bg-white/20 hover:bg-white/30 px-6 py-3 rounded-lg font-medium transition-colors"
+                >
+                  Start Check-In 🎉
+                </button>
+              </div>
+              <div className="text-6xl opacity-50">
+                🎯
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
@@ -174,7 +263,11 @@ export default function Home() {
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {userGoals.map((goal) => (
-                <GoalCard key={goal.id} goal={goal} />
+                <GoalCard 
+                  key={goal.id} 
+                  goal={goal} 
+                  onCheckIn={() => setIsDailyCheckInOpen(true)}
+                />
               ))}
             </div>
           </div>
@@ -183,6 +276,105 @@ export default function Home() {
         {activeTab === 'coach' && (
           <AICoachPanel />
         )}
+
+        {activeTab === 'community' && (
+          <div className="space-y-8">
+            {/* Community Header */}
+            <div className="text-center">
+              <h2 className="text-3xl font-bold text-gray-900 mb-4">Community Leaderboard</h2>
+              <p className="text-gray-600">See how you stack up against other goal crushers!</p>
+            </div>
+
+            {/* Your Stats */}
+            <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-bold mb-2">Your Rank</h3>
+                  <div className="flex items-center space-x-4">
+                    <span className="text-3xl font-bold">#7</span>
+                    <div>
+                      <p className="text-blue-100">Total Streaks: 47 days</p>
+                      <p className="text-blue-100">Active Goals: 2</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <button className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition-colors">
+                    Share Progress
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Leaderboard */}
+            <div className="bg-white rounded-xl shadow-lg border border-gray-100">
+              <div className="p-6 border-b border-gray-200">
+                <h3 className="text-lg font-bold text-gray-900">This Week's Champions</h3>
+              </div>
+              <div className="p-6">
+                <div className="space-y-4">
+                  {[
+                    { rank: 1, name: 'Alex K.', streaks: 89, avatar: '🚀' },
+                    { rank: 2, name: 'Sarah M.', streaks: 76, avatar: '💪' },
+                    { rank: 3, name: 'Mike R.', streaks: 68, avatar: '🎯' },
+                    { rank: 4, name: 'Emma L.', streaks: 54, avatar: '✨' },
+                    { rank: 5, name: 'David C.', streaks: 51, avatar: '🔥' },
+                    { rank: 6, name: 'Lisa W.', streaks: 49, avatar: '🌟' },
+                    { rank: 7, name: 'You', streaks: 47, avatar: '👤', isUser: true }
+                  ].map((user) => (
+                    <div key={user.rank} className={`flex items-center justify-between p-3 rounded-lg ${
+                      user.isUser ? 'bg-blue-50 border border-blue-200' : 'hover:bg-gray-50'
+                    }`}>
+                      <div className="flex items-center space-x-4">
+                        <span className="text-lg font-bold text-gray-500 w-8">#{user.rank}</span>
+                        <span className="text-2xl">{user.avatar}</span>
+                        <span className={`font-medium ${user.isUser ? 'text-blue-700' : 'text-gray-900'}`}>
+                          {user.name}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className="font-bold text-gray-900">{user.streaks} days</span>
+                        <p className="text-xs text-gray-500">total streaks</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Weekly Challenges */}
+            <div className="bg-white rounded-xl shadow-lg border border-gray-100">
+              <div className="p-6 border-b border-gray-200">
+                <h3 className="text-lg font-bold text-gray-900">Weekly Challenges</h3>
+              </div>
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                    <h4 className="font-semibold text-green-800 mb-2">🏃‍♂️ Consistency Challenge</h4>
+                    <p className="text-green-700 text-sm mb-3">Complete all daily habits for 7 days straight</p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-green-600 text-sm">4/7 days</span>
+                      <div className="w-20 bg-green-200 rounded-full h-2">
+                        <div className="bg-green-500 h-2 rounded-full" style={{width: '57%'}}></div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                    <h4 className="font-semibold text-purple-800 mb-2">🎯 Focus Challenge</h4>
+                    <p className="text-purple-700 text-sm mb-3">Work on your top goal for 5 hours this week</p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-purple-600 text-sm">3.2/5 hours</span>
+                      <div className="w-20 bg-purple-200 rounded-full h-2">
+                        <div className="bg-purple-500 h-2 rounded-full" style={{width: '64%'}}></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
 
       {/* Goal Creation Modal */}
@@ -190,6 +382,14 @@ export default function Home() {
         isOpen={isGoalModalOpen}
         onClose={() => setIsGoalModalOpen(false)}
         onSave={handleAddGoal}
+      />
+
+      {/* Daily Check-In Modal */}
+      <DailyCheckInModal
+        isOpen={isDailyCheckInOpen}
+        onClose={() => setIsDailyCheckInOpen(false)}
+        goals={userGoals}
+        onComplete={handleDailyCheckIn}
       />
     </div>
   );

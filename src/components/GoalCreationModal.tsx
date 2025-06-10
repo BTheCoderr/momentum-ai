@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Target, Heart, Calendar, AlertCircle } from 'lucide-react';
+import { X, Target, Heart, Calendar, AlertCircle, Plus, Trash2, CheckCircle } from 'lucide-react';
 
 interface GoalCreationModalProps {
   isOpen: boolean;
@@ -15,6 +15,8 @@ export default function GoalCreationModal({ isOpen, onClose, onSave }: GoalCreat
     emotionalContext: '',
     category: 'personal'
   });
+
+  const [habits, setHabits] = useState<string[]>(['', '', '']);
   
   const [currentStep, setCurrentStep] = useState(1);
   const [errors, setErrors] = useState<string[]>([]);
@@ -30,12 +32,15 @@ export default function GoalCreationModal({ isOpen, onClose, onSave }: GoalCreat
       if (!formData.deadline) newErrors.push('Deadline is required');
     } else if (currentStep === 2) {
       if (!formData.emotionalContext.trim()) newErrors.push('Please share why this goal matters to you');
+    } else if (currentStep === 3) {
+      const validHabits = habits.filter(h => h.trim());
+      if (validHabits.length === 0) newErrors.push('Please add at least one daily habit');
     }
 
     setErrors(newErrors);
     
     if (newErrors.length === 0) {
-      if (currentStep < 3) {
+      if (currentStep < 4) {
         setCurrentStep(currentStep + 1);
       } else {
         handleSave();
@@ -44,12 +49,23 @@ export default function GoalCreationModal({ isOpen, onClose, onSave }: GoalCreat
   };
 
   const handleSave = () => {
+    const validHabits = habits.filter(h => h.trim()).map((text, index) => ({
+      id: `habit-${Date.now()}-${index}`,
+      text: text.trim(),
+      completed: false
+    }));
+
     const newGoal = {
       id: Date.now().toString(),
       ...formData,
       progress: 0,
       status: 'on-track' as const,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      currentStreak: 0,
+      bestStreak: 0,
+      completionRate: 0,
+      lastCheckIn: new Date().toISOString(),
+      habits: validHabits
     };
     
     onSave(newGoal);
@@ -61,13 +77,31 @@ export default function GoalCreationModal({ isOpen, onClose, onSave }: GoalCreat
       emotionalContext: '',
       category: 'personal'
     });
+    setHabits(['', '', '']);
     setCurrentStep(1);
     setErrors([]);
+  };
+
+  const addHabit = () => {
+    setHabits([...habits, '']);
+  };
+
+  const removeHabit = (index: number) => {
+    if (habits.length > 1) {
+      setHabits(habits.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateHabit = (index: number, value: string) => {
+    const newHabits = [...habits];
+    newHabits[index] = value;
+    setHabits(newHabits);
   };
 
   const stepTitles = [
     "What's your goal?",
     "Why does this matter?",
+    "Break it into daily habits",
     "Review & Create"
   ];
 
@@ -83,7 +117,7 @@ export default function GoalCreationModal({ isOpen, onClose, onSave }: GoalCreat
               </div>
               <div>
                 <h2 className="text-xl font-bold text-gray-900">Create New Goal</h2>
-                <p className="text-sm text-gray-600">Step {currentStep} of 3: {stepTitles[currentStep - 1]}</p>
+                <p className="text-sm text-gray-600">Step {currentStep} of 4: {stepTitles[currentStep - 1]}</p>
               </div>
             </div>
             <button
@@ -97,7 +131,7 @@ export default function GoalCreationModal({ isOpen, onClose, onSave }: GoalCreat
           {/* Progress Bar */}
           <div className="mt-4">
             <div className="flex space-x-2">
-              {[1, 2, 3].map((step) => (
+              {[1, 2, 3, 4].map((step) => (
                 <div
                   key={step}
                   className={`flex-1 h-2 rounded-full ${
@@ -209,8 +243,82 @@ export default function GoalCreationModal({ isOpen, onClose, onSave }: GoalCreat
             </div>
           )}
 
-          {/* Step 3: Review */}
+          {/* Step 3: Habit Breakdown */}
           {currentStep === 3 && (
+            <div className="space-y-6">
+              <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-6 border border-green-100">
+                <div className="flex items-start space-x-3">
+                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <Target className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-2">Break Your Goal Into Daily Habits</h3>
+                    <p className="text-sm text-gray-700 leading-relaxed">
+                      Big goals are achieved through small, consistent daily actions. What specific habits will you do every day to make progress?
+                      These should be concrete, measurable actions that you can check off each day.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-4">
+                  Daily Habits for "{formData.title}"
+                </label>
+                
+                <div className="space-y-3">
+                  {habits.map((habit, index) => (
+                    <div key={index} className="flex items-center space-x-3">
+                      <div className="flex-1">
+                        <input
+                          type="text"
+                          value={habit}
+                          onChange={(e) => updateHabit(index, e.target.value)}
+                          placeholder={`Daily habit ${index + 1} (e.g., "Code for 2 hours")`}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                      
+                      {habits.length > 1 && (
+                        <button
+                          onClick={() => removeHabit(index)}
+                          className="p-3 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  onClick={addHabit}
+                  className="mt-4 flex items-center space-x-2 text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add Another Habit</span>
+                </button>
+
+                <div className="mt-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                  <div className="flex items-start space-x-2">
+                    <CheckCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="text-sm font-semibold text-yellow-900 mb-1">Pro Tips</h4>
+                      <ul className="text-sm text-yellow-800 space-y-1">
+                        <li>• Make habits specific and measurable</li>
+                        <li>• Start with 2-4 habits (you can add more later)</li>
+                        <li>• Focus on consistency over perfection</li>
+                        <li>• Each habit should take 15-60 minutes</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 4: Review */}
+          {currentStep === 4 && (
             <div className="space-y-6">
               <div className="bg-gray-50 rounded-lg p-6">
                 <h3 className="font-semibold text-gray-900 mb-4">Review Your Goal</h3>
@@ -240,6 +348,18 @@ export default function GoalCreationModal({ isOpen, onClose, onSave }: GoalCreat
                   <div>
                     <h4 className="text-sm font-medium text-gray-600 mb-1">Why It Matters</h4>
                     <p className="text-gray-900 italic">"{formData.emotionalContext}"</p>
+                  </div>
+
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-600 mb-2">Daily Habits</h4>
+                    <div className="space-y-2">
+                      {habits.filter(h => h.trim()).map((habit, index) => (
+                        <div key={index} className="flex items-center space-x-2">
+                          <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                          <span className="text-gray-900">{habit}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -291,7 +411,7 @@ export default function GoalCreationModal({ isOpen, onClose, onSave }: GoalCreat
             onClick={handleNext}
             className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg hover:shadow-lg transition-shadow font-medium"
           >
-            {currentStep === 3 ? 'Create Goal' : 'Next'}
+            {currentStep === 4 ? 'Create Goal' : 'Next'}
           </button>
         </div>
       </div>
