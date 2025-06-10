@@ -1,24 +1,148 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Momentum AI
 
-## Getting Started
+Your AI-powered accountability agent that helps you stay emotionally connected to your goals.
 
-First, run the development server:
+## 🎯 Features
+
+### Core Functionality
+- **Goal Setting & Management** - Create goals with deep emotional context
+- **AI Accountability Dashboard** - Visual progress tracking with insights
+- **Progress Analytics** - Charts showing trends and patterns  
+- **AI Coach Interface** - Chat-like coaching conversations
+- **Proactive Interventions** - AI predicts when you'll drift and intervenes
+
+### Key Differentiators
+- **Emotional Connection Focus** - Goes beyond task management to understand your deeper motivations
+- **Pattern Recognition** - Learns when you're most productive and motivated
+- **Mini-Therapist + Detective** - Understands the psychology behind goal achievement
+- **Proactive vs Reactive** - Prevents failures before they happen
+
+## 🚀 Tech Stack
+
+- **Frontend**: Next.js 15 + TypeScript + Tailwind CSS
+- **Charts**: Recharts for beautiful data visualization
+- **Icons**: Lucide React for modern iconography
+- **Styling**: Tailwind CSS with custom gradients and animations
+
+## 📦 Installation
 
 ```bash
+# Clone the repository
+git clone <your-repo-url>
+cd momentum-ai
+
+# Install dependencies
+npm install
+
+# Set up AI integration (FREE!)
+# 1. Create .env.local file
+echo "GROQ_API_KEY=your-key-here" > .env.local
+
+# 2. Get free Groq API key at: https://console.groq.com/keys
+# 3. Replace 'your-key-here' with your actual key
+
+# Start development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to view the app.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 🤖 AI Setup (Required for real AI responses)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. **Get Free Groq API Key:**
+   - Go to [https://console.groq.com/keys](https://console.groq.com/keys)
+   - Sign up (no credit card required!)
+   - Create new API key
+   
+2. **Add to Environment:**
+   ```bash
+   # Create .env.local file
+   GROQ_API_KEY=your-actual-api-key-here
+   ```
+   
+3. **Restart Server:**
+   ```bash
+   npm run dev
+   ```
+
+**Without API key:** App works with fallback responses  
+**With API key:** Real AI coaching conversations! 🚀
+
+## 🏗️ Project Structure
+
+```
+src/
+├── app/
+│   ├── page.tsx          # Main dashboard
+│   ├── layout.tsx        # App layout
+│   └── globals.css       # Global styles
+└── components/
+    ├── GoalCard.tsx              # Individual goal display
+    ├── ProgressDashboard.tsx     # Analytics & insights
+    ├── AICoachPanel.tsx          # Chat interface
+    └── GoalCreationModal.tsx     # Goal creation flow
+```
+
+## 🎨 Design System
+
+### Colors
+- **Primary**: Blue to Purple gradients (#3b82f6 → #8b5cf6)
+- **Success**: Green (#10b981)
+- **Warning**: Amber (#f59e0b)
+- **Emotional**: Pink to Purple (#ec4899 → #8b5cf6)
+
+### Key UX Principles
+- **Emotional First** - Always connect actions to deeper motivations
+- **Visual Progress** - Make progress tangible and rewarding
+- **Gentle Nudging** - AI interventions feel supportive, not pushy
+- **Pattern Awareness** - Help users understand their own behaviors
+
+## 💰 Business Model
+
+- **$19/month subscription** for AI accountability coaching
+- **Freemium** basic goal tracking
+- **Enterprise** team accountability features
+
+## 🔮 Future Features
+
+- [ ] Mobile app (React Native)
+- [ ] Real AI integration (OpenAI/Anthropic)
+- [ ] Team accountability features
+- [ ] Integration with calendars/productivity tools
+- [ ] Habit tracking and streaks
+- [ ] Goal templates and coaching programs
+- [ ] Advanced analytics and reporting
+
+## 🛠️ Development
+
+```bash
+# Development
+npm run dev
+
+# Build for production
+npm run build
+
+# Start production server
+npm start
+
+# Lint code
+npm run lint
+```
+
+## 📝 Notes
+
+This is the initial MVP focusing on the core user experience and interface. The AI functionality is currently simulated with mock data and responses. Real AI integration would require:
+
+1. Backend API integration
+2. User authentication
+3. Data persistence (database)
+4. AI/ML model integration
+5. Payment processing
+6. Analytics tracking
+
+---
+
+Built with ❤️ for helping people achieve their dreams through emotional accountability.
 
 ## Learn More
 
