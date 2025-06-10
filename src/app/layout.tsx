@@ -13,8 +13,20 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Idea Browser - Discover Tomorrow's Business Ideas Today",
-  description: "The #1 Platform to Spot Trends and Startup Ideas Worth Building",
+  title: "Momentum AI - Your AI Accountability Agent",
+  description: "Stay emotionally connected to your goals with AI-powered accountability. Daily check-ins, streak tracking, and personalized coaching to help you achieve what matters most.",
+  keywords: "goal tracking, accountability, AI coach, habit tracking, motivation, personal development",
+  authors: [{ name: "Momentum AI" }],
+  openGraph: {
+    title: "Momentum AI - Your AI Accountability Agent",
+    description: "AI-powered goal tracking with daily check-ins, streak tracking, and personalized coaching",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Momentum AI - Your AI Accountability Agent", 
+    description: "AI-powered goal tracking with daily check-ins, streak tracking, and personalized coaching",
+  },
 };
 
 export default function RootLayout({
