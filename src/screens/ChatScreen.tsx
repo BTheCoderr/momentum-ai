@@ -10,18 +10,17 @@ import {
   KeyboardAvoidingView,
   Platform 
 } from 'react-native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { RouteProp } from '@react-navigation/native';
 import { RootTabParamList } from '../navigation';
 import api from '../api/axios';
 import { goalsAPI, userAPI } from '../api/services';
 
-type ChatScreenNavigationProp = NativeStackNavigationProp<RootTabParamList, 'Chat'>;
+type ChatScreenNavigationProp = BottomTabNavigationProp<RootTabParamList, 'Chat'>;
 type ChatScreenRouteProp = RouteProp<RootTabParamList, 'Chat'>;
 
 interface Props {
   navigation: ChatScreenNavigationProp;
-  route: ChatScreenRouteProp;
 }
 
 interface Message {
@@ -41,7 +40,7 @@ interface UserProfile {
   preferredTime: string;
 }
 
-export default function ChatScreen({ navigation, route }: Props) {
+export default function ChatScreen({ navigation }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -51,7 +50,7 @@ export default function ChatScreen({ navigation, route }: Props) {
 
   useEffect(() => {
     initializeChat();
-  }, [route.params?.initialPrompt]);
+  }, []);
 
   const initializeChat = async () => {
     try {
@@ -80,10 +79,7 @@ export default function ChatScreen({ navigation, route }: Props) {
       
       setMessages([initialMessage]);
 
-      // If there's an initial prompt, handle it
-      if (route.params?.initialPrompt) {
-        handleInitialPrompt(route.params.initialPrompt, profile, goals);
-      }
+      // Initial prompt handling removed for now - can be added back with proper navigation setup
     } catch (error) {
       console.log('Error initializing chat:', error);
       // Fallback to basic welcome

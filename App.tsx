@@ -113,7 +113,6 @@ function RootNavigator() {
         options={{ 
           headerShown: true,
           title: 'Notification Settings',
-          headerBackTitleVisible: false,
         }}
       />
     </Stack.Navigator>

@@ -429,7 +429,7 @@ export default function App() {
       }
 
       // Update goal progress based on completed habits
-      const habitsByGoal = {};
+      const habitsByGoal: { [goalId: string]: { total: number; completed: number } } = {};
       getAllTodaysHabits().forEach(habit => {
         if (!habitsByGoal[habit.goalId]) {
           habitsByGoal[habit.goalId] = { total: 0, completed: 0 };
@@ -441,7 +441,7 @@ export default function App() {
       });
 
       // Update each goal's progress
-      for (const [goalId, stats] of Object.entries(habitsByGoal)) {
+      for (const [goalId, stats] of Object.entries(habitsByGoal) as [string, { total: number; completed: number }][]) {
         const goal = goals.find(g => g.id === goalId);
         if (goal) {
           const habitProgress = (stats.completed / stats.total) * 20; // Each day contributes ~20% max
