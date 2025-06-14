@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
 import { supabase, Message } from '@/lib/supabase';
 
 // Development mode - bypass auth for testing
@@ -31,31 +30,6 @@ let developmentMessages: any[] = [
     timestamp: new Date('2024-01-01T10:01:30Z').toISOString(),
   },
 ]
-
-async function getOrCreateTestUser() {
-  if (!isDevelopment) return null
-  
-  try {
-    let user = await prisma.user.findUnique({
-      where: { email: 'test@momentum-ai.com' }
-    })
-    
-    if (!user) {
-      user = await prisma.user.create({
-        data: {
-          email: 'test@momentum-ai.com',
-          name: 'Test User',
-          emailVerified: new Date(),
-        }
-      })
-    }
-    
-    return user
-  } catch (error) {
-    console.log('Database not available, using in-memory storage for messages')
-    return null
-  }
-}
 
 export async function GET() {
   try {
@@ -171,77 +145,4 @@ function generateContextualMockResponse(userMessage: string) {
   return defaultResponses[Math.floor(Math.random() * defaultResponses.length)];
 }
 
-async function generateAIResponse(userMessage: string, userId: string) {
-  try {
-    // Get user's goals and recent progress for context
-    const userGoals = await prisma.goal.findMany({
-      where: { userId },
-      include: {
-        habits: true,
-        checkIns: {
-          orderBy: { createdAt: 'desc' },
-          take: 7 // Last week of check-ins
-        }
-      }
-    });
-
-    // If Groq API key is available, use real AI
-    if (process.env.GROQ_API_KEY) {
-      const Groq = require('groq-sdk');
-      const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-
-      const context = userGoals.length > 0 
-        ? `User's current goals: ${userGoals.map(g => `"${g.title}" (${g.progress}% complete, ${g.status})`).join(', ')}`
-        : 'User has no goals set yet';
-
-      const completion = await groq.chat.completions.create({
-        messages: [
-          {
-            role: "system",
-            content: `You are an AI accountability coach for a goal-tracking app called Momentum AI. Be supportive, insightful, and help users stay motivated. Keep responses concise (2-3 sentences max). Focus on actionable advice and emotional support. ${context}`
-          },
-          {
-            role: "user",
-            content: userMessage
-          }
-        ],
-        model: "llama3-8b-8192",
-        temperature: 0.7,
-        max_tokens: 150,
-      });
-
-      return {
-        content: completion.choices[0]?.message?.content || "I'm here to help you stay on track with your goals. What's on your mind?",
-        type: "insight"
-      };
-    }
-
-    // Fallback to smart mock responses if no API key
-    const responses = [
-      {
-        content: "I understand your challenge. Based on your patterns, let me suggest a small adjustment that might help you stay consistent.",
-        type: "insight"
-      },
-      {
-        content: "That's a great question! Let me analyze your recent progress and see what patterns I can identify to help you.",
-        type: "insight"
-      },
-      {
-        content: "I've noticed some interesting trends in your goal progress. Would you like me to share what I've observed?",
-        type: "question"
-      },
-      {
-        content: "Your consistency has been impressive! Let's build on this momentum. What's been working best for you?",
-        type: "encouragement"
-      }
-    ];
-
-    return responses[Math.floor(Math.random() * responses.length)];
-  } catch (error) {
-    console.error('Error generating AI response:', error);
-    return {
-      content: "I'm here to support you on your goal journey. How can I help you today?",
-      type: "encouragement"
-    };
-  }
-} 
+ 
