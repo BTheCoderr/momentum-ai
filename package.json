@@ -9,7 +9,7 @@
     "shared"
   ],
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --hostname 0.0.0.0",
     "mobile": "npx expo start --port 8085",
     "mobile:clear": "npx expo start --port 8085 --clear",
     "build": "next build",
