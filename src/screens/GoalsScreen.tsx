@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView, Alert } from 'react-native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../navigation';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { RootTabParamList } from '../navigation';
 import { LinearGradient } from 'expo-linear-gradient';
+import { goalsAPI, Goal as APIGoal } from '../api/services';
 
-type GoalsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Goals'>;
+type GoalsScreenNavigationProp = BottomTabNavigationProp<RootTabParamList, 'Goals'>;
 
 interface Props {
   navigation: GoalsScreenNavigationProp;
@@ -30,7 +31,20 @@ interface Habit {
 }
 
 export default function GoalsScreen({ navigation }: Props) {
-  const [goals, setGoals] = useState<Goal[]>([
+  const [goals, setGoals] = useState<Goal[]>([]);
+
+  useEffect(() => {
+    loadGoals();
+  }, []);
+
+  const loadGoals = async () => {
+    try {
+      const goalsData = await goalsAPI.getGoals();
+      setGoals(goalsData);
+    } catch (error) {
+      console.log('Error loading goals:', error);
+      // Set mock data as fallback
+      setGoals([
     {
       id: '1',
       title: 'Launch My SaaS Product',
@@ -63,20 +77,39 @@ export default function GoalsScreen({ navigation }: Props) {
       ],
       motivation: 'I want to feel confident and energetic for my family'
     }
-  ]);
-
-  const toggleHabit = (goalId: string, habitId: string) => {
-    setGoals(goals.map(goal => 
-      goal.id === goalId 
-        ? {
-            ...goal,
-            habits: goal.habits.map(habit =>
-              habit.id === habitId ? { ...habit, completed: !habit.completed } : habit
-            )
-          }
-        : goal
-    ));
+      ]);
+    }
   };
+
+  const toggleHabit = async (goalId: string, habitId: string) => {
+    try {
+      await goalsAPI.toggleHabit(goalId, habitId);
+      // Update local state
+      setGoals(goals.map(goal => 
+        goal.id === goalId 
+          ? {
+              ...goal,
+              habits: (goal.habits || []).map(habit =>
+                habit.id === habitId ? { ...habit, completed: !habit.completed } : habit
+              )
+            }
+          : goal
+      ));
+         } catch (error) {
+       console.log('Error toggling habit:', error);
+       // Still update local state as fallback
+       setGoals(goals.map(goal => 
+         goal.id === goalId 
+           ? {
+               ...goal,
+               habits: (goal.habits || []).map(habit =>
+                 habit.id === habitId ? { ...habit, completed: !habit.completed } : habit
+               )
+             }
+           : goal
+       ));
+     }
+   };
 
   const handleDailyCheckIn = (goalId: string) => {
     navigation.navigate('Chat', { 
@@ -178,7 +211,7 @@ export default function GoalsScreen({ navigation }: Props) {
                 </View>
                 <View style={styles.statItem}>
                   <Text style={styles.statIcon}>📅</Text>
-                  <Text style={styles.statNumber}>{goal.habits.filter(h => h.completed).length}/{goal.habits.length}</Text>
+                  <Text style={styles.statNumber}>{(goal.habits || []).filter(h => h.completed).length}/{(goal.habits || []).length}</Text>
                   <Text style={styles.statLabel}>Today's Habits</Text>
                 </View>
               </View>
@@ -186,7 +219,7 @@ export default function GoalsScreen({ navigation }: Props) {
               {/* Today's Habits */}
               <View style={styles.habitsSection}>
                 <Text style={styles.habitsTitle}>Today's Habits</Text>
-                {goal.habits.map((habit) => (
+                {(goal.habits || []).map((habit) => (
                   <TouchableOpacity 
                     key={habit.id} 
                     style={styles.habitItem}

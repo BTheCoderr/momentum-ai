@@ -1,6 +1,6 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
 import * as SecureStore from 'expo-secure-store';
-import { supabase } from '../../lib/supabase';
+import { supabase } from '../lib/supabase';
 
 interface User {
   id: string;

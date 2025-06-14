@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView, RefreshControl, Dimensions } from 'react-native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../navigation';
-import api from '../api/axios';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { RootTabParamList } from '../navigation';
 import { LinearGradient } from 'expo-linear-gradient';
 import MomentumLogo from '../components/MomentumLogo';
+import { userAPI, UserStats, goalsAPI, Goal, patternAPI, UserPatterns, aiReflectionAPI, AIReflection } from '../api/services';
+import { Ionicons } from '@expo/vector-icons';
 
-type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
+type HomeScreenNavigationProp = BottomTabNavigationProp<RootTabParamList, 'Home'>;
 
 interface Props {
   navigation: HomeScreenNavigationProp;
@@ -16,43 +17,57 @@ const { width } = Dimensions.get('window');
 
 export default function HomeScreen({ navigation }: Props) {
   const [refreshing, setRefreshing] = useState(false);
-  const [insights, setInsights] = useState([
-    {
-      id: 1,
-      type: 'warning',
-      title: 'Motivation Dip Detected',
-      description: 'Your fitness goal shows 20% less activity this week. Consider scheduling a workout buddy session.',
-      action: 'Schedule Intervention'
-    },
-    {
-      id: 2,
-      type: 'success',
-      title: 'Strong Momentum',
-      description: 'Your SaaS project is ahead of schedule! This aligns with your pattern of weekend productivity.',
-      action: 'Keep Going'
-    },
-    {
-      id: 3,
-      type: 'info',
-      title: 'Pattern Recognition',
-      description: 'You tend to be most productive on Tuesday mornings. Consider scheduling important tasks then.',
-      action: 'Optimize Schedule'
-    }
-  ]);
-
-  const [stats, setStats] = useState({
-    activeGoals: 2,
-    avgProgress: 53,
+  const [userStats, setUserStats] = useState<UserStats>({
     overallProgress: 85,
+    activeGoals: 2,
     aiInterventions: 12,
     motivationScore: 94
   });
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [userPatterns, setUserPatterns] = useState<UserPatterns | null>(null);
+  const [aiReflection, setAIReflection] = useState<AIReflection | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const onRefresh = React.useCallback(() => {
+  useEffect(() => {
+    loadAllData();
+  }, []);
+
+  const loadAllData = async () => {
+    try {
+      setLoading(true);
+      
+      // Load user stats and goals in parallel
+      const [statsData, goalsData] = await Promise.all([
+        userAPI.getUserStats(),
+        goalsAPI.getGoals()
+      ]);
+      
+      setUserStats(statsData);
+      setGoals(goalsData);
+
+      // Load patterns and AI reflection
+      const patterns = await patternAPI.getUserPatterns();
+      setUserPatterns(patterns);
+
+      // Get AI reflection based on patterns and goals
+      const reflection = await aiReflectionAPI.getPersonalizedInsights({
+        goals: goalsData,
+        patterns,
+        recentActivity: [] // Could include recent check-ins, etc.
+      });
+      setAIReflection(reflection);
+
+    } catch (error) {
+      console.log('Error loading dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 2000);
+    await loadAllData();
+    setRefreshing(false);
   }, []);
 
   const handleStartCheckIn = () => {
@@ -64,6 +79,41 @@ export default function HomeScreen({ navigation }: Props) {
   const handleChatWithAI = () => {
     navigation.navigate('Chat', {});
   };
+
+  const handleInsightAction = (insight: any) => {
+    // Navigate to chat with context about the specific insight
+    navigation.navigate('Chat', {
+      initialPrompt: `I'd like to work on: ${insight.title}. ${insight.description}`
+    });
+  };
+
+  // Use AI-generated insights if available, otherwise fall back to static ones
+  const displayInsights = aiReflection?.insights || [
+    {
+      type: 'warning' as const,
+      title: 'Motivation Dip Detected',
+      description: 'Your fitness goal shows 20% less activity this week. Consider scheduling a workout buddy session.',
+      confidence: 0.8,
+      actionable: true,
+      suggestedActions: ['Schedule workout buddy session', 'Review fitness goals']
+    },
+    {
+      type: 'success' as const,
+      title: 'Strong Momentum',
+      description: 'Your SaaS project is ahead of schedule! This aligns with your pattern of weekend productivity.',
+      confidence: 0.9,
+      actionable: true,
+      suggestedActions: ['Continue current approach', 'Plan next milestone']
+    },
+    {
+      type: 'pattern' as const,
+      title: 'Pattern Recognition',
+      description: 'You tend to be most productive on Tuesday mornings. Consider scheduling important tasks then.',
+      confidence: 0.85,
+      actionable: true,
+      suggestedActions: ['Block Tuesday mornings', 'Schedule important tasks then']
+    }
+  ];
 
   return (
     <SafeAreaView style={styles.container}>
@@ -78,26 +128,29 @@ export default function HomeScreen({ navigation }: Props) {
         <LinearGradient
           colors={['#4F46E5', '#7C3AED']}
           style={styles.header}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
         >
           <View style={styles.headerContent}>
-            <View style={styles.headerTop}>
-              <View style={styles.logoSection}>
-                <MomentumLogo size={40} color="#fff" />
-                <Text style={styles.headerTitle}>Momentum AI</Text>
-              </View>
-              <View style={styles.aiPoweredBadge}>
-                <Text style={styles.aiPoweredText}>🤖 AI-Powered Accountability</Text>
+            <View style={styles.headerLeft}>
+              <Text style={styles.logo}>Momentum AI</Text>
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>BETA</Text>
               </View>
             </View>
-            <Text style={styles.headerSubtitle}>Stay Emotionally Connected</Text>
-            <Text style={styles.headerMainTitle}>To Your Goals</Text>
-            <Text style={styles.headerDescription}>
-              Your AI accountability agent predicts when you'll drift from your goals and intervenes proactively. Like having a mini-therapist + detective that keeps your dreams alive.
-            </Text>
+            <TouchableOpacity style={styles.profileButton}>
+              <Ionicons name="person-circle-outline" size={32} color="#FFFFFF" />
+            </TouchableOpacity>
           </View>
         </LinearGradient>
+
+        {/* Hero Section */}
+        <View style={styles.heroSection}>
+          <Text style={styles.heroTitle}>
+            Ready to crush your goals today?
+          </Text>
+          <Text style={styles.heroSubtitle}>
+            Your AI coach is here to help you stay on track and achieve greatness.
+          </Text>
+        </View>
 
         {/* Daily Check-in CTA */}
         <LinearGradient
@@ -108,7 +161,12 @@ export default function HomeScreen({ navigation }: Props) {
         >
           <View style={styles.checkInContent}>
             <Text style={styles.checkInTitle}>🔥 Ready for your daily check-in?</Text>
-            <Text style={styles.checkInSubtitle}>Keep your momentum going! Track your habits and celebrate today's wins.</Text>
+            <Text style={styles.checkInSubtitle}>
+              {userPatterns?.behaviorTrends?.bestPerformanceTime 
+                ? `Your peak performance time is ${userPatterns.behaviorTrends.bestPerformanceTime}. Perfect timing!`
+                : "Keep your momentum going! Track your habits and celebrate today's wins."
+              }
+            </Text>
             <TouchableOpacity style={styles.checkInButton} onPress={handleStartCheckIn}>
               <Text style={styles.checkInButtonText}>Start Check-In 🎯</Text>
             </TouchableOpacity>
@@ -123,13 +181,18 @@ export default function HomeScreen({ navigation }: Props) {
           <View style={styles.statsRow}>
             <View style={[styles.statCard, { backgroundColor: '#E8F5E8' }]}>
               <Text style={styles.statIcon}>📈</Text>
-              <Text style={[styles.statNumber, { color: '#16A34A' }]}>{stats.overallProgress}%</Text>
+              <Text style={[styles.statNumber, { color: '#16A34A' }]}>{userStats.overallProgress}%</Text>
               <Text style={styles.statLabel}>Overall Progress</Text>
-              <Text style={styles.statSubtext}>You're crushing it this month!</Text>
+              <Text style={styles.statSubtext}>
+                {aiReflection?.predictions?.riskOfGoalAbandonment 
+                  ? `${Math.round((1 - aiReflection.predictions.riskOfGoalAbandonment) * 100)}% success likelihood`
+                  : "You're crushing it this month!"
+                }
+              </Text>
             </View>
             <View style={[styles.statCard, { backgroundColor: '#EEF2FF' }]}>
               <Text style={styles.statIcon}>🎯</Text>
-              <Text style={[styles.statNumber, { color: '#4F46E5' }]}>{stats.activeGoals}</Text>
+              <Text style={[styles.statNumber, { color: '#4F46E5' }]}>{userStats.activeGoals}</Text>
               <Text style={styles.statLabel}>Active Goals</Text>
               <Text style={styles.statSubtext}>Currently tracking</Text>
             </View>
@@ -137,15 +200,25 @@ export default function HomeScreen({ navigation }: Props) {
           <View style={styles.statsRow}>
             <View style={[styles.statCard, { backgroundColor: '#FEF3C7' }]}>
               <Text style={styles.statIcon}>🤖</Text>
-              <Text style={[styles.statNumber, { color: '#D97706' }]}>{stats.aiInterventions}</Text>
+              <Text style={[styles.statNumber, { color: '#D97706' }]}>{userStats.aiInterventions}</Text>
               <Text style={styles.statLabel}>AI Interventions</Text>
-              <Text style={styles.statSubtext}>Timely nudges this week</Text>
+              <Text style={styles.statSubtext}>
+                {userPatterns?.interventionHistory?.successfulInterventions?.length 
+                  ? `${userPatterns.interventionHistory.successfulInterventions.length} successful this week`
+                  : "Timely nudges this week"
+                }
+              </Text>
             </View>
             <View style={[styles.statCard, { backgroundColor: '#FCE7F3' }]}>
               <Text style={styles.statIcon}>💜</Text>
-              <Text style={[styles.statNumber, { color: '#BE185D' }]}>{stats.motivationScore}%</Text>
+              <Text style={[styles.statNumber, { color: '#BE185D' }]}>{userStats.motivationScore}%</Text>
               <Text style={styles.statLabel}>Motivation Score</Text>
-              <Text style={styles.statSubtext}>Emotional connection strong</Text>
+              <Text style={styles.statSubtext}>
+                {userPatterns?.behaviorTrends?.monthlyTrend === 'up' 
+                  ? "Trending upward!"
+                  : "Emotional connection strong"
+                }
+              </Text>
             </View>
           </View>
         </View>
@@ -157,44 +230,102 @@ export default function HomeScreen({ navigation }: Props) {
             <Text style={styles.sectionTitle}>AI Insights & Interventions</Text>
           </View>
           
-          {insights.map((insight) => (
-            <View key={insight.id} style={styles.insightCard}>
+          {displayInsights.map((insight, index) => (
+            <View key={index} style={styles.insightCard}>
               <View style={styles.insightHeader}>
                 <View style={[
                   styles.insightIndicator,
-                  { backgroundColor: insight.type === 'warning' ? '#FEF3C7' : insight.type === 'success' ? '#E8F5E8' : '#EEF2FF' }
+                  { backgroundColor: 
+                    insight.type === 'warning' ? '#FEF3C7' : 
+                    insight.type === 'success' ? '#E8F5E8' : 
+                    insight.type === 'pattern' ? '#F3E8FF' :
+                    '#EEF2FF' 
+                  }
                 ]}>
                   <Text style={styles.insightIndicatorText}>
-                    {insight.type === 'warning' ? '⚠️' : insight.type === 'success' ? '✅' : 'ℹ️'}
+                    {insight.type === 'warning' ? '⚠️' : 
+                     insight.type === 'success' ? '✅' : 
+                     insight.type === 'pattern' ? '🧠' :
+                     'ℹ️'}
                   </Text>
                 </View>
                 <Text style={styles.insightTitle}>{insight.title}</Text>
               </View>
               <Text style={styles.insightDescription}>{insight.description}</Text>
+              {insight.suggestedActions && (
+                <View style={styles.suggestedActions}>
+                  {insight.suggestedActions.slice(0, 2).map((action: string, actionIndex: number) => (
+                    <Text key={actionIndex} style={styles.suggestedAction}>• {action}</Text>
+                  ))}
+                </View>
+              )}
               <TouchableOpacity 
                 style={[
                   styles.insightButton,
-                  { backgroundColor: insight.type === 'warning' ? '#F59E0B' : insight.type === 'success' ? '#16A34A' : '#4F46E5' }
+                  { backgroundColor: 
+                    insight.type === 'warning' ? '#F59E0B' : 
+                    insight.type === 'success' ? '#16A34A' : 
+                    insight.type === 'pattern' ? '#7C3AED' :
+                    '#4F46E5' 
+                  }
                 ]}
-                onPress={handleChatWithAI}
+                onPress={() => handleInsightAction(insight)}
               >
-                <Text style={styles.insightButtonText}>{insight.action}</Text>
+                <Text style={styles.insightButtonText}>
+                  Discuss with AI
+                </Text>
               </TouchableOpacity>
             </View>
           ))}
         </View>
 
+        {/* Personalized Coaching Section */}
+        {aiReflection?.personalizedCoaching && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionIcon}>💭</Text>
+              <Text style={styles.sectionTitle}>Your Personal Coach</Text>
+            </View>
+            
+            <View style={styles.coachingCard}>
+              <Text style={styles.coachingMessage}>
+                {aiReflection.personalizedCoaching.emotionalSupport}
+              </Text>
+              
+              {aiReflection.personalizedCoaching.nextSteps.length > 0 && (
+                <View style={styles.nextStepsContainer}>
+                  <Text style={styles.nextStepsTitle}>Next Steps:</Text>
+                  {aiReflection.personalizedCoaching.nextSteps.map((step, index) => (
+                    <Text key={index} style={styles.nextStep}>• {step}</Text>
+                  ))}
+                </View>
+              )}
+              
+              <TouchableOpacity 
+                style={styles.coachingButton}
+                onPress={handleChatWithAI}
+              >
+                <Text style={styles.coachingButtonText}>Continue Conversation</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
         {/* Quick Actions */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-          <View style={styles.quickActions}>
+        <View style={styles.quickActionsContainer}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionIcon}>⚡</Text>
+            <Text style={styles.sectionTitle}>Quick Actions</Text>
+          </View>
+          
+          <View style={styles.quickActionsGrid}>
             <TouchableOpacity 
               style={styles.quickActionCard}
-              onPress={() => navigation.navigate('Chat', {})}
+              onPress={handleChatWithAI}
             >
-              <Text style={styles.quickActionIcon}>💬</Text>
+              <Text style={styles.quickActionIcon}>🤖</Text>
               <Text style={styles.quickActionTitle}>AI Coach</Text>
-              <Text style={styles.quickActionSubtitle}>Chat with your accountability agent</Text>
+              <Text style={styles.quickActionSubtitle}>Get personalized guidance</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
@@ -217,117 +348,120 @@ export default function HomeScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#F8FAFC',
   },
   scrollView: {
     flex: 1,
   },
   header: {
-    paddingHorizontal: 20,
     paddingTop: 20,
-    paddingBottom: 30,
+    paddingBottom: 32,
+    paddingHorizontal: 20,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
   },
   headerContent: {
     alignItems: 'center',
   },
-  headerTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    width: '100%',
-    marginBottom: 20,
-  },
-  logoSection: {
+  headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
+  logo: {
+    fontSize: 20,
+    fontWeight: '700',
     color: '#fff',
-    marginLeft: 12,
+    marginRight: 12,
   },
-  aiPoweredBadge: {
+  badge: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
   },
-  aiPoweredText: {
-    color: '#fff',
+  badgeText: {
     fontSize: 12,
+    color: '#fff',
     fontWeight: '600',
   },
-  headerSubtitle: {
-    fontSize: 18,
-    color: '#E0E7FF',
-    textAlign: 'center',
-    marginBottom: 4,
+  profileButton: {
+    padding: 8,
   },
-  headerMainTitle: {
-    fontSize: 32,
-    fontWeight: 'bold',
+  heroSection: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  heroTitle: {
+    fontSize: 28,
+    fontWeight: '800',
     color: '#fff',
     textAlign: 'center',
     marginBottom: 12,
+    lineHeight: 34,
   },
-  headerDescription: {
+  heroSubtitle: {
     fontSize: 16,
-    color: '#C7D2FE',
+    color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
-    lineHeight: 24,
-    paddingHorizontal: 10,
+    lineHeight: 22,
+    paddingHorizontal: 8,
   },
   checkInCard: {
-    margin: 20,
-    borderRadius: 16,
-    padding: 20,
+    marginHorizontal: 20,
+    marginTop: 24,
+    marginBottom: 32,
+    borderRadius: 20,
+    padding: 24,
     flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowColor: '#FF6B35',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
   },
   checkInContent: {
     flex: 1,
+    paddingRight: 16,
   },
   checkInTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 20,
+    fontWeight: '700',
     color: '#fff',
     marginBottom: 8,
   },
   checkInSubtitle: {
     fontSize: 14,
-    color: '#FFF3E0',
-    marginBottom: 16,
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginBottom: 20,
     lineHeight: 20,
   },
   checkInButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 12,
     alignSelf: 'flex-start',
   },
   checkInButtonText: {
-    color: '#fff',
-    fontWeight: '600',
     fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
   },
   checkInIcon: {
-    marginLeft: 16,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   checkInIconText: {
-    fontSize: 40,
+    fontSize: 28,
   },
   statsContainer: {
     paddingHorizontal: 20,
-    marginBottom: 20,
+    marginBottom: 32,
   },
   statsRow: {
     flexDirection: 'row',
@@ -338,13 +472,13 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     borderRadius: 16,
-    marginHorizontal: 4,
+    marginHorizontal: 6,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   statIcon: {
     fontSize: 24,
@@ -352,7 +486,7 @@ const styles = StyleSheet.create({
   },
   statNumber: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontWeight: '800',
     marginBottom: 4,
   },
   statLabel: {
@@ -366,24 +500,25 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6B7280',
     textAlign: 'center',
+    lineHeight: 16,
   },
   section: {
     paddingHorizontal: 20,
-    marginBottom: 24,
+    marginBottom: 32,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   sectionIcon: {
     fontSize: 24,
-    marginRight: 8,
+    marginRight: 12,
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#111827',
+    fontWeight: '700',
+    color: '#1F2937',
   },
   insightCard: {
     backgroundColor: '#fff',
@@ -392,9 +527,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 2,
+    elevation: 3,
   },
   insightHeader: {
     flexDirection: 'row',
@@ -405,8 +540,8 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
     marginRight: 12,
   },
   insightIndicatorText: {
@@ -415,7 +550,7 @@ const styles = StyleSheet.create({
   insightTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
+    color: '#1F2937',
     flex: 1,
   },
   insightDescription: {
@@ -431,11 +566,15 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   insightButtonText: {
-    color: '#fff',
-    fontWeight: '600',
     fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
   },
-  quickActions: {
+  quickActionsContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 32,
+  },
+  quickActionsGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
@@ -444,13 +583,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 16,
     padding: 20,
-    marginHorizontal: 4,
+    marginHorizontal: 6,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   quickActionIcon: {
     fontSize: 32,
@@ -459,15 +598,103 @@ const styles = StyleSheet.create({
   quickActionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
-    marginBottom: 4,
+    color: '#1F2937',
+    textAlign: 'center',
+    marginBottom: 8,
   },
   quickActionSubtitle: {
     fontSize: 12,
     color: '#6B7280',
     textAlign: 'center',
+    lineHeight: 16,
   },
   bottomPadding: {
     height: 20,
+  },
+  primaryActionCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  primaryActionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  primaryActionIcon: {
+    fontSize: 32,
+    marginRight: 16,
+  },
+  primaryActionText: {
+    flex: 1,
+  },
+  primaryActionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 4,
+  },
+  primaryActionSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  primaryActionArrow: {
+    fontSize: 24,
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  suggestedActions: {
+    marginBottom: 16,
+  },
+  suggestedAction: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  coachingCard: {
+    padding: 20,
+    borderRadius: 16,
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  coachingMessage: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 16,
+  },
+  nextStepsContainer: {
+    marginBottom: 16,
+  },
+  nextStepsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 8,
+  },
+  nextStep: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  coachingButton: {
+    backgroundColor: '#4F46E5',
+    padding: 12,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  coachingButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
   },
 });

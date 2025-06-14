@@ -27,6 +27,7 @@
     "reset": "npm run clean && npm run install:all"
   },
   "devDependencies": {
+    "@types/react": "~19.0.10",
     "concurrently": "^8.2.2",
     "typescript": "^5.7.2"
   },
@@ -42,9 +43,15 @@
   "author": "Momentum AI Team",
   "license": "MIT",
   "dependencies": {
+    "@prisma/client": "^6.9.0",
+    "@react-navigation/bottom-tabs": "^7.3.15",
     "@react-navigation/native": "^7.1.11",
     "@react-navigation/native-stack": "^7.3.15",
+    "@react-navigation/stack": "^7.3.4",
     "@supabase/supabase-js": "^2.50.0",
+    "@tailwindcss/postcss": "^4.1.10",
+    "@tailwindcss/typography": "^0.5.16",
+    "autoprefixer": "^10.4.21",
     "axios": "^1.10.0",
     "expo-asset": "~11.1.5",
     "expo-constants": "~17.1.6",
@@ -53,11 +60,24 @@
     "expo-secure-store": "^14.2.3",
     "expo-splash-screen": "~0.30.9",
     "expo-status-bar": "^2.2.3",
+    "groq-sdk": "^0.25.0",
+    "lucide-react": "^0.515.0",
     "next": "^15.3.3",
+    "next-auth": "^4.24.11",
+    "postcss": "^8.5.5",
+    "prisma": "^6.9.0",
     "react": "19.0.0",
     "react-dom": "19.0.0",
+    "react-native": "0.79.3",
+    "react-native-gesture-handler": "~2.24.0",
     "react-native-safe-area-context": "5.4.0",
-    "react-native-screens": "^4.11.1",
-    "react-native-svg": "15.11.2"
+    "react-native-screens": "~4.11.1",
+    "react-native-svg": "15.11.2",
+    "tailwindcss": "^4.1.10"
+  },
+  "overrides": {
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "react-native-renderer": "19.0.0"
   }
 }

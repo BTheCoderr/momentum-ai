@@ -3,11 +3,6 @@ const nextConfig = {
   // Point to the web app directory
   distDir: '.next',
   
-  // Configure for the web app structure
-  experimental: {
-    appDir: true,
-  },
-  
   // Handle the fact that we have both mobile and web in same repo
   webpack: (config, { isServer }) => {
     // Ignore mobile-specific files during web build

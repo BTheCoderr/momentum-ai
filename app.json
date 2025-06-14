@@ -40,11 +40,15 @@
     "extra": {
       "eas": {
         "projectId": "momentum-ai-mobile"
-      }
+      },
+      "apiUrl": "http://10.225.8.234:3001/api",
+      "supabaseUrl": "your_supabase_url_here",
+      "supabaseAnonKey": "your_supabase_anon_key_here"
     },
     "scheme": "momentum-ai",
-    "plugins": [
-      "expo-asset"
-    ]
+    "plugins": [],
+    "experiments": {
+      "typedRoutes": false
+    }
   }
 }

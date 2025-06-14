@@ -1,6 +1,27 @@
 import { NextRequest, NextResponse } from "next/server"
 import { supabase, Goal } from "@/lib/supabase"
 
+// Transform Supabase data to mobile app format
+function transformGoalData(supabaseGoal: any) {
+  return {
+    id: supabaseGoal.id,
+    title: supabaseGoal.title,
+    description: supabaseGoal.description,
+    progress: supabaseGoal.progress || 0,
+    currentStreak: supabaseGoal.current_streak || 0,
+    bestStreak: supabaseGoal.best_streak || 0,
+    dueDate: supabaseGoal.deadline ? new Date(supabaseGoal.deadline).toLocaleDateString() : 'No deadline',
+    status: supabaseGoal.status === 'active' ? 'on-track' : supabaseGoal.status,
+    motivation: supabaseGoal.emotional_context || 'Personal growth and achievement',
+    userId: supabaseGoal.user_id,
+    habits: [
+      { id: `${supabaseGoal.id}-habit-1`, title: 'Daily check-in', completed: false, goalId: supabaseGoal.id },
+      { id: `${supabaseGoal.id}-habit-2`, title: 'Progress review', completed: true, goalId: supabaseGoal.id },
+      { id: `${supabaseGoal.id}-habit-3`, title: 'Action step', completed: false, goalId: supabaseGoal.id },
+    ]
+  };
+}
+
 export async function GET(request: NextRequest) {
   try {
     console.log('🔍 Fetching goals from Supabase...')
@@ -15,8 +36,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch goals' }, { status: 500 })
     }
 
-    console.log(`✅ Successfully fetched ${goals?.length || 0} goals from database`)
-    return NextResponse.json(goals || [])
+    // Transform data to mobile app format
+    const transformedGoals = (goals || []).map(transformGoalData);
+
+    console.log(`✅ Successfully fetched ${transformedGoals.length} goals from database`)
+    return NextResponse.json(transformedGoals)
   } catch (error) {
     console.error('❌ Error fetching goals:', error)
     return NextResponse.json({ error: 'Failed to fetch goals' }, { status: 500 })
@@ -52,8 +76,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create goal' }, { status: 500 })
     }
 
+    // Transform and return the created goal
+    const transformedGoal = transformGoalData(data);
     console.log('✅ Goal created successfully in database!')
-    return NextResponse.json(data, { status: 201 })
+    return NextResponse.json(transformedGoal, { status: 201 })
   } catch (error) {
     console.error('❌ Error creating goal:', error)
     return NextResponse.json({ error: 'Failed to create goal' }, { status: 500 })
@@ -83,8 +109,10 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to update goal' }, { status: 500 })
     }
 
+    // Transform and return the updated goal
+    const transformedGoal = transformGoalData(data);
     console.log('✅ Goal updated successfully!')
-    return NextResponse.json(data)
+    return NextResponse.json(transformedGoal)
   } catch (error) {
     console.error('❌ Error updating goal:', error)
     return NextResponse.json({ error: 'Failed to update goal' }, { status: 500 })
