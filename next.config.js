@@ -5,12 +5,9 @@ const nextConfig = {
   
   // Disable ESLint during build
   eslint: {
+    // Disable ESLint during builds to prevent deployment failures
+    // ESLint can still be run manually during development
     ignoreDuringBuilds: true,
-  },
-  
-  // Disable TypeScript checking during build
-  typescript: {
-    ignoreBuildErrors: true,
   },
   
   // Handle the fact that we have both mobile and web in same repo
@@ -33,6 +30,15 @@ const nextConfig = {
         permanent: false,
       },
     ];
+  },
+  
+  // Keep TypeScript checking enabled for type safety
+  typescript: {
+    ignoreBuildErrors: false,
+  },
+  
+  experimental: {
+    // Remove deprecated appDir option
   },
 };
 

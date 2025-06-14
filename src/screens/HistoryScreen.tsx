@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { View, SectionList, Text, StyleSheet, SafeAreaView, TouchableOpacity, RefreshControl } from 'react-native';
-import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import { RootTabParamList } from '../navigation';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation';
 import api from '../api/axios';
 
-type HistoryScreenNavigationProp = BottomTabNavigationProp<RootTabParamList, 'History'>;
+type HistoryScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'History'>;
 
 interface Props {
   navigation: HistoryScreenNavigationProp;
