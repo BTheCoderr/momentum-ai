@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, Ale
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation';
 import { useAuth } from '../hooks/useAuth';
+import { LinearGradient } from 'expo-linear-gradient';
 
 type ProfileScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Profile'>;
 
@@ -19,107 +20,109 @@ export default function ProfileScreen({ navigation }: Props) {
       'Are you sure you want to sign out?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Sign Out', 
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await signOut();
-              // Navigation will be handled by auth state change
-            } catch (error) {
-              Alert.alert('Error', 'Failed to sign out. Please try again.');
-            }
-          }
-        }
+        { text: 'Sign Out', style: 'destructive', onPress: signOut }
       ]
     );
   };
 
-  const menuItems = [
-    { icon: '📊', title: 'Progress & Stats', subtitle: 'View your journey and achievements' },
-    { icon: '🎯', title: 'Goals & Habits', subtitle: 'Manage your goals and daily habits' },
-    { icon: '🔔', title: 'Notifications', subtitle: 'Customize your reminder settings' },
-    { icon: '🤖', title: 'AI Coach Settings', subtitle: 'Personalize your AI coaching experience' },
-    { icon: '🎨', title: 'Appearance', subtitle: 'Customize the app theme and layout' },
-    { icon: '📱', title: 'App Settings', subtitle: 'General app preferences' },
-    { icon: '❓', title: 'Help & Support', subtitle: 'Get help and contact support' },
-    { icon: '📄', title: 'Privacy & Terms', subtitle: 'Review privacy policy and terms' },
+  const userStats = {
+    totalStreaks: 47,
+    activeGoals: 2,
+    completedGoals: 8,
+    motivationScore: 94,
+    joinDate: 'March 2024'
+  };
+
+  const settingsOptions = [
+    { id: 1, title: 'Notifications', subtitle: 'Manage your alerts', icon: '🔔' },
+    { id: 2, title: 'Privacy', subtitle: 'Data and privacy settings', icon: '🔒' },
+    { id: 3, title: 'Goals', subtitle: 'Manage your goals', icon: '🎯' },
+    { id: 4, title: 'AI Coach Settings', subtitle: 'Customize your AI experience', icon: '🤖' },
+    { id: 5, title: 'Export Data', subtitle: 'Download your progress', icon: '📊' },
+    { id: 6, title: 'Help & Support', subtitle: 'Get help and contact us', icon: '❓' },
   ];
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.backButton}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Profile</Text>
-        <View style={styles.placeholder} />
-      </View>
-
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* User Info Section */}
-        <View style={styles.userSection}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {user?.name ? user.name.charAt(0).toUpperCase() : user?.email?.charAt(0).toUpperCase() || '?'}
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <LinearGradient
+          colors={['#4F46E5', '#7C3AED']}
+          style={styles.header}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <View style={styles.headerContent}>
+            <View style={styles.avatarContainer}>
+              <Text style={styles.avatarText}>
+                {user?.email ? user.email.charAt(0).toUpperCase() : 'U'}
+              </Text>
+            </View>
+            <Text style={styles.userName}>
+              {user?.email ? user.email.split('@')[0] : 'User'}
             </Text>
+            <Text style={styles.userEmail}>{user?.email || 'user@example.com'}</Text>
+            <Text style={styles.joinDate}>Member since {userStats.joinDate}</Text>
           </View>
-          <Text style={styles.userName}>{user?.name || 'User'}</Text>
-          <Text style={styles.userEmail}>{user?.email || 'No email'}</Text>
-          
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>12</Text>
-              <Text style={styles.statLabel}>Days Active</Text>
+        </LinearGradient>
+
+        {/* Stats Cards */}
+        <View style={styles.statsContainer}>
+          <View style={styles.statsRow}>
+            <View style={[styles.statCard, { backgroundColor: '#E8F5E8' }]}>
+              <Text style={styles.statIcon}>🔥</Text>
+              <Text style={[styles.statNumber, { color: '#16A34A' }]}>{userStats.totalStreaks}</Text>
+              <Text style={styles.statLabel}>Total Streaks</Text>
+              <Text style={styles.statSubtext}>days</Text>
             </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>8</Text>
-              <Text style={styles.statLabel}>Goals Set</Text>
+            <View style={[styles.statCard, { backgroundColor: '#EEF2FF' }]}>
+              <Text style={styles.statIcon}>🎯</Text>
+              <Text style={[styles.statNumber, { color: '#4F46E5' }]}>{userStats.activeGoals}</Text>
+              <Text style={styles.statLabel}>Active Goals</Text>
+              <Text style={styles.statSubtext}>in progress</Text>
             </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>45</Text>
-              <Text style={styles.statLabel}>Conversations</Text>
+          </View>
+          <View style={styles.statsRow}>
+            <View style={[styles.statCard, { backgroundColor: '#FEF3C7' }]}>
+              <Text style={styles.statIcon}>✅</Text>
+              <Text style={[styles.statNumber, { color: '#D97706' }]}>{userStats.completedGoals}</Text>
+              <Text style={styles.statLabel}>Completed</Text>
+              <Text style={styles.statSubtext}>goals achieved</Text>
+            </View>
+            <View style={[styles.statCard, { backgroundColor: '#FCE7F3' }]}>
+              <Text style={styles.statIcon}>💜</Text>
+              <Text style={[styles.statNumber, { color: '#BE185D' }]}>{userStats.motivationScore}%</Text>
+              <Text style={styles.statLabel}>Motivation</Text>
+              <Text style={styles.statSubtext}>score</Text>
             </View>
           </View>
         </View>
 
-        {/* Menu Items */}
-        <View style={styles.menuSection}>
-          {menuItems.map((item, index) => (
-            <TouchableOpacity 
-              key={index} 
-              style={styles.menuItem}
-              onPress={() => {
-                // Handle menu item press
-                Alert.alert('Coming Soon', `${item.title} feature is coming soon!`);
-              }}
-            >
-              <View style={styles.menuItemLeft}>
-                <Text style={styles.menuIcon}>{item.icon}</Text>
-                <View style={styles.menuTextContainer}>
-                  <Text style={styles.menuTitle}>{item.title}</Text>
-                  <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
+        {/* Settings */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Settings</Text>
+          {settingsOptions.map((option) => (
+            <TouchableOpacity key={option.id} style={styles.settingCard}>
+              <View style={styles.settingLeft}>
+                <Text style={styles.settingIcon}>{option.icon}</Text>
+                <View style={styles.settingText}>
+                  <Text style={styles.settingTitle}>{option.title}</Text>
+                  <Text style={styles.settingSubtitle}>{option.subtitle}</Text>
                 </View>
               </View>
-              <Text style={styles.menuArrow}>›</Text>
+              <Text style={styles.settingArrow}>›</Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        {/* Sign Out Button */}
-        <View style={styles.signOutSection}>
+        {/* Sign Out */}
+        <View style={styles.section}>
           <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
             <Text style={styles.signOutText}>Sign Out</Text>
           </TouchableOpacity>
         </View>
 
-        {/* App Info */}
-        <View style={styles.appInfo}>
-          <Text style={styles.appVersion}>Momentum AI v1.0.0</Text>
-          <Text style={styles.appDescription}>Your AI Accountability Agent</Text>
-        </View>
+        <View style={styles.bottomPadding} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -130,42 +133,25 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F9FAFB',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  backButton: {
-    fontSize: 16,
-    color: '#4F46E5',
-    fontWeight: '600',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1F2937',
-  },
-  placeholder: {
-    width: 50,
-  },
-  content: {
+  scrollView: {
     flex: 1,
   },
-  userSection: {
-    backgroundColor: '#fff',
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 30,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
     alignItems: 'center',
-    paddingVertical: 32,
-    marginBottom: 16,
   },
-  avatar: {
+  headerContent: {
+    alignItems: 'center',
+  },
+  avatarContainer: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#4F46E5',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -178,83 +164,115 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: '#fff',
     marginBottom: 4,
   },
   userEmail: {
     fontSize: 16,
-    color: '#6B7280',
-    marginBottom: 24,
+    color: '#C7D2FE',
+    marginBottom: 8,
+  },
+  joinDate: {
+    fontSize: 14,
+    color: '#A5B4FC',
   },
   statsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statItem: {
-    alignItems: 'center',
     paddingHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 20,
   },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#4F46E5',
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginTop: 4,
-  },
-  statDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: '#E5E7EB',
-  },
-  menuSection: {
-    backgroundColor: '#fff',
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     marginBottom: 16,
   },
-  menuItem: {
+  statCard: {
+    flex: 1,
+    padding: 20,
+    borderRadius: 16,
+    marginHorizontal: 4,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  statIcon: {
+    fontSize: 24,
+    marginBottom: 8,
+  },
+  statNumber: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 2,
+    textAlign: 'center',
+  },
+  statSubtext: {
+    fontSize: 12,
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+  section: {
+    paddingHorizontal: 20,
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginBottom: 16,
+  },
+  settingCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 8,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
-  menuItemLeft: {
+  settingLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
   },
-  menuIcon: {
-    fontSize: 24,
-    marginRight: 16,
+  settingIcon: {
+    fontSize: 20,
+    marginRight: 12,
   },
-  menuTextContainer: {
+  settingText: {
     flex: 1,
   },
-  menuTitle: {
+  settingTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#111827',
     marginBottom: 2,
   },
-  menuSubtitle: {
+  settingSubtitle: {
     fontSize: 14,
     color: '#6B7280',
   },
-  menuArrow: {
+  settingArrow: {
     fontSize: 20,
     color: '#9CA3AF',
   },
-  signOutSection: {
-    padding: 16,
-    marginBottom: 16,
-  },
   signOutButton: {
     backgroundColor: '#EF4444',
-    paddingVertical: 16,
     borderRadius: 12,
+    padding: 16,
     alignItems: 'center',
   },
   signOutText: {
@@ -262,18 +280,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  appInfo: {
-    alignItems: 'center',
-    paddingVertical: 24,
-    paddingBottom: 40,
-  },
-  appVersion: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginBottom: 4,
-  },
-  appDescription: {
-    fontSize: 12,
-    color: '#9CA3AF',
+  bottomPadding: {
+    height: 20,
   },
 }); 

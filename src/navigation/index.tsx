@@ -5,12 +5,14 @@ import HomeScreen from '../screens/HomeScreen';
 import ChatScreen from '../screens/ChatScreen';
 import HistoryScreen from '../screens/HistoryScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import GoalsScreen from '../screens/GoalsScreen';
 
 export type RootStackParamList = {
   Home: undefined;
   Chat: { initialPrompt?: string };
   History: undefined;
   Profile: undefined;
+  Goals: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -29,6 +31,7 @@ export default function AppNavigator() {
         <Stack.Screen name="Chat" component={ChatScreen} />
         <Stack.Screen name="History" component={HistoryScreen} />
         <Stack.Screen name="Profile" component={ProfileScreen} />
+        <Stack.Screen name="Goals" component={GoalsScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
