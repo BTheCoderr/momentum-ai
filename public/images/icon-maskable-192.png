@@ -1,0 +1,21 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1E40AF;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#3B82F6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8B5CF6;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Main M Letter -->
+  <path d="M30 50 L30 150 L50 150 L50 90 L75 120 L100 90 L100 150 L120 150 L120 50 L100 50 L75 85 L50 50 Z" fill="url(#logoGradient)"/>
+  
+  <!-- Swoosh/Nike-style curve -->
+  <path d="M25 160 Q60 140 100 155 Q130 165 170 150" stroke="url(#logoGradient)" stroke-width="8" fill="none" stroke-linecap="round"/>
+  
+  <!-- Dots representing AI/data -->
+  <circle cx="140" cy="70" r="4" fill="url(#logoGradient)"/>
+  <circle cx="150" cy="85" r="3" fill="url(#logoGradient)"/>
+  <circle cx="160" cy="100" r="5" fill="url(#logoGradient)"/>
+  <circle cx="145" cy="115" r="3" fill="url(#logoGradient)"/>
+</svg> 

@@ -1,0 +1,46 @@
+{
+  "expo": {
+    "name": "Momentum AI",
+    "slug": "momentum-ai",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#4F46E5"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.momentumai.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#4F46E5"
+      },
+      "package": "com.momentumai.app"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "cli": {
+      "appVersionSource": "remote"
+    },
+    "developmentClient": {
+      "silentLaunch": true
+    },
+    "packagerOpts": {
+      "port": 8085
+    },
+    "extra": {
+      "eas": {
+        "projectId": "momentum-ai-mobile"
+      }
+    }
+  }
+} 

@@ -1,199 +1,130 @@
 import { useState } from 'react';
-import { Send, Brain, User, Lightbulb, Heart, Clock } from 'lucide-react';
+import { Send, Brain, AlertTriangle, CheckCircle, TrendingUp, MessageSquare } from 'lucide-react';
+import { useSubscription } from '@/hooks/useSubscription';
+import { TIER_DESCRIPTIONS, SubscriptionTier } from '@/config/subscription-tiers';
 
 interface Message {
   id: string;
+  type: 'insight' | 'encouragement' | 'question' | 'reminder';
   content: string;
-  sender: 'user' | 'ai';
-  timestamp: Date;
-  type?: 'insight' | 'encouragement' | 'question' | 'reminder';
+  timestamp: string;
+  isAI: boolean;
 }
 
-export default function AICoachPanel() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      content: "Hi! I've been analyzing your progress and I noticed something interesting. You've been making great progress on your SaaS goal, but your fitness goal seems to be lagging. What's going on?",
-      sender: 'ai',
-      timestamp: new Date(Date.now() - 1000 * 60 * 5),
-      type: 'question'
-    },
-    {
-      id: '2', 
-      content: "You're right. I've been so focused on my startup that I've been skipping workouts. I know it's important but I just can't find the time.",
-      sender: 'user',
-      timestamp: new Date(Date.now() - 1000 * 60 * 3)
-    },
-    {
-      id: '3',
-      content: "I understand that completely. Here's what I've learned about your patterns: you're most energetic in the mornings, and you mentioned that staying fit makes you feel confident and energetic for your family. What if we tried 15-minute morning workouts instead of hour-long gym sessions?",
-      sender: 'ai', 
-      timestamp: new Date(Date.now() - 1000 * 60 * 2),
-      type: 'insight'
-    },
-    {
-      id: '4',
-      content: "That actually sounds doable! I could do that before I start coding.",
-      sender: 'user',
-      timestamp: new Date(Date.now() - 1000 * 60 * 1)
-    },
-    {
-      id: '5',
-      content: "Perfect! I'll set up a gentle reminder for 7 AM tomorrow. Remember, this isn't just about fitness - it's about feeling confident and energetic for your family. That's your deeper 'why', and it's what will keep you motivated when things get tough.",
-      sender: 'ai',
-      timestamp: new Date(),
-      type: 'encouragement'
-    }
-  ]);
+interface AICoachPanelProps {
+  messages: Message[];
+  onSendMessage: (message: string) => void;
+  isTyping?: boolean;
+}
 
-  const [inputValue, setInputValue] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
+export default function AICoachPanel({ messages, onSendMessage, isTyping = false }: AICoachPanelProps) {
+  const { userTier, canAccessFeature, getFeatureLimit, checkDailyCheckInLimit } = useSubscription();
+  const [dailyCheckIns, setDailyCheckIns] = useState(0);
 
-  const handleSendMessage = async () => {
-    if (!inputValue.trim()) return;
-
-    const newUserMessage: Message = {
-      id: Date.now().toString(),
-      content: inputValue,
-      sender: 'user',
-      timestamp: new Date()
-    };
-
-    setMessages(prev => [...prev, newUserMessage]);
-    const currentMessage = inputValue;
-    setInputValue('');
-    setIsTyping(true);
-
-    try {
-      // Call our API endpoint
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: currentMessage,
-          goals: [], // Would pass actual goals in real app
-          userContext: {
-            recentActivity: 'active',
-            timeOfDay: new Date().getHours()
-          }
-        }),
-      });
-
-      const data = await response.json();
-      
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        content: data.response,
-        sender: 'ai',
-        timestamp: new Date(),
-        type: data.fallback ? 'question' : 'insight'
-      };
-
-      setMessages(prev => [...prev, aiMessage]);
-    } catch (error) {
-      console.error('Chat error:', error);
-      
-      // Fallback to local response if API fails
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        content: "I'm having some connection issues, but I'm still here to support you. What's on your mind about your goals?",
-        sender: 'ai',
-        timestamp: new Date(),
-        type: 'question'
-      };
-
-      setMessages(prev => [...prev, aiMessage]);
-    } finally {
-      setIsTyping(false);
+  const getMessageIcon = (type: string) => {
+    switch (type) {
+      case 'insight': return <Brain className="w-4 h-4 text-purple-600" />;
+      case 'encouragement': return <TrendingUp className="w-4 h-4 text-green-600" />;
+      case 'question': return <MessageSquare className="w-4 h-4 text-blue-600" />;
+      case 'reminder': return <AlertTriangle className="w-4 h-4 text-amber-600" />;
+      default: return <MessageSquare className="w-4 h-4 text-gray-600" />;
     }
   };
 
-  const getMessageIcon = (type?: string) => {
+  const getMessageStyle = (type: string) => {
     switch (type) {
-      case 'insight': return <Lightbulb className="w-4 h-4 text-yellow-500" />;
-      case 'encouragement': return <Heart className="w-4 h-4 text-pink-500" />;
-      case 'reminder': return <Clock className="w-4 h-4 text-blue-500" />;
-      default: return <Brain className="w-4 h-4 text-purple-500" />;
+      case 'insight': return 'bg-purple-50 border-purple-100 text-purple-700';
+      case 'encouragement': return 'bg-green-50 border-green-100 text-green-700';
+      case 'question': return 'bg-blue-50 border-blue-100 text-blue-700';
+      case 'reminder': return 'bg-amber-50 border-amber-100 text-amber-700';
+      default: return 'bg-gray-50 border-gray-100 text-gray-700';
     }
+  };
+
+  const handleSendMessage = async (message: string) => {
+    if (!message.trim()) return;
+
+    // Check if user has access to AI chat
+    if (!canAccessFeature('aiCheckInsPerDay')) {
+      onSendMessage(`Upgrade to ${TIER_DESCRIPTIONS['PRO'].name} to unlock AI coaching and personalized insights!`);
+      return;
+    }
+
+    // Check daily limit
+    if (!checkDailyCheckInLimit(dailyCheckIns)) {
+      onSendMessage(`You've reached your daily AI coaching limit. Upgrade to ${TIER_DESCRIPTIONS['PRO'].name} for unlimited coaching!`);
+      return;
+    }
+
+    const newMessage: Message = {
+      id: Date.now().toString(),
+      type: 'question',
+      content: message,
+      timestamp: new Date().toISOString(),
+      isAI: false
+    };
+
+    onSendMessage(message);
+    setDailyCheckIns(prev => prev + 1);
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-lg border border-gray-100 max-w-4xl mx-auto">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col h-[600px]">
       {/* Header */}
-      <div className="p-6 border-b border-gray-200">
-        <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-            <Brain className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h2 className="text-xl font-bold text-gray-900">AI Accountability Coach</h2>
-            <p className="text-gray-600 text-sm">Your personal motivation detective</p>
-          </div>
-          <div className="ml-auto">
-            <div className="flex items-center space-x-2 text-sm text-green-600">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span>Active</span>
+      <div className="p-4 border-b border-gray-100">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center">
+              <Brain className="w-5 h-5 text-white" />
             </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">AI Coach</h2>
+              <div className="flex items-center">
+                <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                <span className="text-sm text-green-600">Active</span>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2">
+            <div className="px-3 py-1 bg-purple-50 text-purple-700 rounded-full text-sm font-medium">Elite</div>
           </div>
         </div>
       </div>
 
-      {/* Chat Messages */}
-      <div className="p-6 max-h-96 overflow-y-auto space-y-6">
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((message) => (
-          <div key={message.id} className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`flex space-x-3 max-w-xs lg:max-w-md ${message.sender === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
-              {/* Avatar */}
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                message.sender === 'user' 
-                  ? 'bg-blue-100' 
-                  : 'bg-gradient-to-r from-purple-500 to-pink-500'
-              }`}>
-                {message.sender === 'user' ? (
-                  <User className="w-4 h-4 text-blue-600" />
-                ) : (
-                  <Brain className="w-4 h-4 text-white" />
-                )}
-              </div>
-
-              {/* Message */}
-              <div className={`rounded-xl p-4 ${
-                message.sender === 'user'
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-gray-100 text-gray-900'
-              }`}>
-                {message.sender === 'ai' && message.type && (
-                  <div className="flex items-center space-x-2 mb-2 opacity-75">
+          <div
+            key={message.id}
+            className={`flex ${message.isAI ? 'justify-start' : 'justify-end'}`}
+          >
+            <div className={`max-w-[80%] ${message.isAI ? 'mr-auto' : 'ml-auto'}`}>
+              {message.isAI ? (
+                <div className={`rounded-lg p-4 ${getMessageStyle(message.type)} border`}>
+                  <div className="flex items-center space-x-2 mb-2">
                     {getMessageIcon(message.type)}
-                    <span className="text-xs font-medium capitalize">{message.type}</span>
+                    <span className="text-sm font-medium capitalize">{message.type}</span>
                   </div>
-                )}
-                <p className="text-sm leading-relaxed">{message.content}</p>
-                <p className={`text-xs mt-2 opacity-75 ${
-                  message.sender === 'user' ? 'text-blue-100' : 'text-gray-500'
-                }`}>
-                  {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </p>
+                  <p className="text-sm">{message.content}</p>
+                </div>
+              ) : (
+                <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg p-4">
+                  <p className="text-sm">{message.content}</p>
+                </div>
+              )}
+              <div className="text-xs text-gray-500 mt-1">
+                {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </div>
             </div>
           </div>
         ))}
-
-        {/* Typing Indicator */}
         {isTyping && (
           <div className="flex justify-start">
-            <div className="flex space-x-3 max-w-xs lg:max-w-md">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
-                <Brain className="w-4 h-4 text-white" />
-              </div>
-              <div className="bg-gray-100 text-gray-900 rounded-xl p-4">
-                <div className="flex space-x-1">
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                </div>
+            <div className="bg-gray-100 rounded-lg p-4 max-w-[80%]">
+              <div className="flex space-x-2">
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100"></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-200"></div>
               </div>
             </div>
           </div>
@@ -201,28 +132,31 @@ export default function AICoachPanel() {
       </div>
 
       {/* Input */}
-      <div className="p-6 border-t border-gray-200">
-        <div className="flex space-x-3">
+      <div className="p-4 border-t border-gray-100">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const input = e.currentTarget.elements.namedItem('message') as HTMLInputElement;
+            if (input.value.trim()) {
+              handleSendMessage(input.value);
+              input.value = '';
+            }
+          }}
+          className="flex space-x-2"
+        >
           <input
             type="text"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-            placeholder="Share what's on your mind..."
-            className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            disabled={isTyping}
+            name="message"
+            placeholder="Type your message..."
+            className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
           <button
-            onClick={handleSendMessage}
-            disabled={!inputValue.trim() || isTyping}
-            className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg hover:shadow-lg transition-shadow disabled:opacity-50 disabled:cursor-not-allowed"
+            type="submit"
+            className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-colors"
           >
-            <Send className="w-5 h-5" />
+            <Send className="w-4 h-4" />
           </button>
-        </div>
-        <p className="text-xs text-gray-500 mt-2">
-          Your AI coach is here to help you stay connected to your deeper motivations and overcome obstacles.
-        </p>
+        </form>
       </div>
     </div>
   );

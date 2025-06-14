@@ -1,5 +1,5 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, LineChart, Line } from 'recharts';
-import { TrendingUp, Target, Brain, AlertTriangle } from 'lucide-react';
+import { Target, Brain, TrendingUp, AlertTriangle, Heart } from 'lucide-react';
 
 interface Goal {
   id: string;
@@ -52,87 +52,109 @@ export default function ProgressDashboard({ goals }: ProgressDashboardProps) {
     }
   ];
 
+  // Handler for AI insight actions
+  const handleInsightAction = (insight: any) => {
+    console.log(`AI Insight action: ${insight.action}`);
+    
+    switch (insight.type) {
+      case 'warning':
+        alert(`⚠️ ${insight.action}: Taking action on ${insight.title}`);
+        break;
+      case 'success':
+        alert(`✅ ${insight.action}: Reinforcing ${insight.title}`);
+        break;
+      default:
+        alert(`🎯 ${insight.action}: Processing ${insight.title}`);
+    }
+  };
+
   return (
     <div className="space-y-8">
       {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+          <div className="flex items-center space-x-4">
+            <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
               <Target className="w-6 h-6 text-blue-600" />
             </div>
-            <span className="text-2xl font-bold text-blue-600">{goals.length}</span>
+            <div>
+              <div className="text-2xl font-bold text-blue-600">2</div>
+              <div className="text-sm text-gray-600">Active Goals</div>
+              <div className="text-xs text-gray-500">Currently tracking</div>
+            </div>
           </div>
-          <h3 className="font-semibold text-gray-900 mb-1">Active Goals</h3>
-          <p className="text-gray-600 text-sm">Currently tracking</p>
         </div>
 
-        <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+          <div className="flex items-center space-x-4">
+            <div className="w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center">
               <TrendingUp className="w-6 h-6 text-green-600" />
             </div>
-            <span className="text-2xl font-bold text-green-600">
-              {Math.round(goals.reduce((acc, goal) => acc + goal.progress, 0) / goals.length)}%
-            </span>
+            <div>
+              <div className="text-2xl font-bold text-green-600">53%</div>
+              <div className="text-sm text-gray-600">Avg Progress</div>
+              <div className="text-xs text-gray-500">Across all goals</div>
+            </div>
           </div>
-          <h3 className="font-semibold text-gray-900 mb-1">Avg Progress</h3>
-          <p className="text-gray-600 text-sm">Across all goals</p>
         </div>
 
-        <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center">
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+          <div className="flex items-center space-x-4">
+            <div className="w-12 h-12 bg-amber-50 rounded-lg flex items-center justify-center">
               <AlertTriangle className="w-6 h-6 text-amber-600" />
             </div>
-            <span className="text-2xl font-bold text-amber-600">
-              {goals.filter(g => g.status === 'at-risk').length}
-            </span>
+            <div>
+              <div className="text-2xl font-bold text-amber-600">1</div>
+              <div className="text-sm text-gray-600">At Risk</div>
+              <div className="text-xs text-gray-500">Need attention</div>
+            </div>
           </div>
-          <h3 className="font-semibold text-gray-900 mb-1">At Risk</h3>
-          <p className="text-gray-600 text-sm">Need attention</p>
         </div>
 
-        <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+          <div className="flex items-center space-x-4">
+            <div className="w-12 h-12 bg-purple-50 rounded-lg flex items-center justify-center">
               <Brain className="w-6 h-6 text-purple-600" />
             </div>
-            <span className="text-2xl font-bold text-purple-600">3</span>
+            <div>
+              <div className="text-2xl font-bold text-purple-600">3</div>
+              <div className="text-sm text-gray-600">AI Insights</div>
+              <div className="text-xs text-gray-500">This week</div>
+            </div>
           </div>
-          <h3 className="font-semibold text-gray-900 mb-1">AI Insights</h3>
-          <p className="text-gray-600 text-sm">This week</p>
         </div>
       </div>
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Goal Progress Chart */}
-        <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
-          <h3 className="text-lg font-bold text-gray-900 mb-6">Goal Progress</h3>
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+          <h3 className="text-lg font-semibold text-gray-900 mb-6">Goal Progress</h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={goalProgressData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <BarChart data={goalProgressData} barSize={40}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
                 <XAxis 
                   dataKey="name" 
                   tick={{ fontSize: 12, fill: '#6b7280' }}
                   axisLine={false}
+                  tickLine={false}
                 />
                 <YAxis 
                   tick={{ fontSize: 12, fill: '#6b7280' }}
                   axisLine={false}
+                  tickLine={false}
                   domain={[0, 100]}
                 />
                 <Bar 
                   dataKey="progress" 
-                  fill="url(#colorGradient)"
+                  fill="url(#progressGradient)"
                   radius={[4, 4, 0, 0]}
                 />
                 <defs>
-                  <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#3b82f6" />
-                    <stop offset="100%" stopColor="#8b5cf6" />
+                  <linearGradient id="progressGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#4F46E5" />
+                    <stop offset="100%" stopColor="#7C3AED" />
                   </linearGradient>
                 </defs>
               </BarChart>
@@ -141,59 +163,62 @@ export default function ProgressDashboard({ goals }: ProgressDashboardProps) {
         </div>
 
         {/* Weekly Trend */}
-        <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
-          <h3 className="text-lg font-bold text-gray-900 mb-6">Weekly Trend</h3>
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+          <h3 className="text-lg font-semibold text-gray-900 mb-6">Weekly Trend</h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={weeklyProgress}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
                 <XAxis 
                   dataKey="week" 
                   tick={{ fontSize: 12, fill: '#6b7280' }}
                   axisLine={false}
+                  tickLine={false}
                 />
                 <YAxis 
                   tick={{ fontSize: 12, fill: '#6b7280' }}
                   axisLine={false}
+                  tickLine={false}
+                  domain={[0, 100]}
                 />
                 <Line 
                   type="monotone" 
                   dataKey="progress" 
-                  stroke="#3b82f6" 
-                  strokeWidth={3}
-                  dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
+                  stroke="#4F46E5"
+                  strokeWidth={2}
+                  dot={{ fill: '#4F46E5', strokeWidth: 2, r: 4 }}
                 />
                 <Line 
                   type="monotone" 
                   dataKey="motivation" 
-                  stroke="#8b5cf6" 
+                  stroke="#7C3AED"
                   strokeWidth={2}
                   strokeDasharray="5 5"
-                  dot={{ fill: '#8b5cf6', strokeWidth: 2, r: 3 }}
+                  dot={{ fill: '#7C3AED', strokeWidth: 2, r: 4 }}
                 />
               </LineChart>
             </ResponsiveContainer>
           </div>
           <div className="flex items-center justify-center space-x-6 mt-4">
             <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+              <div className="w-3 h-3 rounded-full bg-indigo-600"></div>
               <span className="text-sm text-gray-600">Progress</span>
             </div>
             <div className="flex items-center space-x-2">
-              <div className="w-3 h-0.5 bg-purple-500 rounded-full"></div>
+              <div className="w-3 h-0.5 bg-purple-600"></div>
               <span className="text-sm text-gray-600">Motivation</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* AI Insights */}
-      <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
+      {/* AI Insights Section */}
+      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
         <div className="flex items-center space-x-3 mb-6">
-          <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
+          <div className="w-10 h-10 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center">
             <Brain className="w-5 h-5 text-white" />
           </div>
-          <h3 className="text-lg font-bold text-gray-900">AI Insights & Interventions</h3>
+          <h3 className="text-lg font-semibold text-gray-900">AI Insights & Interventions</h3>
         </div>
         
         <div className="space-y-4">
@@ -208,18 +233,63 @@ export default function ProgressDashboard({ goals }: ProgressDashboardProps) {
                     }`}></div>
                     <h4 className="font-semibold text-gray-900">{insight.title}</h4>
                   </div>
-                  <p className="text-gray-600 text-sm mb-3">{insight.message}</p>
+                  <p className="text-gray-600 text-sm">{insight.message}</p>
                 </div>
-                <button className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  insight.type === 'warning' ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' :
-                  insight.type === 'success' ? 'bg-green-100 text-green-700 hover:bg-green-200' :
-                  'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                }`}>
+                <button 
+                  onClick={() => handleInsightAction(insight)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    insight.type === 'warning' ? 'bg-amber-50 text-amber-700 hover:bg-amber-100' :
+                    insight.type === 'success' ? 'bg-green-50 text-green-700 hover:bg-green-100' :
+                    'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                  }`}
+                >
                   {insight.action}
                 </button>
               </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Bottom Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+          <div className="flex items-center space-x-4">
+            <div className="w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center">
+              <TrendingUp className="w-6 h-6 text-green-600" />
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-green-600">85%</div>
+              <div className="text-sm text-gray-900">Overall Progress</div>
+              <div className="text-xs text-gray-600">You're crushing it this month!</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+          <div className="flex items-center space-x-4">
+            <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
+              <Brain className="w-6 h-6 text-blue-600" />
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-blue-600">12</div>
+              <div className="text-sm text-gray-900">AI Interventions</div>
+              <div className="text-xs text-gray-600">Timely nudges this week</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+          <div className="flex items-center space-x-4">
+            <div className="w-12 h-12 bg-purple-50 rounded-lg flex items-center justify-center">
+              <Heart className="w-6 h-6 text-purple-600" />
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-purple-600">94%</div>
+              <div className="text-sm text-gray-900">Motivation Score</div>
+              <div className="text-xs text-gray-600">Emotional connection strong</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -1,34 +1,49 @@
 {
-  "name": "momentum-ai",
-  "version": "0.1.0",
+  "name": "momentum-ai-universal",
+  "version": "1.0.0",
+  "description": "Momentum AI - Cross-platform goal tracking and AI coaching app",
   "private": true,
-  "description": "AI-powered accountability agent to help you stay connected to your goals",
+  "workspaces": [
+    "web",
+    "mobile",
+    "shared"
+  ],
   "scripts": {
     "dev": "next dev",
+    "mobile": "npx expo start --port 8085",
+    "mobile:clear": "npx expo start --port 8085 --clear",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
-  },
-  "dependencies": {
-    "autoprefixer": "^10.4.21",
-    "clsx": "^2.1.1",
-    "date-fns": "^4.1.0",
-    "groq-sdk": "^0.23.0",
-    "lucide-react": "^0.469.0",
-    "next": "15.1.3",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "recharts": "^2.15.0"
+    "lint": "next lint",
+    "dev:web": "cd web && npm run dev",
+    "dev:mobile": "cd mobile && npx expo start",
+    "dev:both": "concurrently \"npm run dev:web\" \"npm run dev:mobile\"",
+    "build:web": "cd web && npm run build",
+    "build:mobile": "cd mobile && npx expo build",
+    "install:all": "npm install && npm run install:web && npm run install:mobile",
+    "install:web": "cd web && npm install",
+    "install:mobile": "cd mobile && npm install",
+    "clean": "rm -rf node_modules web/node_modules mobile/node_modules shared/node_modules",
+    "reset": "npm run clean && npm run install:all"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3",
-    "@tailwindcss/postcss": "^4.0.0",
-    "@types/node": "^20",
-    "@types/react": "^18",
-    "@types/react-dom": "^18",
-    "eslint": "^8",
-    "eslint-config-next": "15.1.3",
-    "tailwindcss": "^3.4.1",
-    "typescript": "^5"
+    "concurrently": "^8.2.2",
+    "typescript": "^5.7.2"
+  },
+  "keywords": [
+    "productivity",
+    "goals",
+    "ai",
+    "react-native",
+    "nextjs",
+    "expo",
+    "supabase"
+  ],
+  "author": "Momentum AI Team",
+  "license": "MIT",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.50.0",
+    "expo-linear-gradient": "^14.1.5",
+    "react-native-svg": "^15.12.0"
   }
 }

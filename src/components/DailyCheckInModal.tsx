@@ -47,7 +47,9 @@ export function DailyCheckInModal({ isOpen, onClose, goals, onComplete }: Props)
     const habitsByGoal: { [goalId: string]: string[] } = {};
     
     goals.forEach(goal => {
-      habitsByGoal[goal.id] = goal.habits
+      // Safe fallback for goals without habits
+      const goalHabits = goal.habits || [];
+      habitsByGoal[goal.id] = goalHabits
         .filter(habit => completedHabits[habit.id])
         .map(habit => habit.id);
     });
@@ -56,7 +58,8 @@ export function DailyCheckInModal({ isOpen, onClose, goals, onComplete }: Props)
     onClose();
   };
 
-  const totalHabits = goals.reduce((total, goal) => total + goal.habits.length, 0);
+  // Safe calculation with fallback for missing habits
+  const totalHabits = goals.reduce((total, goal) => total + (goal.habits?.length || 0), 0);
   const completedCount = Object.values(completedHabits).filter(Boolean).length;
   const completionRate = totalHabits > 0 ? Math.round((completedCount / totalHabits) * 100) : 0;
 
@@ -119,31 +122,38 @@ export function DailyCheckInModal({ isOpen, onClose, goals, onComplete }: Props)
                   <h4 className="font-medium text-gray-800">{goal.title}</h4>
                   <div className="flex items-center text-orange-600">
                     <Flame className="w-4 h-4 mr-1" />
-                    <span className="text-sm font-bold">{goal.currentStreak} day streak</span>
+                    <span className="text-sm font-bold">{goal.currentStreak || 0} day streak</span>
                   </div>
                 </div>
                 
                 <div className="space-y-2">
-                  {goal.habits.map((habit) => (
-                    <div
-                      key={habit.id}
-                      onClick={() => handleHabitToggle(habit.id)}
-                      className={`flex items-center p-3 rounded-lg border cursor-pointer transition-all ${
-                        completedHabits[habit.id]
-                          ? 'bg-green-50 border-green-200 text-green-900'
-                          : 'bg-gray-50 border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      {completedHabits[habit.id] ? (
-                        <CheckCircle className="w-5 h-5 text-green-600 mr-3" />
-                      ) : (
-                        <Circle className="w-5 h-5 text-gray-400 mr-3" />
-                      )}
-                      <span className={`${completedHabits[habit.id] ? 'line-through' : ''}`}>
-                        {habit.text}
-                      </span>
+                  {/* Safe fallback for goals without habits */}
+                  {(goal.habits || []).length > 0 ? (
+                    (goal.habits || []).map((habit) => (
+                      <div
+                        key={habit.id}
+                        onClick={() => handleHabitToggle(habit.id)}
+                        className={`flex items-center p-3 rounded-lg border cursor-pointer transition-all ${
+                          completedHabits[habit.id]
+                            ? 'bg-green-50 border-green-200 text-green-900'
+                            : 'bg-gray-50 border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        {completedHabits[habit.id] ? (
+                          <CheckCircle className="w-5 h-5 text-green-600 mr-3" />
+                        ) : (
+                          <Circle className="w-5 h-5 text-gray-400 mr-3" />
+                        )}
+                        <span className={`${completedHabits[habit.id] ? 'line-through' : ''}`}>
+                          {habit.text}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-3 text-gray-500 text-center italic">
+                      No habits set for this goal yet. Add some habits to track daily progress!
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
             ))}
