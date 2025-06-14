@@ -137,6 +137,18 @@ You currently have ${goals.length} active goal${goals.length !== 1 ? 's' : ''}. 
         case 'review_progress':
           response = await generateProgressReview();
           break;
+        case 'detailed_analytics':
+          response = await generateDetailedAnalytics();
+          break;
+        case 'optimize_strategy':
+          response = await generateOptimizationStrategy();
+          break;
+        case 'success_patterns':
+          response = await generateSuccessPatterns();
+          break;
+        case 'acceleration_plan':
+          response = await generateAccelerationPlan();
+          break;
         default:
           response = {
             id: Date.now().toString(),
@@ -301,33 +313,64 @@ If you're struggling: Focus on showing up, not performing
     const goals = userGoals;
     const totalProgress = goals.reduce((sum, goal) => sum + goal.progress, 0) / goals.length;
     
-    const reviewContent = `📊 **Your Progress Review**
+    // Advanced analytics calculations
+    const highPerformers = goals.filter(goal => goal.progress > 70);
+    const strugglingGoals = goals.filter(goal => goal.progress < 30);
+    const totalStreaks = goals.reduce((sum, goal) => sum + (goal.currentStreak || 0), 0);
+    const avgStreak = totalStreaks / goals.length;
+    const completedGoals = goals.filter(goal => goal.progress >= 100);
+    
+    // Performance insights
+    const momentumScore = totalProgress > 70 ? '🚀 Excellent' : totalProgress > 50 ? '⚡ Strong' : totalProgress > 30 ? '🌱 Building' : '💪 Starting';
+    const consistencyRating = avgStreak > 7 ? 'Outstanding' : avgStreak > 3 ? 'Good' : 'Developing';
+    
+    const reviewContent = `📊 **Advanced Progress Analytics**
 
-## 🎯 **Overall Performance: ${Math.round(totalProgress)}%**
+## 🎯 **Performance Dashboard**
+**Overall Score: ${Math.round(totalProgress)}%** | **Momentum: ${momentumScore}**
+
+📈 **Goal Breakdown:**
+• Total Goals: ${goals.length}
+• Completed: ${completedGoals.length} ✅
+• High Performers: ${highPerformers.length} (${Math.round((highPerformers.length/goals.length)*100)}%)
+• Need Focus: ${strugglingGoals.length}
+
+🔥 **Consistency Metrics:**
+• Average Streak: ${Math.round(avgStreak)} days
+• Consistency Rating: ${consistencyRating}
+• Total Active Days: ${totalStreaks}
 
 ${goals.map(goal => `
 **${goal.title}**
-Progress: ${goal.progress}% | Streak: ${goal.currentStreak} days
+Progress: ${goal.progress}% | Streak: ${goal.currentStreak || 0} days
 Status: ${goal.status === 'on-track' ? '✅ On Track' : goal.status === 'at-risk' ? '⚠️ Needs Attention' : '🎉 Completed'}
+Performance: ${goal.progress > 70 ? '🚀 Excellent' : goal.progress > 40 ? '⚡ Good' : '🌱 Growing'}
 `).join('')}
 
-## 💪 **What's Working Well:**
-• You're showing up consistently
-• Your streak building is impressive
-• You're tracking progress regularly
+## 🧠 **AI Insights:**
+${totalProgress > 60 ? 
+  `• Your ${userProfile?.preferredTime || 'daily'} routine is highly effective\n• Strong correlation between consistency and results\n• Ready for advanced optimization strategies` :
+  totalProgress > 30 ?
+  `• Building solid foundation with ${consistencyRating.toLowerCase()} consistency\n• Key patterns emerging in successful goals\n• Opportunity to scale what's working` :
+  `• Early stage momentum building\n• Focus on habit formation over results\n• Small wins creating positive feedback loops`
+}
 
-## 🎯 **Areas for Growth:**
-• Focus on the goal that needs most attention
-• Consider adjusting strategies for better results
-• Celebrate your wins more often!
+## 🎯 **Strategic Recommendations:**
+${totalProgress > 70 ? 
+  '1. Scale successful patterns to other areas\n2. Add stretch goals for continued growth\n3. Consider mentoring others' :
+  totalProgress > 40 ?
+  '1. Double down on high-performing goals\n2. Simplify struggling areas\n3. Increase accountability touchpoints' :
+  '1. Focus on 1-2 core goals only\n2. Build daily micro-habits\n3. Celebrate every small win'
+}
 
-## 🚀 **Next Week's Focus:**
-Based on your patterns, I recommend:
-1. Double down on what's working
-2. Adjust struggling areas with new approach
-3. Add one small habit to boost momentum
+## 🚀 **Next Level Actions:**
+Ready to optimize your approach? I can help you:
+• Analyze success patterns in detail
+• Create personalized optimization strategies  
+• Design advanced tracking systems
+• Build momentum acceleration plans
 
-**Ready to level up? Let's create your next action plan!**`;
+**What area would you like to dive deeper into?**`;
 
     return {
       id: Date.now().toString(),
@@ -336,9 +379,260 @@ Based on your patterns, I recommend:
       timestamp: new Date(),
       type: 'insight',
       actionButtons: [
-        { label: '📈 Optimize Plan', action: 'optimize_plan' },
+        { label: '📈 Deep Analytics', action: 'detailed_analytics' },
+        { label: '🔧 Optimize Strategy', action: 'optimize_strategy' },
+        { label: '🎯 Success Patterns', action: 'success_patterns' },
+        { label: '🚀 Acceleration Plan', action: 'acceleration_plan' }
+      ]
+    };
+  };
+
+  const generateDetailedAnalytics = async (): Promise<Message> => {
+    const goals = userGoals;
+    const totalProgress = goals.reduce((sum, goal) => sum + goal.progress, 0) / goals.length;
+    const totalStreaks = goals.reduce((sum, goal) => sum + (goal.currentStreak || 0), 0);
+    
+    // Time-based analytics
+    const currentTime = new Date().getHours();
+    const timeOptimization = userProfile?.preferredTime === 'morning' && currentTime < 12 ? 'Optimal' :
+                           userProfile?.preferredTime === 'afternoon' && currentTime >= 12 && currentTime < 17 ? 'Optimal' :
+                           userProfile?.preferredTime === 'evening' && currentTime >= 17 ? 'Optimal' : 'Sub-optimal';
+    
+    return {
+      id: Date.now().toString(),
+      role: 'assistant',
+      content: `🔬 **Deep Analytics Report**
+
+## 📊 **Performance Metrics**
+• **Completion Rate:** ${Math.round(totalProgress)}%
+• **Consistency Score:** ${Math.round((totalStreaks / goals.length) * 10)}/10
+• **Time Optimization:** ${timeOptimization}
+• **Goal Velocity:** ${totalProgress > 50 ? 'Accelerating' : 'Building'}
+
+## 🎯 **Goal Performance Matrix**
+${goals.map(goal => `
+**${goal.title}**
+• Progress: ${goal.progress}% (${goal.progress > 70 ? 'Excellent' : goal.progress > 40 ? 'Good' : 'Needs Focus'})
+• Streak: ${goal.currentStreak || 0} days
+• Momentum: ${goal.progress > goal.currentStreak * 5 ? '🚀 High' : '⚡ Steady'}
+• Risk Level: ${goal.progress < 30 ? '🔴 High' : goal.progress < 60 ? '🟡 Medium' : '🟢 Low'}
+`).join('')}
+
+## 🧠 **Behavioral Insights**
+• **Peak Performance Time:** ${userProfile?.preferredTime || 'Not set'}
+• **Motivation Alignment:** ${totalProgress > 60 ? 'Strong' : 'Developing'}
+• **Habit Formation:** ${totalStreaks > 21 ? 'Established' : 'In Progress'}
+
+## 📈 **Trend Analysis**
+• **Weekly Trajectory:** ${totalProgress > 70 ? 'Upward' : totalProgress > 40 ? 'Steady' : 'Building'}
+• **Consistency Pattern:** ${totalStreaks > goals.length * 7 ? 'Highly Consistent' : 'Moderately Consistent'}
+• **Success Probability:** ${totalProgress > 60 ? '85%' : totalProgress > 30 ? '70%' : '55%'}
+
+Ready for specific optimizations based on this data?`,
+      timestamp: new Date(),
+      type: 'insight',
+      actionButtons: [
+        { label: '🎯 Goal Optimization', action: 'optimize_strategy' },
+        { label: '⏰ Time Optimization', action: 'time_optimization' },
+        { label: '🔄 Habit Optimization', action: 'habit_optimization' }
+      ]
+    };
+  };
+
+  const generateOptimizationStrategy = async (): Promise<Message> => {
+    const goals = userGoals;
+    const totalProgress = goals.reduce((sum, goal) => sum + goal.progress, 0) / goals.length;
+    const strugglingGoals = goals.filter(goal => goal.progress < 40);
+    const topGoal = goals.reduce((prev, current) => (prev.progress > current.progress) ? prev : current);
+    
+    return {
+      id: Date.now().toString(),
+      role: 'assistant',
+      content: `🔧 **Strategic Optimization Plan**
+
+## 🎯 **Priority Focus Areas**
+${strugglingGoals.length > 0 ? `
+**Immediate Attention Needed:**
+${strugglingGoals.map(goal => `• ${goal.title} (${goal.progress}%) - Needs strategy adjustment`).join('\n')}
+` : '**All goals performing well!** Ready for advanced optimization.'}
+
+## 🚀 **Success Amplification**
+**Top Performer:** ${topGoal.title} (${topGoal.progress}%)
+• **What's Working:** Consistent ${userProfile?.preferredTime || 'daily'} routine
+• **Scale Strategy:** Apply this approach to other goals
+• **Next Level:** Increase intensity by 15%
+
+## 🔄 **Optimization Strategies**
+
+**For High Performers (>70%):**
+• Add complexity or new challenges
+• Become a mentor to others
+• Set stretch goals
+
+**For Moderate Performers (40-70%):**
+• Identify and remove friction points
+• Add accountability partners
+• Optimize timing and environment
+
+**For Struggling Goals (<40%):**
+• Simplify to micro-habits
+• Change approach completely
+• Consider pausing to focus on winners
+
+## 💡 **Personalized Recommendations**
+Based on your ${userProfile?.experience || 'current'} level and "${userProfile?.motivation || 'goals'}":
+
+1. **Double Down:** Focus 80% energy on top 2 goals
+2. **Simplify:** Reduce struggling goals to 5-minute daily actions
+3. **Stack:** Link new habits to existing successful routines
+4. **Measure:** Track leading indicators, not just results
+
+Ready to implement these optimizations?`,
+      timestamp: new Date(),
+      type: 'plan',
+      actionButtons: [
+        { label: '✅ Implement Plan', action: 'implement_optimization' },
         { label: '🎯 Focus Mode', action: 'focus_mode' },
-        { label: '🎉 Celebrate Wins', action: 'celebrate' }
+        { label: '📊 Track Changes', action: 'track_optimization' }
+      ]
+    };
+  };
+
+  const generateSuccessPatterns = async (): Promise<Message> => {
+    const goals = userGoals;
+    const successfulGoals = goals.filter(goal => goal.progress > 60);
+    const topGoal = goals.reduce((prev, current) => (prev.progress > current.progress) ? prev : current);
+    
+    return {
+      id: Date.now().toString(),
+      role: 'assistant',
+      content: `🏆 **Your Success Pattern Analysis**
+
+## 🎯 **What Makes You Successful**
+
+**Your Winning Formula:**
+• **Optimal Time:** ${userProfile?.preferredTime || 'Consistent timing'}
+• **Motivation Driver:** "${userProfile?.motivation || 'Personal growth'}"
+• **Experience Level:** ${userProfile?.experience || 'Adaptive'} approach
+• **Success Rate:** ${Math.round((successfulGoals.length / goals.length) * 100)}%
+
+## 🔥 **Top Performance Patterns**
+
+**${topGoal.title}** - Your Star Performer (${topGoal.progress}%)
+• **Why It Works:** Aligned with your core motivation
+• **Key Success Factor:** Consistent ${userProfile?.preferredTime || 'daily'} execution
+• **Replication Strategy:** Apply this exact approach to other goals
+
+## 📈 **Success Indicators You Display**
+✅ **Consistency Over Intensity** - You show up regularly
+✅ **Progress Tracking** - You measure what matters
+✅ **Motivation Clarity** - You know your "why"
+✅ **Adaptive Approach** - You adjust when needed
+
+## 🧬 **Your Success DNA**
+${successfulGoals.length > 0 ? `
+**Common Threads in Your Wins:**
+${successfulGoals.map(goal => `• ${goal.title}: ${goal.progress}% - Strong ${goal.currentStreak || 0}-day streak`).join('\n')}
+
+**Pattern Recognition:**
+• You succeed when goals align with "${userProfile?.motivation || 'your values'}"
+• ${userProfile?.preferredTime || 'Consistent timing'} works best for you
+• ${userProfile?.experience || 'Your approach'} level strategies are most effective
+` : `
+**Early Stage Patterns:**
+• You're building foundational habits
+• Consistency is developing
+• Success patterns are emerging
+`}
+
+## 🚀 **Replication Strategy**
+1. **Clone Your Winner:** Use ${topGoal.title}'s approach for new goals
+2. **Time Block:** Stick to ${userProfile?.preferredTime || 'your optimal'} windows
+3. **Motivation Link:** Connect every goal to "${userProfile?.motivation || 'your core why'}"
+4. **Track & Adjust:** Monitor progress weekly and adapt
+
+**Ready to scale your success patterns?**`,
+      timestamp: new Date(),
+      type: 'insight',
+      actionButtons: [
+        { label: '🔄 Clone Success', action: 'clone_success' },
+        { label: '📈 Scale Patterns', action: 'scale_patterns' },
+        { label: '🎯 New Goal Design', action: 'design_goal' }
+      ]
+    };
+  };
+
+  const generateAccelerationPlan = async (): Promise<Message> => {
+    const goals = userGoals;
+    const totalProgress = goals.reduce((sum, goal) => sum + goal.progress, 0) / goals.length;
+    const topGoals = goals.filter(goal => goal.progress > 50).slice(0, 2);
+    
+    return {
+      id: Date.now().toString(),
+      role: 'assistant',
+      content: `🚀 **Momentum Acceleration Plan**
+
+## ⚡ **Current Velocity Assessment**
+• **Overall Momentum:** ${totalProgress > 60 ? '🚀 High Speed' : totalProgress > 30 ? '⚡ Building Speed' : '🌱 Starting Acceleration'}
+• **Acceleration Potential:** ${100 - totalProgress}% room for growth
+• **Ready for:** ${totalProgress > 60 ? 'Advanced strategies' : 'Momentum building'}
+
+## 🎯 **Acceleration Targets**
+${topGoals.length > 0 ? `
+**Priority Accelerators:**
+${topGoals.map(goal => `• ${goal.title} (${goal.progress}%) → Target: ${Math.min(goal.progress + 30, 100)}% in 30 days`).join('\n')}
+` : `
+**Foundation Building:**
+• Focus on establishing 1-2 core habits first
+• Build consistency before acceleration
+`}
+
+## 🔥 **30-Day Acceleration Protocol**
+
+**Week 1: Momentum Ignition**
+• Increase frequency by 25%
+• Add accountability check-ins
+• Optimize environment for success
+• Track micro-wins daily
+
+**Week 2: Velocity Building**
+• Introduce progressive challenges
+• Add social accountability
+• Optimize timing and energy
+• Celebrate milestone achievements
+
+**Week 3: Breakthrough Phase**
+• Push comfort zone boundaries
+• Add advanced tracking metrics
+• Implement success stacking
+• Plan for obstacle navigation
+
+**Week 4: Momentum Lock-In**
+• Establish new baseline
+• Plan next acceleration cycle
+• Build sustainable systems
+• Prepare for long-term success
+
+## 💡 **Acceleration Multipliers**
+🎯 **Focus:** Concentrate on top 2 goals only
+⏰ **Timing:** Leverage your ${userProfile?.preferredTime || 'optimal'} energy windows
+🤝 **Accountability:** Add external commitment devices
+📊 **Measurement:** Track leading indicators daily
+🔄 **Iteration:** Weekly strategy adjustments
+
+## 🚨 **Acceleration Warnings**
+• Don't sacrifice consistency for intensity
+• Maintain connection to "${userProfile?.motivation || 'your why'}"
+• Plan for setbacks and recovery
+• Celebrate progress, not just results
+
+**Ready to accelerate your momentum?**`,
+      timestamp: new Date(),
+      type: 'plan',
+      actionButtons: [
+        { label: '🚀 Start Acceleration', action: 'start_acceleration' },
+        { label: '📋 Custom Plan', action: 'custom_acceleration' },
+        { label: '⚠️ Safety Check', action: 'safety_check' }
       ]
     };
   };
