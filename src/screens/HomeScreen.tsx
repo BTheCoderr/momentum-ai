@@ -428,14 +428,14 @@ const styles = StyleSheet.create({
   heroTitle: {
     fontSize: 28,
     fontWeight: '800',
-    color: '#fff',
+    color: '#1F2937',
     textAlign: 'center',
     marginBottom: 12,
     lineHeight: 34,
   },
   heroSubtitle: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: '#6B7280',
     textAlign: 'center',
     lineHeight: 22,
     paddingHorizontal: 8,
