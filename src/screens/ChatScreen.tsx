@@ -688,50 +688,125 @@ ${topGoals.map(goal => `• ${goal.title} (${goal.progress}%) → Target: ${Math
     actionButtons?: { label: string; action: string }[];
   }> => {
     const input = userInput.toLowerCase();
+    const userName = userProfile?.name || 'friend';
     
-    // Detect intent and provide contextual coaching
-    if (input.includes('plan') || input.includes('strategy') || input.includes('how')) {
+    // Money/financial goals
+    if (input.includes('money') || input.includes('$') || input.includes('financial') || input.includes('income') || input.includes('save')) {
       return {
-        content: await generateContextualPlan(userInput),
+        content: `Ah, ${userName}! Money goals - I love the ambition! 💰 
+
+So you're thinking about financial growth? That's smart. Whether it's saving, earning more, or building wealth, the key is getting specific.
+
+When you say "${userInput}" - what does that actually look like day-to-day? Like, are we talking about:
+• Building a side hustle?
+• Cutting expenses?  
+• Investing consistently?
+• Landing a higher-paying role?
+
+The cool thing is, most money goals come down to either earning more or spending less (or both). And both of those are totally doable with the right plan.
+
+What's your current situation? Are you looking to increase income or get better at saving?`,
+        type: 'coaching',
+        actionButtons: [
+          { label: '💡 Get Advice', action: 'daily_coaching' },
+          { label: '📋 Make Plan', action: 'create_plan' }
+        ]
+      };
+    }
+
+    // Plan/strategy requests
+    if (input.includes('plan') || input.includes('strategy') || input.includes('how do i') || input.includes('help me')) {
+      return {
+        content: `Absolutely, ${userName}! I'm here to help you figure this out. 🎯
+
+You asked about "${userInput}" - and honestly, that's exactly the kind of thinking that leads to real results. Most people just wish for things to change, but you're actually asking HOW to make it happen.
+
+Here's what I'm thinking: every big goal breaks down into smaller, manageable pieces. The magic happens when we get specific about what you actually need to DO.
+
+So let's dig in - what's the main thing you want to achieve here? And what's making it feel challenging right now?
+
+I've got some ideas brewing, but I want to make sure I'm giving you advice that actually fits your situation.`,
         type: 'plan',
         actionButtons: [
-          { label: '📋 Detailed Plan', action: 'create_plan' },
-          { label: '🎯 Quick Actions', action: 'quick_actions' }
+          { label: '📋 Create Plan', action: 'create_plan' },
+          { label: '💪 Daily Coaching', action: 'daily_coaching' }
         ]
       };
     }
     
-    if (input.includes('motivat') || input.includes('stuck') || input.includes('hard')) {
+    // Motivation/struggling
+    if (input.includes('motivat') || input.includes('stuck') || input.includes('hard') || input.includes('difficult') || input.includes('struggling')) {
       return {
-        content: generateMotivationalResponse(userInput),
+        content: `Hey ${userName}, I hear you. 💙
+
+You know what? The fact that you're here talking about this stuff means you haven't given up. That's actually huge.
+
+"${userInput}" - I get it. Sometimes the gap between where we are and where we want to be feels massive, right? But here's something I've learned: feeling stuck isn't a sign you're failing. It's usually a sign you're ready for the next level.
+
+Think about it - you wouldn't feel frustrated if you didn't care. That frustration? That's your inner drive telling you that you're meant for more.
+
+What's one tiny thing that used to feel impossible but now feels normal to you? I bet there's something. That's proof you can grow through challenges.
+
+What's really at the heart of what's feeling hard right now?`,
         type: 'coaching',
         actionButtons: [
           { label: '💪 Boost Energy', action: 'daily_coaching' },
-          { label: '🎯 Refocus', action: 'refocus' }
+          { label: '🎯 Refocus', action: 'create_plan' }
         ]
       };
     }
     
-    if (input.includes('progress') || input.includes('doing') || input.includes('track')) {
+    // Progress/tracking
+    if (input.includes('progress') || input.includes('doing') || input.includes('track') || input.includes('how am i')) {
       return {
-        content: generateProgressResponse(userInput),
+        content: `Great question, ${userName}! 📈
+
+You're asking about progress - that's actually a really good sign. It means you're thinking like someone who gets results.
+
+From what I can see, you've got ${userGoals.length} goals you're working on, and honestly? Just the fact that you're tracking and checking in puts you ahead of most people.
+
+But let's get real about it - how do YOU feel about your progress? Sometimes the numbers don't tell the whole story. Are you feeling momentum? Are you seeing changes in your daily habits?
+
+Progress isn't always linear. Sometimes it's two steps forward, one step back. Sometimes it's building foundation that doesn't show up in metrics yet.
+
+What feels like it's working well for you right now? And what feels like it needs a tweak?`,
         type: 'insight',
         actionButtons: [
           { label: '📊 Full Review', action: 'review_progress' },
-          { label: '🎉 Celebrate', action: 'celebrate' }
+          { label: '🎉 Celebrate Wins', action: 'daily_coaching' }
+        ]
+      };
+    }
+
+    // Greetings and casual conversation
+    if (input.includes('hi') || input.includes('hello') || input.includes('hey') || input.includes('what\'s up') || input.includes('how are you')) {
+      return {
+        content: `Hey ${userName}! 👋 
+
+I'm doing great - always excited to help someone work toward their goals! How are YOU doing?
+
+I was just thinking about your journey with "${userProfile?.primaryGoal || 'your goals'}" - how's that been going lately? 
+
+You know what I love about our conversations? You actually show up and do the work. That's not as common as you might think.
+
+What's on your mind today? Feeling motivated? Need some strategy? Or just want to chat about where you're at?`,
+        type: 'regular',
+        actionButtons: [
+          { label: '💡 Get Advice', action: 'daily_coaching' },
+          { label: '📋 Make Plan', action: 'create_plan' }
         ]
       };
     }
     
-         // Default intelligent response
-     return {
-       content: generateContextualResponse(userInput),
-       type: 'regular' as const,
-       actionButtons: [
-         { label: '💡 Get Advice', action: 'daily_coaching' },
-         { label: '📋 Make Plan', action: 'create_plan' }
-       ]
-     };
+    // Default conversational response
+    return {
+      content: generateNaturalResponse(userInput),
+      type: 'regular' as const,
+      actionButtons: [
+        { label: '💡 Get Advice', action: 'daily_coaching' },
+        { label: '📋 Make Plan', action: 'create_plan' }
+      ]
+    };
   };
 
   const generateContextualPlan = async (userInput: string): Promise<string> => {
@@ -801,6 +876,31 @@ Your momentum is building. Now let's optimize:
 Progress isn't always linear. You're exactly where you need to be.
 
 What feels like your biggest win lately?`;
+  };
+
+  const generateNaturalResponse = (userInput: string): string => {
+    const userName = userProfile?.name || 'friend';
+    const userGoal = userProfile?.primaryGoal || 'your goals';
+    const userMotivation = userProfile?.motivation || 'your bigger purpose';
+    
+    const responses = [
+      `Interesting, ${userName}! You mentioned "${userInput}" - that actually connects to something important about ${userGoal}. What's your take on that?`,
+      
+      `I hear you on that, ${userName}. When you think about "${userInput}", how does that relate to what you're trying to achieve overall?`,
+      
+      `That's a thoughtful point! You know, "${userInput}" makes me think about your motivation - "${userMotivation}". Do you see a connection there?`,
+      
+      `${userName}, that's exactly the kind of thinking that leads to breakthroughs! When you say "${userInput}", what comes up for you? What feels most important about that?`,
+      
+      `I love that you brought up "${userInput}" - it shows you're really thinking deeply about this stuff. What would it look like if you took that idea and ran with it?`,
+      
+      `You know what, ${userName}? "${userInput}" is actually pretty insightful. Most people don't think about it that way. How do you think that perspective could help you with ${userGoal}?`,
+      
+      `That's real talk, ${userName}. "${userInput}" - I can tell you're processing some important stuff here. What feels like the next step for you?`,
+      
+      `Hmm, "${userInput}" - that's got me thinking too! You know what's cool? You're asking the right questions. That's honestly half the battle. What's your gut telling you about this?`,
+    ];
+    return responses[Math.floor(Math.random() * responses.length)];
   };
 
   const generateContextualResponse = (userInput: string): string => {
