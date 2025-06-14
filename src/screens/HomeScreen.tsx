@@ -80,11 +80,27 @@ export default function HomeScreen({ navigation }: Props) {
     navigation.navigate('Chat', {});
   };
 
+  const handleChatWithPrompt = (prompt: string) => {
+    navigation.navigate('Chat', { initialPrompt: prompt });
+  };
+
   const handleInsightAction = (insight: any) => {
     // Navigate to chat with context about the specific insight
     navigation.navigate('Chat', {
       initialPrompt: `I'd like to work on: ${insight.title}. ${insight.description}`
     });
+  };
+
+  const handleCreatePlan = () => {
+    navigation.navigate('Chat', { initialPrompt: 'create_plan' });
+  };
+
+  const handleDailyCoaching = () => {
+    navigation.navigate('Chat', { initialPrompt: 'daily_coaching' });
+  };
+
+  const handleProgressReview = () => {
+    navigation.navigate('Chat', { initialPrompt: 'review_progress' });
   };
 
   // Use AI-generated insights if available, otherwise fall back to static ones
@@ -321,11 +337,29 @@ export default function HomeScreen({ navigation }: Props) {
           <View style={styles.quickActionsGrid}>
             <TouchableOpacity 
               style={styles.quickActionCard}
-              onPress={handleChatWithAI}
+              onPress={handleCreatePlan}
             >
-              <Text style={styles.quickActionIcon}>🤖</Text>
-              <Text style={styles.quickActionTitle}>AI Coach</Text>
-              <Text style={styles.quickActionSubtitle}>Get personalized guidance</Text>
+              <Text style={styles.quickActionIcon}>📋</Text>
+              <Text style={styles.quickActionTitle}>Create Plan</Text>
+              <Text style={styles.quickActionSubtitle}>Get personalized strategy</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.quickActionCard}
+              onPress={handleDailyCoaching}
+            >
+              <Text style={styles.quickActionIcon}>💪</Text>
+              <Text style={styles.quickActionTitle}>Daily Coaching</Text>
+              <Text style={styles.quickActionSubtitle}>Motivation & guidance</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.quickActionCard}
+              onPress={handleProgressReview}
+            >
+              <Text style={styles.quickActionIcon}>📊</Text>
+              <Text style={styles.quickActionTitle}>Progress Review</Text>
+              <Text style={styles.quickActionSubtitle}>Analyze your journey</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
@@ -576,14 +610,15 @@ const styles = StyleSheet.create({
   },
   quickActionsGrid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
   },
   quickActionCard: {
-    flex: 1,
+    width: '48%',
     backgroundColor: '#fff',
     borderRadius: 16,
     padding: 20,
-    marginHorizontal: 6,
+    marginBottom: 12,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
