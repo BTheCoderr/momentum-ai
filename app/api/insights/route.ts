@@ -49,7 +49,7 @@ Focus on:
           content: "Analyze my goal progress and provide insights",
         },
       ],
-      model: "llama3-8b-8192",
+      model: "llama-3.1-70b-versatile", // Much smarter, still free!
       temperature: 0.5,
       max_tokens: 400,
     });

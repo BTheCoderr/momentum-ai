@@ -41,7 +41,7 @@ Respond as a caring accountability partner who understands the psychology of goa
           content: message,
         },
       ],
-      model: "llama3-8b-8192", // Fast, free model
+      model: "llama-3.1-70b-versatile", // Much smarter, still free!
       temperature: 0.7,
       max_tokens: 200,
       top_p: 1,
