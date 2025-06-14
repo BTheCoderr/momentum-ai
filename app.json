@@ -41,6 +41,10 @@
       "eas": {
         "projectId": "momentum-ai-mobile"
       }
-    }
+    },
+    "scheme": "momentum-ai",
+    "plugins": [
+      "expo-asset"
+    ]
   }
-} 
+}
