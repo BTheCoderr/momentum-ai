@@ -1,0 +1,23 @@
+# Mobile/Expo specific files - ignore for web deployment
+App.tsx
+app.json
+metro.config.js
+.expo/
+src/
+assets/
+start-mobile.sh
+MOBILE_README.md
+
+# Development files
+check-status.js
+test-app-store-readiness.js
+app-store-checklist.md
+migrate.js
+scripts/
+
+# Other frameworks
+netlify.toml
+
+# Shared directory (if not needed for web)
+shared/
+momentum-ai-universal/ 
