@@ -8,9 +8,9 @@ const supabaseKey = process.env.SUPABASE_KEY || process.env.NEXT_PUBLIC_SUPABASE
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Initialize Groq client
+// Initialize Groq client with fallback handling
 const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
+  apiKey: process.env.GROQ_API_KEY || 'dummy-key-for-build',
 });
 
 export async function POST(request: NextRequest) {
@@ -114,6 +114,11 @@ export async function POST(request: NextRequest) {
 
 async function generateAIInsights(goals: any[], patterns: any) {
   try {
+    // Check if we have a valid API key (not the dummy build key)
+    if (!process.env.GROQ_API_KEY || process.env.GROQ_API_KEY === 'dummy-key-for-build') {
+      throw new Error('GROQ_API_KEY not available');
+    }
+
     // Prepare context for Groq
     const context = {
       totalGoals: goals.length,
