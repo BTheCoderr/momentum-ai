@@ -3,10 +3,12 @@ App.tsx
 app.json
 metro.config.js
 .expo/
-src/
-assets/
 start-mobile.sh
 MOBILE_README.md
+
+# Mobile-specific directories (keep src/ as it has shared components)
+src/screens/
+src/navigation/
 
 # Development files
 check-status.js
@@ -19,5 +21,4 @@ scripts/
 netlify.toml
 
 # Shared directory (if not needed for web)
-shared/
 momentum-ai-universal/ 
