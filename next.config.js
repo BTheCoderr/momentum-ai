@@ -1,8 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Point to the web app directory
-  distDir: '.next',
-  
   // Disable ESLint during build
   eslint: {
     // Disable ESLint during builds to prevent deployment failures
@@ -21,24 +18,14 @@ const nextConfig = {
     return config;
   },
   
-  // Redirect root to web app
+  // No redirects needed - app/page.tsx handles the root route
   async redirects() {
-    return [
-      {
-        source: '/',
-        destination: '/src/web-app/page',
-        permanent: false,
-      },
-    ];
+    return [];
   },
   
   // Keep TypeScript checking enabled for type safety
   typescript: {
     ignoreBuildErrors: false,
-  },
-  
-  experimental: {
-    // Remove deprecated appDir option
   },
 };
 

@@ -160,7 +160,7 @@ Keep insights specific, actionable, and encouraging. Focus on behavioral pattern
           content: prompt
         }
       ],
-      model: "llama-3.1-70b-versatile", // Much smarter, still free!
+      model: "llama-3.3-70b-versatile", // Latest supported model
       temperature: 0.7,
       max_tokens: 1000,
     });

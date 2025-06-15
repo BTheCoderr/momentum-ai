@@ -16,14 +16,28 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.momentumai.app"
+      "bundleIdentifier": "com.momentumai.app",
+      "buildNumber": "1",
+      "deploymentTarget": "13.0",
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app uses the camera to capture progress photos for your goals.",
+        "NSPhotoLibraryUsageDescription": "This app accesses your photo library to save and share your progress.",
+        "NSUserNotificationsUsageDescription": "This app sends notifications to help you stay on track with your goals."
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#4F46E5"
       },
-      "package": "com.momentumai.app"
+      "package": "com.momentumai.app",
+      "versionCode": 1,
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "NOTIFICATIONS"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"

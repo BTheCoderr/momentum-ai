@@ -2,8 +2,8 @@ import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import Constants from 'expo-constants';
 
-// Get API URL from app.json extra config
-const API_URL = Constants.expoConfig?.extra?.apiUrl || 'http://10.225.8.234:3000/api';
+// Get API URL from Expo config or fallback to local development
+const API_URL = Constants.expoConfig?.extra?.apiUrl || 'http://10.225.8.234:3001/api';
 
 // Debug: Log the API URL being used
 console.log('🔍 API_URL being used:', API_URL);
@@ -11,7 +11,7 @@ console.log('🔍 Constants.expoConfig?.extra:', Constants.expoConfig?.extra);
 
 const api = axios.create({ 
   baseURL: API_URL,
-  timeout: 30000, // Increased timeout to 30 seconds
+  timeout: 10000, // Increased timeout to 10 seconds
   headers: {
     'Content-Type': 'application/json',
   },
@@ -34,7 +34,10 @@ api.interceptors.request.use(async (config) => {
 
 // Handle auth errors and network issues
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log('✅ API response received:', response.status);
+    return response;
+  },
   async (error) => {
     if (error.response?.status === 401) {
       // Token expired, clear it
@@ -43,6 +46,7 @@ api.interceptors.response.use(
       console.log('Network error - using offline mode');
       // You can implement offline functionality here
     }
+    console.log('❌ API error:', error.response?.status, error.message);
     return Promise.reject(error);
   }
 );

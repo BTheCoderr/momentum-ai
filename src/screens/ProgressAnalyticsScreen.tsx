@@ -1,12 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView, Dimensions } from 'react-native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { CompositeNavigationProp } from '@react-navigation/native';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import { RootTabParamList } from '../navigation';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { goalsAPI, Goal, userAPI, UserStats, patternAPI, UserPatterns } from '../api/services';
+import { RootStackParamList, RootTabParamList } from '../navigation/types';
+import { goalsAPI, userAPI, patternAPI, Goal, UserStats, UserPatterns } from '../api/services';
 
-type ProgressAnalyticsNavigationProp = BottomTabNavigationProp<RootTabParamList, 'Chat'>;
+type ProgressAnalyticsNavigationProp = CompositeNavigationProp<
+  StackNavigationProp<RootStackParamList, 'ProgressAnalytics'>,
+  BottomTabNavigationProp<RootTabParamList>
+>;
 
 interface Props {
   navigation: ProgressAnalyticsNavigationProp;
@@ -249,9 +254,12 @@ export default function ProgressAnalyticsScreen({ navigation }: Props) {
     <View style={styles.actionsContainer}>
       <TouchableOpacity 
         style={styles.actionButton}
-        onPress={() => navigation.navigate('Chat', { 
-          initialPrompt: 'Based on my progress analytics, what specific optimizations do you recommend for my goals and habits?' 
-        })}
+        onPress={() => {
+          navigation.navigate('MainTabs', { 
+            screen: 'Chat', 
+            params: { initialPrompt: 'Based on my progress analytics, what specific optimizations do you recommend for my goals and habits?' }
+          });
+        }}
       >
         <LinearGradient colors={['#4F46E5', '#7C3AED']} style={styles.actionButtonGradient}>
           <Text style={styles.actionButtonText}>Get Optimization Tips 🚀</Text>
@@ -260,9 +268,12 @@ export default function ProgressAnalyticsScreen({ navigation }: Props) {
 
       <TouchableOpacity 
         style={styles.actionButton}
-        onPress={() => navigation.navigate('Chat', { 
-          initialPrompt: 'Help me create a strategy to improve my consistency and break through any plateaus I might be experiencing.' 
-        })}
+        onPress={() => {
+          navigation.navigate('MainTabs', { 
+            screen: 'Chat', 
+            params: { initialPrompt: 'Help me create a strategy to improve my consistency and break through any plateaus I might be experiencing.' }
+          });
+        }}
       >
         <View style={styles.actionButtonSecondary}>
           <Text style={styles.actionButtonSecondaryText}>Improve Consistency 📈</Text>

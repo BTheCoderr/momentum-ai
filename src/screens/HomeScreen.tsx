@@ -18,10 +18,10 @@ const { width } = Dimensions.get('window');
 export default function HomeScreen({ navigation }: Props) {
   const [refreshing, setRefreshing] = useState(false);
   const [userStats, setUserStats] = useState<UserStats>({
-    overallProgress: 85,
-    activeGoals: 2,
-    aiInterventions: 12,
-    motivationScore: 94
+    overallProgress: 0,
+    activeGoals: 0,
+    aiInterventions: 0,
+    motivationScore: 0
   });
   const [goals, setGoals] = useState<Goal[]>([]);
   const [userPatterns, setUserPatterns] = useState<UserPatterns | null>(null);
@@ -35,10 +35,46 @@ export default function HomeScreen({ navigation }: Props) {
     notes: ''
   });
   const [checkInStreak, setCheckInStreak] = useState(7);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
     loadAllData();
+    // Update time every minute for dynamic greetings
+    const timer = setInterval(() => setCurrentTime(new Date()), 60000);
+    return () => clearInterval(timer);
   }, []);
+
+  // Personalized greeting based on time and user patterns
+  const getPersonalizedGreeting = () => {
+    const hour = currentTime.getHours();
+    const dayOfWeek = currentTime.toLocaleDateString('en-US', { weekday: 'long' });
+    
+    // Check if it's the user's peak performance time
+    const isPeakTime = userPatterns?.behaviorTrends?.bestPerformanceTime?.toLowerCase().includes(dayOfWeek.toLowerCase()) ||
+                      userPatterns?.behaviorTrends?.bestPerformanceTime?.toLowerCase().includes('morning') && hour < 12;
+    
+    let greeting = '';
+    let subtitle = '';
+    
+    if (hour < 12) {
+      greeting = isPeakTime ? 
+        `Good morning! It's ${dayOfWeek} - your peak performance day! 🚀` :
+        `Good morning! Ready to make ${dayOfWeek} amazing?`;
+      subtitle = isPeakTime ? 
+        "You're in your power zone. Time to tackle those big goals!" :
+        "Your AI coach has some personalized insights to help you succeed today.";
+    } else if (hour < 17) {
+      greeting = `Good afternoon! How's your ${dayOfWeek} going?`;
+      subtitle = userStats.overallProgress > 50 ? 
+        "You're making great progress today! Keep the momentum going." :
+        "Perfect time for a progress check-in and some AI-powered motivation.";
+    } else {
+      greeting = `Good evening! Time to reflect on your ${dayOfWeek}.`;
+      subtitle = "Let's review your wins and plan for tomorrow's success.";
+    }
+    
+    return { greeting, subtitle };
+  };
 
   const loadAllData = async () => {
     try {
@@ -92,10 +128,92 @@ export default function HomeScreen({ navigation }: Props) {
   };
 
   const handleInsightAction = (insight: any) => {
-    // Navigate to chat with context about the specific insight
-    navigation.navigate('Chat', {
-      initialPrompt: `I'd like to work on: ${insight.title}. ${insight.description}`
-    });
+    // Provide tailored experiences based on insight type and content
+    if (insight.type === 'warning' || insight.title.includes('Progress Opportunity')) {
+      // For progress/warning insights - provide structured problem-solving approach
+      Alert.alert(
+        '🎯 Let\'s Break This Down',
+        `I see you're facing some challenges with your goals. Let me help you create a specific action plan to get back on track.`,
+        [
+          { text: 'Not Now', style: 'cancel' },
+          { 
+            text: 'Analyze My Blocks', 
+            onPress: () => navigation.navigate('Chat', {
+              initialPrompt: `I'm struggling with my goals (${userStats.overallProgress}% progress across ${userStats.activeGoals} goals). Help me identify what's blocking me and create a step-by-step action plan. Here's what I'm working on: ${goals.map(g => g.title).join(', ')}`
+            })
+          },
+          { 
+            text: 'Quick Strategy Session', 
+            onPress: () => navigation.navigate('Chat', {
+              initialPrompt: `I need a quick strategy session. My goals are at ${userStats.overallProgress}% progress. Give me 3 specific actions I can take TODAY to move forward. Focus on: ${insight.suggestedActions?.slice(0, 2).join(', ')}`
+            })
+          }
+        ]
+      );
+    } else if (insight.type === 'success' || insight.title.includes('High Motivation') || insight.title.includes('Peak Performance')) {
+      // For success/motivation insights - capitalize on momentum
+      Alert.alert(
+        '🚀 Ride This Wave!',
+        `You're in a great state right now! Let's make the most of this momentum and energy.`,
+        [
+          { text: 'Save for Later', style: 'cancel' },
+          { 
+            text: 'Optimize This Moment', 
+            onPress: () => navigation.navigate('Chat', {
+              initialPrompt: `I'm feeling motivated and energized (${userStats.motivationScore}% motivation score)! Help me capitalize on this momentum. What should I tackle right now to maximize this energy? My active goals: ${goals.map(g => g.title).join(', ')}`
+            })
+          },
+          { 
+            text: 'Plan My Power Hour', 
+            onPress: () => navigation.navigate('Chat', {
+              initialPrompt: `I'm in my peak performance zone! Help me plan the perfect power hour. What's the most impactful thing I can do right now? Consider my patterns: ${userPatterns?.behaviorTrends?.bestPerformanceTime || 'analyzing...'}`
+            })
+          }
+        ]
+      );
+    } else if (insight.type === 'pattern' || insight.title.includes('Pattern')) {
+      // For pattern insights - help optimize and build on patterns
+      Alert.alert(
+        '🧠 Your Success Pattern',
+        `I've identified some interesting patterns in your behavior. Let's use this insight to optimize your approach.`,
+        [
+          { text: 'Interesting', style: 'cancel' },
+          { 
+            text: 'Optimize My Schedule', 
+            onPress: () => navigation.navigate('Chat', {
+              initialPrompt: `Help me optimize my schedule based on my patterns. My best performance time is ${userPatterns?.behaviorTrends?.bestPerformanceTime || 'being analyzed'}. How can I restructure my day to align with my natural rhythms? My goals: ${goals.map(g => g.title).join(', ')}`
+            })
+          },
+          { 
+            text: 'Build Better Habits', 
+            onPress: () => navigation.navigate('Chat', {
+              initialPrompt: `Based on my behavioral patterns, help me build better habits. What specific routines should I establish to maximize my success? Consider my patterns: ${JSON.stringify(userPatterns?.behaviorTrends || {})}`
+            })
+          }
+        ]
+      );
+    } else {
+      // Default fallback for any other insights
+      Alert.alert(
+        '💡 Let\'s Explore This',
+        `This insight caught my attention. How would you like to dive deeper?`,
+        [
+          { text: 'Maybe Later', style: 'cancel' },
+          { 
+            text: 'Get Specific Advice', 
+            onPress: () => navigation.navigate('Chat', {
+              initialPrompt: `Help me understand and act on this insight: "${insight.title}". ${insight.description} What specific steps should I take?`
+            })
+          },
+          { 
+            text: 'Create Action Plan', 
+            onPress: () => navigation.navigate('Chat', {
+              initialPrompt: `Create a detailed action plan for: ${insight.title}. Break it down into specific, actionable steps I can start today. My current situation: ${insight.description}`
+            })
+          }
+        ]
+      );
+    }
   };
 
   const handleCreatePlan = () => {
@@ -149,33 +267,82 @@ export default function HomeScreen({ navigation }: Props) {
     }
   };
 
-  // Use AI-generated insights if available, otherwise fall back to static ones
-  const displayInsights = aiReflection?.insights || [
-    {
-      type: 'warning' as const,
-      title: 'Motivation Dip Detected',
-      description: 'Your fitness goal shows 20% less activity this week. Consider scheduling a workout buddy session.',
-      confidence: 0.8,
-      actionable: true,
-      suggestedActions: ['Schedule workout buddy session', 'Review fitness goals']
-    },
-    {
-      type: 'success' as const,
-      title: 'Strong Momentum',
-      description: 'Your SaaS project is ahead of schedule! This aligns with your pattern of weekend productivity.',
-      confidence: 0.9,
-      actionable: true,
-      suggestedActions: ['Continue current approach', 'Plan next milestone']
-    },
-    {
-      type: 'pattern' as const,
-      title: 'Pattern Recognition',
-      description: 'You tend to be most productive on Tuesday mornings. Consider scheduling important tasks then.',
-      confidence: 0.85,
-      actionable: true,
-      suggestedActions: ['Block Tuesday mornings', 'Schedule important tasks then']
+  // Generate dynamic insights based on real data
+  const generateDynamicInsights = () => {
+    const insights = [];
+    
+    // Add AI-generated insights if available
+    if (aiReflection?.insights && aiReflection.insights.length > 0) {
+      insights.push(...aiReflection.insights);
     }
-  ];
+    
+    // Add data-driven insights based on current stats
+    if (userStats.overallProgress < 30 && userStats.activeGoals > 0) {
+      insights.push({
+        type: 'warning' as const,
+        title: 'Progress Opportunity',
+        description: `Your ${userStats.activeGoals} active goals are at ${userStats.overallProgress}% progress. Let's identify what's blocking you and create an action plan.`,
+        confidence: 0.9,
+        actionable: true,
+        suggestedActions: ['Review goal strategies', 'Break down large tasks', 'Schedule focused work time']
+      });
+    }
+    
+    if (userStats.motivationScore > 75) {
+      insights.push({
+        type: 'success' as const,
+        title: 'High Motivation Detected',
+        description: `Your motivation score is ${userStats.motivationScore}%! This is the perfect time to tackle challenging tasks or start new initiatives.`,
+        confidence: 0.85,
+        actionable: true,
+        suggestedActions: ['Take on a stretch goal', 'Plan next week\'s priorities', 'Share your energy with others']
+      });
+    }
+    
+    // Pattern-based insights
+    if (userPatterns?.behaviorTrends?.bestPerformanceTime) {
+      const currentHour = currentTime.getHours();
+      const isOptimalTime = userPatterns.behaviorTrends.bestPerformanceTime.toLowerCase().includes('morning') && currentHour < 12;
+      
+      if (isOptimalTime) {
+        insights.push({
+          type: 'pattern' as const,
+          title: 'Peak Performance Window',
+          description: `You're in your optimal performance zone (${userPatterns.behaviorTrends.bestPerformanceTime})! Your success rate is 40% higher during this time.`,
+          confidence: 0.92,
+          actionable: true,
+          suggestedActions: ['Focus on your most important goal', 'Tackle complex tasks now', 'Block distractions']
+        });
+      }
+    }
+    
+    // Fallback insights if no data available
+    if (insights.length === 0) {
+      insights.push({
+        type: 'pattern' as const,
+        title: 'Building Your Success Pattern',
+        description: 'I\'m learning your patterns to provide personalized insights. Keep checking in and tracking your goals!',
+        confidence: 0.7,
+        actionable: true,
+        suggestedActions: ['Complete daily check-ins', 'Update goal progress', 'Share your wins and challenges']
+      });
+    }
+    
+    return insights.slice(0, 3); // Show max 3 insights
+  };
+
+  const displayInsights = generateDynamicInsights();
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>🤖 AI is analyzing your patterns...</Text>
+          <Text style={styles.loadingSubtext}>Preparing personalized insights</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -207,10 +374,10 @@ export default function HomeScreen({ navigation }: Props) {
         {/* Hero Section */}
         <View style={styles.heroSection}>
           <Text style={styles.heroTitle}>
-            Ready to crush your goals today?
+            {getPersonalizedGreeting().greeting}
           </Text>
           <Text style={styles.heroSubtitle}>
-            Your AI coach is here to help you stay on track and achieve greatness.
+            {getPersonalizedGreeting().subtitle}
           </Text>
         </View>
 
@@ -222,19 +389,27 @@ export default function HomeScreen({ navigation }: Props) {
           end={{ x: 1, y: 0 }}
         >
           <View style={styles.checkInContent}>
-            <Text style={styles.checkInTitle}>🔥 Ready for your daily check-in?</Text>
+            <Text style={styles.checkInTitle}>
+              {checkInStreak > 0 ? `🔥 ${checkInStreak} day streak! Keep it going!` : '🔥 Ready for your daily check-in?'}
+            </Text>
             <Text style={styles.checkInSubtitle}>
               {userPatterns?.behaviorTrends?.bestPerformanceTime 
-                ? `Your peak performance time is ${userPatterns.behaviorTrends.bestPerformanceTime}. Perfect timing!`
-                : "Keep your momentum going! Track your habits and celebrate today's wins."
+                ? `Your peak performance time is ${userPatterns.behaviorTrends.bestPerformanceTime}. ${
+                    getPersonalizedGreeting().greeting.includes('peak performance') ? 'Perfect timing!' : 'Consider checking in then for best results.'
+                  }`
+                : `Track your habits and celebrate today's wins. You've got ${userStats.activeGoals} active goals to conquer!`
               }
             </Text>
             <TouchableOpacity style={styles.checkInButton} onPress={handleStartCheckIn}>
-              <Text style={styles.checkInButtonText}>Start Check-In 🎯</Text>
+              <Text style={styles.checkInButtonText}>
+                {checkInStreak > 0 ? `Continue Streak 🎯` : 'Start Check-In 🎯'}
+              </Text>
             </TouchableOpacity>
           </View>
           <View style={styles.checkInIcon}>
-            <Text style={styles.checkInIconText}>🎯</Text>
+            <Text style={styles.checkInIconText}>
+              {checkInStreak > 7 ? '🏆' : checkInStreak > 3 ? '🔥' : '🎯'}
+            </Text>
           </View>
         </LinearGradient>
 
@@ -1014,5 +1189,24 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: '#fff',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    paddingHorizontal: 40,
+  },
+  loadingText: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#1F2937',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  loadingSubtext: {
+    fontSize: 16,
+    color: '#6B7280',
+    textAlign: 'center',
   },
 });

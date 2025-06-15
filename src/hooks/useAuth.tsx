@@ -104,9 +104,22 @@ export const useAuthProvider = () => {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    await SecureStore.deleteItemAsync('accessToken');
-    setUser(null);
+    try {
+      console.log('🚪 Signing out user...');
+      await supabase.auth.signOut();
+      await SecureStore.deleteItemAsync('accessToken');
+      setUser(null);
+      console.log('✅ User signed out successfully');
+    } catch (error) {
+      console.error('❌ Error signing out:', error);
+      // Force sign out even if there's an error
+      setUser(null);
+      try {
+        await SecureStore.deleteItemAsync('accessToken');
+      } catch (e) {
+        console.log('Token cleanup error (non-critical):', e);
+      }
+    }
   };
 
   return {

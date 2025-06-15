@@ -18,6 +18,7 @@ import DailyCoachingScreen from './src/screens/DailyCoachingScreen';
 import ProgressAnalyticsScreen from './src/screens/ProgressAnalyticsScreen';
 
 import { RootTabParamList } from './src/navigation/types';
+import { AuthProvider } from './src/hooks/useAuth';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 const Stack = createStackNavigator();
@@ -145,11 +146,11 @@ function RootNavigator() {
 
 export default function App() {
   return (
-    <>
+    <AuthProvider>
       <StatusBar style="light" />
       <NavigationContainer>
         <RootNavigator />
       </NavigationContainer>
-    </>
+    </AuthProvider>
   );
 } 
