@@ -227,43 +227,13 @@ MIT License - see LICENSE file for details
 
 # 🚀 Momentum AI - Your AI Accountability Agent
 
-[![Product Hunt](https://img.shields.io/badge/Product%20Hunt-Launch%20Day-orange?style=for-the-badge&logo=producthunt)](https://www.producthunt.com/posts/momentum-ai)
-[![Next.js](https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
+<!-- Deployment fix: Updated vercel.json to remove function runtime error -->
 
-> **The AI accountability agent that actually works.** Unlike generic habit trackers, Momentum AI learns your personal patterns, predicts when you'll drift, and intervenes with the right nudge at the right time.
+🎯 **Stay emotionally connected to your goals with AI-powered accountability**
 
-## 🎯 Why Momentum AI Can't Be Replaced by ChatGPT
+Momentum AI is your personal accountability agent that predicts when you'll drift from your goals and intervenes proactively. Like having a mini-therapist + detective that keeps your dreams alive.
 
-We've built **competitive moats** that generic LLMs simply can't match:
-
-### 🧠 **Deep Personalization & Proprietary Data**
-- **Longitudinal habit profiles**: Track every check-in, success/failure, time-of-day, context tags
-- **Pattern recognition**: "You're 73% more successful when checking in between 9-11 AM"
-- **Custom AI models**: Fine-tuned on goal-setting psychology and user success stories
-
-### 👥 **Real Accountability Networks**
-- **Accountability Pods**: Join tiny 5-person groups for peer accountability
-- **Social pressure**: Human connection that keeps you motivated beyond solo chatbots
-- **Leaderboards & challenges**: Gamified streaks with real people
-
-### 🔗 **Integrated Ecosystem**
-- **Calendar integration**: Auto-schedule habit blocks in Google Calendar
-- **Wearables**: Apple Watch auto-tracking and gentle reminders
-- **Smart notifications**: Multi-channel nudges (Slack, iOS Shortcuts, etc.)
-- **Real-world hooks**: Physical world integration ChatGPT can't match
-
-### 🔮 **Predictive Interventions**
-- **Risk prediction**: AI identifies patterns that predict 67% of setbacks
-- **Proactive coaching**: Intervenes BEFORE you drift, not after
-- **Contextual responses**: Smart replies based on your emotional state and patterns
-
-## ✨ Key Features
-
-### 📊 **Smart Check-ins with AI Insights**
-- 4-step process: Habit tracking → Mood tracking → Reflection → AI insights
-- Contextual AI responses based on completion rates and emotional state
-- Streak counters and visual progress tracking
+## 🚀 Features
 
 ### 🎯 **Advanced Goal Creation**
 - Emotional context and deeper "why" exploration
