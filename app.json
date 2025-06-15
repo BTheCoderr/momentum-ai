@@ -41,9 +41,9 @@
       "eas": {
         "projectId": "momentum-ai-mobile"
       },
-      "apiUrl": "http://10.225.8.234:3001/api",
-      "supabaseUrl": "your_supabase_url_here",
-      "supabaseAnonKey": "your_supabase_anon_key_here"
+      "apiUrl": "http://10.225.8.234:3000/api",
+      "supabaseUrl": "https://nsgqhhbqpyvonirlfluv.supabase.co",
+      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZ3FoaGJxcHl2b25pcmxmbHV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk3NTY1NTgsImV4cCI6MjA2NTMzMjU1OH0.twGF9Y6clrRtJg_4S1OWHA1vhhYpKzn3ZpFJPGJbmEo"
     },
     "scheme": "momentum-ai",
     "plugins": [],

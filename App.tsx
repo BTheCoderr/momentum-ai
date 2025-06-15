@@ -13,6 +13,9 @@ import ChatScreen from './src/screens/ChatScreen';
 import HistoryScreen from './src/screens/HistoryScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import NotificationSettingsScreen from './src/screens/NotificationSettingsScreen';
+import PlanCreatorScreen from './src/screens/PlanCreatorScreen';
+import DailyCoachingScreen from './src/screens/DailyCoachingScreen';
+import ProgressAnalyticsScreen from './src/screens/ProgressAnalyticsScreen';
 
 import { RootTabParamList } from './src/navigation/types';
 
@@ -113,6 +116,27 @@ function RootNavigator() {
         options={{ 
           headerShown: true,
           title: 'Notification Settings',
+        }}
+      />
+      <Stack.Screen 
+        name="PlanCreator" 
+        component={PlanCreatorScreen}
+        options={{ 
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen 
+        name="DailyCoaching" 
+        component={DailyCoachingScreen}
+        options={{ 
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen 
+        name="ProgressAnalytics" 
+        component={ProgressAnalyticsScreen}
+        options={{ 
+          headerShown: false,
         }}
       />
     </Stack.Navigator>

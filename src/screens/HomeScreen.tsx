@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView, RefreshControl, Dimensions } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView, RefreshControl, Dimensions, Modal, TextInput, Alert } from 'react-native';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { RootTabParamList } from '../navigation';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -27,6 +27,14 @@ export default function HomeScreen({ navigation }: Props) {
   const [userPatterns, setUserPatterns] = useState<UserPatterns | null>(null);
   const [aiReflection, setAIReflection] = useState<AIReflection | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showDailyCheckIn, setShowDailyCheckIn] = useState(false);
+  const [checkInData, setCheckInData] = useState({
+    mood: '',
+    habits: {} as Record<string, boolean>,
+    motivation: '',
+    notes: ''
+  });
+  const [checkInStreak, setCheckInStreak] = useState(7);
 
   useEffect(() => {
     loadAllData();
@@ -71,9 +79,8 @@ export default function HomeScreen({ navigation }: Props) {
   }, []);
 
   const handleStartCheckIn = () => {
-    navigation.navigate('Chat', { 
-      initialPrompt: "I'm ready for my daily check-in! Let's review my progress and set intentions for today." 
-    });
+    // Show proper check-in modal instead of navigating to chat
+    setShowDailyCheckIn(true);
   };
 
   const handleChatWithAI = () => {
@@ -92,15 +99,54 @@ export default function HomeScreen({ navigation }: Props) {
   };
 
   const handleCreatePlan = () => {
-    navigation.navigate('Chat', { initialPrompt: 'create_plan' });
+    // Navigate to dedicated Plan Creator screen
+    navigation.navigate('PlanCreator' as any);
   };
 
   const handleDailyCoaching = () => {
-    navigation.navigate('Chat', { initialPrompt: 'daily_coaching' });
+    // Navigate to dedicated Daily Coaching screen
+    navigation.navigate('DailyCoaching' as any);
   };
 
   const handleProgressReview = () => {
-    navigation.navigate('Chat', { initialPrompt: 'review_progress' });
+    // Navigate to dedicated Progress Analytics screen
+    navigation.navigate('ProgressAnalytics' as any);
+  };
+
+  const submitDailyCheckIn = async () => {
+    try {
+      // Validate that at least mood is selected
+      if (!checkInData.mood) {
+        Alert.alert('Incomplete Check-in', 'Please select your mood before submitting.');
+        return;
+      }
+
+      // Here you would normally save to your backend
+      console.log('Submitting check-in:', checkInData);
+
+      // Update streak
+      setCheckInStreak(prev => prev + 1);
+
+      // Show success message
+      Alert.alert(
+        '🎉 Check-in Complete!',
+        `Great job! You're on a ${checkInStreak + 1} day streak!`,
+        [{ text: 'Awesome!', style: 'default' }]
+      );
+
+      // Reset and close modal
+      setCheckInData({
+        mood: '',
+        habits: {},
+        motivation: '',
+        notes: ''
+      });
+      setShowDailyCheckIn(false);
+
+    } catch (error) {
+      console.error('Error submitting check-in:', error);
+      Alert.alert('Error', 'Failed to submit check-in. Please try again.');
+    }
   };
 
   // Use AI-generated insights if available, otherwise fall back to static ones
@@ -288,7 +334,10 @@ export default function HomeScreen({ navigation }: Props) {
                 onPress={() => handleInsightAction(insight)}
               >
                 <Text style={styles.insightButtonText}>
-                  Discuss with AI
+                  {insight.type === 'warning' ? 'Get Help 🆘' : 
+                   insight.type === 'success' ? 'Build on This 🚀' : 
+                   insight.type === 'pattern' ? 'Optimize This 🧠' :
+                   'Discuss with AI 💬'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -375,6 +424,108 @@ export default function HomeScreen({ navigation }: Props) {
 
         <View style={styles.bottomPadding} />
       </ScrollView>
+
+      {/* Daily Check-in Modal */}
+      <Modal
+        visible={showDailyCheckIn}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity 
+              onPress={() => setShowDailyCheckIn(false)}
+              style={styles.modalCloseButton}
+            >
+              <Ionicons name="close" size={24} color="#6B7280" />
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Daily Check-In</Text>
+            <View style={styles.modalHeaderRight}>
+              <Text style={styles.streakText}>🔥 {checkInStreak}</Text>
+            </View>
+          </View>
+
+          <ScrollView style={styles.modalContent}>
+            {/* Mood Selection */}
+            <View style={styles.checkInSection}>
+              <Text style={styles.checkInSectionTitle}>How are you feeling today?</Text>
+              <View style={styles.moodGrid}>
+                {[
+                  { emoji: '😍', label: 'Amazing', value: 'amazing' },
+                  { emoji: '😊', label: 'Good', value: 'good' },
+                  { emoji: '😐', label: 'Okay', value: 'okay' },
+                  { emoji: '😔', label: 'Struggling', value: 'struggling' }
+                ].map((mood) => (
+                  <TouchableOpacity
+                    key={mood.value}
+                    style={[
+                      styles.moodButton,
+                      checkInData.mood === mood.value && styles.moodButtonSelected
+                    ]}
+                    onPress={() => setCheckInData(prev => ({ ...prev, mood: mood.value }))}
+                  >
+                    <Text style={styles.moodEmoji}>{mood.emoji}</Text>
+                    <Text style={[
+                      styles.moodLabel,
+                      checkInData.mood === mood.value && styles.moodLabelSelected
+                    ]}>
+                      {mood.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Goals Progress */}
+            <View style={styles.checkInSection}>
+              <Text style={styles.checkInSectionTitle}>Today's Goal Progress</Text>
+              {goals.slice(0, 2).map((goal) => (
+                <View key={goal.id} style={styles.goalCheckItem}>
+                  <View style={styles.goalCheckInfo}>
+                    <Text style={styles.goalCheckTitle}>{goal.title}</Text>
+                    <Text style={styles.goalCheckSubtitle}>{goal.description}</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={[
+                      styles.goalCheckbox,
+                      checkInData.habits[goal.id] && styles.goalCheckboxChecked
+                    ]}
+                    onPress={() => setCheckInData(prev => ({
+                      ...prev,
+                      habits: { ...prev.habits, [goal.id]: !prev.habits[goal.id] }
+                    }))}
+                  >
+                    {checkInData.habits[goal.id] && (
+                      <Ionicons name="checkmark" size={16} color="#fff" />
+                    )}
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+
+            {/* Motivation */}
+            <View style={styles.checkInSection}>
+              <Text style={styles.checkInSectionTitle}>What's motivating you today?</Text>
+              <TextInput
+                style={styles.motivationInput}
+                placeholder="Share what's driving you forward..."
+                value={checkInData.motivation}
+                onChangeText={(text) => setCheckInData(prev => ({ ...prev, motivation: text }))}
+                multiline
+                numberOfLines={3}
+              />
+            </View>
+
+            {/* Submit Button */}
+            <TouchableOpacity 
+              style={styles.submitButton}
+              onPress={submitDailyCheckIn}
+            >
+              <Text style={styles.submitButtonText}>Complete Check-In 🎯</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -730,6 +881,138 @@ const styles = StyleSheet.create({
   coachingButtonText: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#fff',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    backgroundColor: '#fff',
+  },
+  modalCloseButton: {
+    padding: 8,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  modalHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  streakText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#F59E0B',
+  },
+  modalContent: {
+    flex: 1,
+    padding: 20,
+  },
+  checkInSection: {
+    marginBottom: 32,
+  },
+  checkInSectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 16,
+  },
+  moodGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  moodButton: {
+    flex: 1,
+    alignItems: 'center',
+    padding: 16,
+    marginHorizontal: 4,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+  },
+  moodButtonSelected: {
+    borderColor: '#4F46E5',
+    backgroundColor: '#EEF2FF',
+  },
+  moodEmoji: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  moodLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  moodLabelSelected: {
+    color: '#4F46E5',
+  },
+  goalCheckItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  goalCheckInfo: {
+    flex: 1,
+  },
+  goalCheckTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 4,
+  },
+  goalCheckSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  goalCheckbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#D1D5DB',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  goalCheckboxChecked: {
+    backgroundColor: '#10B981',
+    borderColor: '#10B981',
+  },
+  motivationInput: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: '#1F2937',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    textAlignVertical: 'top',
+    minHeight: 80,
+  },
+  submitButton: {
+    backgroundColor: '#4F46E5',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 20,
+    marginBottom: 40,
+  },
+  submitButtonText: {
+    fontSize: 18,
+    fontWeight: '700',
     color: '#fff',
   },
 });

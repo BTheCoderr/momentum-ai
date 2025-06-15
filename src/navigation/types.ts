@@ -6,4 +6,7 @@ export type RootTabParamList = {
   History: undefined;
   Profile: undefined;
   NotificationSettings: undefined;
+  PlanCreator: undefined;
+  DailyCoaching: undefined;
+  ProgressAnalytics: undefined;
 }; 
