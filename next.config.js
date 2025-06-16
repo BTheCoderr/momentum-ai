@@ -1,5 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Explicitly enable SWC and disable Babel
+  swcMinify: true,
+  experimental: {
+    forceSwcTransforms: true,
+  },
+  
   // Disable ESLint during build
   eslint: {
     // Disable ESLint during builds to prevent deployment failures

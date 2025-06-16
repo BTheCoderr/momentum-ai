@@ -24,7 +24,4 @@ config.transformer.experimentalImportSupport = false;
 // Force disable router detection
 config.resolver.resolverMainFields = ['react-native', 'browser', 'main'];
 
-// Use mobile-specific Babel config
-config.transformer.babelTransformerPath = require.resolve('./babel.config.mobile.js');
-
 module.exports = config; 
