@@ -7,9 +7,10 @@ import StreakCard from '../src/components/StreakCard';
 import DailyCheckInModal from '../src/components/DailyCheckInModal';
 import OnboardingFlow from '../src/components/OnboardingFlow';
 import GoalManager from '../src/components/GoalManager';
+import AICoachPanel from '../src/components/AICoachPanel';
 
 export default function HomePage() {
-  const [currentView, setCurrentView] = useState<'insights' | 'dashboard' | 'goals' | 'check-in'>('insights');
+  const [currentView, setCurrentView] = useState<'insights' | 'dashboard' | 'goals' | 'chat' | 'check-in'>('insights');
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showCheckInModal, setShowCheckInModal] = useState(false);
   const [userProfile, setUserProfile] = useState({
@@ -240,6 +241,88 @@ export default function HomePage() {
     </div>
   );
 
+  const renderChatView = () => {
+    const [chatMessages, setChatMessages] = useState<Array<{
+      id: string;
+      type: 'insight' | 'encouragement' | 'question' | 'reminder';
+      content: string;
+      timestamp: string;
+      isAI: boolean;
+    }>>([
+      {
+        id: '1',
+        type: 'encouragement' as const,
+        content: "Hey there! I'm your AI coach. I'm here to help you stay motivated and achieve your goals. What's on your mind today?",
+        timestamp: new Date().toISOString(),
+        isAI: true
+      }
+    ]);
+    const [isTyping, setIsTyping] = useState(false);
+
+    const handleSendMessage = async (message: string) => {
+      // Add user message
+      const userMessage = {
+        id: Date.now().toString(),
+        type: 'question' as const,
+        content: message,
+        timestamp: new Date().toISOString(),
+        isAI: false
+      };
+      
+      setChatMessages(prev => [...prev, userMessage]);
+      setIsTyping(true);
+
+      try {
+        // Call AI chat API
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message,
+            userId: 'demo-user',
+            goals: [], // Add user goals here
+            userContext: {}
+          })
+        });
+
+        const data = await response.json();
+        
+        // Add AI response
+        const aiMessage = {
+          id: (Date.now() + 1).toString(),
+          type: 'insight' as const,
+          content: data.response || "I'm here to help you with your goals!",
+          timestamp: new Date().toISOString(),
+          isAI: true
+        };
+        
+        setChatMessages(prev => [...prev, aiMessage]);
+      } catch (error) {
+        console.error('Chat error:', error);
+        const errorMessage = {
+          id: (Date.now() + 1).toString(),
+          type: 'encouragement' as const,
+          content: "I'm having trouble connecting right now, but I'm still here for you. What's challenging you today?",
+          timestamp: new Date().toISOString(),
+          isAI: true
+        };
+        setChatMessages(prev => [...prev, errorMessage]);
+      } finally {
+        setIsTyping(false);
+      }
+    };
+
+    return (
+      <div className="h-full bg-white text-gray-900 flex flex-col">
+        <AICoachPanel 
+          messages={chatMessages}
+          onSendMessage={handleSendMessage}
+          isTyping={isTyping}
+        />
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gray-900 text-white overflow-hidden">
       {/* Onboarding Flow */}
@@ -312,6 +395,7 @@ export default function HomePage() {
               {currentView === 'insights' && renderInsightsView()}
               {currentView === 'dashboard' && renderDashboardView()}
               {currentView === 'goals' && renderGoalsView()}
+              {currentView === 'chat' && renderChatView()}
             </motion.div>
           </AnimatePresence>
         </div>
@@ -323,6 +407,7 @@ export default function HomePage() {
               { id: 'dashboard', icon: '🏠', label: 'Home' },
               { id: 'insights', icon: '💡', label: 'Insights' },
               { id: 'goals', icon: '🎯', label: 'Goals' },
+              { id: 'chat', icon: '🤖', label: 'AI Coach' },
               { id: 'check-in', icon: '✓', label: 'Check-in' }
             ].map((tab) => (
               <motion.button

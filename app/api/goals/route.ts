@@ -48,24 +48,27 @@ export async function GET(request: NextRequest) {
 
     console.log(`✅ Successfully fetched ${goals?.length || 0} goals from database`);
     
-    // Transform data to match frontend expectations
+    // Transform data to match frontend expectations with safe fallbacks
     const transformedGoals = goals?.map(goal => ({
       id: goal.id,
-      title: goal.title,
+      title: goal.title || 'Untitled Goal',
       description: goal.description || '',
-      progress: goal.progress || 0,
+      progress: Math.max(0, Math.min(100, goal.progress || 0)),
       status: goal.status || 'active',
-      currentStreak: goal.current_streak || 0,
-      bestStreak: goal.best_streak || 0,
-      completionRate: goal.completion_rate || 0,
+      currentStreak: Math.max(0, goal.current_streak || 0),
+      bestStreak: Math.max(0, goal.best_streak || goal.current_streak || 0),
+      completionRate: Math.max(0, Math.min(100, goal.completion_rate || 0)),
       deadline: goal.deadline || null,
       category: goal.category || 'personal',
       priority: goal.priority || 'medium',
-      habits: goal.habits || [],
-      milestones: goal.milestones || [],
-      createdAt: goal.created_at,
-      updatedAt: goal.updated_at,
-      lastCheckIn: goal.last_check_in
+      habits: Array.isArray(goal.habits) ? goal.habits : [],
+      milestones: Array.isArray(goal.milestones) ? goal.milestones : [],
+      createdAt: goal.created_at || new Date().toISOString(),
+      updatedAt: goal.updated_at || goal.created_at || new Date().toISOString(),
+      lastCheckIn: goal.last_check_in || null,
+      // Add mobile compatibility fields
+      dueDate: goal.deadline ? new Date(goal.deadline).toLocaleDateString() : 'No deadline',
+      motivation: goal.emotional_context || 'Personal growth and achievement'
     })) || [];
 
     return NextResponse.json({ goals: transformedGoals });
