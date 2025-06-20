@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Star, Users, MessageSquare, X, Trophy, Zap } from 'lucide-react';
 import { analytics } from '@/lib/analytics';
 
@@ -10,9 +10,12 @@ interface BetaUserBannerProps {
 export default function BetaUserBanner({ userId = 'demo-user', userNumber }: BetaUserBannerProps) {
   const [isVisible, setIsVisible] = useState(true);
   const [showFeedbackForm, setShowFeedbackForm] = useState(false);
+  const [isClient, setIsClient] = useState(false);
   
-  // Fix hydration mismatch by using consistent number
-  const displayNumber = userNumber || 78;
+  // Fix hydration mismatch by only showing dynamic content on client side
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const handleDismiss = () => {
     setIsVisible(false);
@@ -42,7 +45,9 @@ export default function BetaUserBanner({ userId = 'demo-user', userNumber }: Bet
                 <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
                   <Star className="w-4 h-4 text-yellow-300" />
                 </div>
-                <span className="font-semibold">Beta User #{displayNumber}</span>
+                <span className="font-semibold">
+                  Beta User #{isClient ? (userNumber || 66) : 66}
+                </span>
               </div>
               
               <div className="hidden sm:flex items-center space-x-6 text-sm">

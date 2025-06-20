@@ -1,21 +1,8 @@
 import { NextAuthOptions } from 'next-auth';
-import EmailProvider from 'next-auth/providers/email';
 import GoogleProvider from 'next-auth/providers/google';
 
 export const authOptions: NextAuthOptions = {
   providers: [
-    // Magic Link Email (No setup required!)
-    EmailProvider({
-      server: {
-        host: process.env.EMAIL_SERVER_HOST,
-        port: process.env.EMAIL_SERVER_PORT,
-        auth: {
-          user: process.env.EMAIL_SERVER_USER,
-          pass: process.env.EMAIL_SERVER_PASSWORD,
-        },
-      },
-      from: process.env.EMAIL_FROM,
-    }),
     // Google OAuth (optional - only if you set it up)
     ...(process.env.GOOGLE_CLIENT_ID ? [
       GoogleProvider({

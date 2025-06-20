@@ -38,13 +38,16 @@ self.addEventListener('fetch', (event) => {
             return response;
           }
           
-          // Clone the response because it's a stream
-          const responseToCache = response.clone();
-          
-          caches.open(CACHE_NAME)
-            .then((cache) => {
-              cache.put(event.request, responseToCache);
-            });
+          // Only cache GET requests and avoid chrome-extension URLs
+          if (event.request.method === 'GET' && !event.request.url.startsWith('chrome-extension://')) {
+            // Clone the response because it's a stream
+            const responseToCache = response.clone();
+            
+            caches.open(CACHE_NAME)
+              .then((cache) => {
+                cache.put(event.request, responseToCache);
+              });
+          }
           
           return response;
         }).catch(() => {

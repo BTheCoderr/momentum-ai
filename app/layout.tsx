@@ -14,6 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'),
   title: "Momentum AI - Your AI Accountability Agent",
   description: "Stay emotionally connected to your goals with AI-powered accountability. Momentum AI predicts when you'll drift and intervenes proactively.",
   keywords: "AI, accountability, goals, productivity, habits, coaching, motivation",

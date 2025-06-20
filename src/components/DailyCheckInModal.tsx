@@ -1,7 +1,9 @@
 'use client'
 
-import { useState } from 'react';
-import { X, CheckCircle, Circle, Flame, Target, Heart, Zap } from 'lucide-react';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, CheckCircle, Circle, Flame, Target, Heart, Zap, Mic } from 'lucide-react';
+import VoiceInput from './VoiceInput';
 
 interface Habit {
   id: string;
@@ -14,197 +16,385 @@ interface Goal {
   title: string;
   habits: Habit[];
   currentStreak: number;
+  progress?: number;
 }
 
-interface Props {
+interface CheckInData {
+  mood: number;
+  energy: number;
+  stress: number;
+  wins: string[];
+  challenges: string[];
+  priorities: string[];
+  reflection: string;
+  goalProgress: { goalId: string; progress: number }[];
+}
+
+interface DailyCheckInModalProps {
   isOpen: boolean;
   onClose: () => void;
-  goals: Goal[];
-  onComplete: (completedHabits: { [goalId: string]: string[] }) => void;
+  onSubmit: (data: CheckInData) => void;
+  goals?: Goal[];
 }
 
-export function DailyCheckInModal({ isOpen, onClose, goals, onComplete }: Props) {
-  const [mood, setMood] = useState<'amazing' | 'good' | 'okay' | 'struggling' | null>(null);
-  const [completedHabits, setCompletedHabits] = useState<{ [habitId: string]: boolean }>({});
-  const [motivation, setMotivation] = useState('');
+export default function DailyCheckInModal({ isOpen, onClose, onSubmit, goals = [] }: DailyCheckInModalProps) {
+  const [step, setStep] = useState(1);
+  const [checkInData, setCheckInData] = useState<CheckInData>({
+    mood: 3,
+    energy: 3,
+    stress: 3,
+    wins: [''],
+    challenges: [''],
+    priorities: [''],
+    reflection: '',
+    goalProgress: goals.map(g => ({ goalId: g.id, progress: g.progress || 0 }))
+  });
 
-  const moods = [
-    { id: 'amazing', emoji: '🚀', label: 'Amazing!', color: 'bg-green-500' },
-    { id: 'good', emoji: '😊', label: 'Good', color: 'bg-blue-500' },
-    { id: 'okay', emoji: '😐', label: 'Okay', color: 'bg-yellow-500' },
-    { id: 'struggling', emoji: '😔', label: 'Struggling', color: 'bg-red-500' }
-  ];
+  const totalSteps = 6;
 
-  const handleHabitToggle = (habitId: string) => {
-    setCompletedHabits(prev => ({
-      ...prev,
-      [habitId]: !prev[habitId]
-    }));
+  const handleNext = () => {
+    if (step < totalSteps) setStep(step + 1);
+  };
+
+  const handlePrev = () => {
+    if (step > 1) setStep(step - 1);
   };
 
   const handleSubmit = () => {
-    // Group completed habits by goal
-    const habitsByGoal: { [goalId: string]: string[] } = {};
-    
-    goals.forEach(goal => {
-      // Safe fallback for goals without habits
-      const goalHabits = goal.habits || [];
-      habitsByGoal[goal.id] = goalHabits
-        .filter(habit => completedHabits[habit.id])
-        .map(habit => habit.id);
-    });
-
-    onComplete(habitsByGoal);
+    // Filter out empty strings
+    const cleanData = {
+      ...checkInData,
+      wins: checkInData.wins.filter(w => w.trim()),
+      challenges: checkInData.challenges.filter(c => c.trim()),
+      priorities: checkInData.priorities.filter(p => p.trim())
+    };
+    onSubmit(cleanData);
     onClose();
+    setStep(1); // Reset for next time
   };
 
-  // Safe calculation with fallback for missing habits
-  const totalHabits = goals.reduce((total, goal) => total + (goal.habits?.length || 0), 0);
-  const completedCount = Object.values(completedHabits).filter(Boolean).length;
-  const completionRate = totalHabits > 0 ? Math.round((completedCount / totalHabits) * 100) : 0;
+  const updateArrayField = (field: 'wins' | 'challenges' | 'priorities', index: number, value: string) => {
+    const newArray = [...checkInData[field]];
+    newArray[index] = value;
+    setCheckInData({ ...checkInData, [field]: newArray });
+  };
+
+  const addArrayItem = (field: 'wins' | 'challenges' | 'priorities') => {
+    if (checkInData[field].length < 5) {
+      setCheckInData({ ...checkInData, [field]: [...checkInData[field], ''] });
+    }
+  };
+
+  const removeArrayItem = (field: 'wins' | 'challenges' | 'priorities', index: number) => {
+    const newArray = checkInData[field].filter((_, i) => i !== index);
+    if (newArray.length === 0) newArray.push('');
+    setCheckInData({ ...checkInData, [field]: newArray });
+  };
+
+  const ScaleSelector = ({ 
+    value, 
+    onChange, 
+    labels, 
+    emoji 
+  }: { 
+    value: number; 
+    onChange: (val: number) => void; 
+    labels: string[]; 
+    emoji: string;
+  }) => (
+    <div className="space-y-4">
+      <div className="text-center text-4xl mb-2">{emoji}</div>
+      <div className="flex justify-between items-center space-x-2">
+        {[1, 2, 3, 4, 5].map((num) => (
+          <button
+            key={num}
+            onClick={() => onChange(num)}
+            className={`w-12 h-12 rounded-full border-2 transition-all ${
+              value === num
+                ? 'bg-blue-500 border-blue-500 text-white scale-110'
+                : 'border-gray-300 hover:border-blue-300 hover:scale-105'
+            }`}
+          >
+            {num}
+          </button>
+        ))}
+      </div>
+      <div className="flex justify-between text-xs text-gray-500">
+        <span>{labels[0]}</span>
+        <span>{labels[1]}</span>
+      </div>
+    </div>
+  );
+
+  const renderStep = () => {
+    switch (step) {
+      case 1:
+        return (
+          <div className="space-y-6">
+            <div className="text-center">
+              <h3 className="text-xl font-semibold mb-2">How are you feeling today?</h3>
+              <p className="text-gray-600">Your emotional state matters</p>
+            </div>
+            <ScaleSelector
+              value={checkInData.mood}
+              onChange={(mood) => setCheckInData({ ...checkInData, mood })}
+              labels={['Struggling', 'Thriving']}
+              emoji="😊"
+            />
+          </div>
+        );
+
+      case 2:
+        return (
+          <div className="space-y-6">
+            <div className="text-center">
+              <h3 className="text-xl font-semibold mb-2">What's your energy level?</h3>
+              <p className="text-gray-600">Energy fuels everything we do</p>
+            </div>
+            <ScaleSelector
+              value={checkInData.energy}
+              onChange={(energy) => setCheckInData({ ...checkInData, energy })}
+              labels={['Drained', 'Energized']}
+              emoji="⚡"
+            />
+          </div>
+        );
+
+      case 3:
+        return (
+          <div className="space-y-6">
+            <div className="text-center">
+              <h3 className="text-xl font-semibold mb-2">How stressed do you feel?</h3>
+              <p className="text-gray-600">Stress awareness helps us manage it</p>
+            </div>
+            <ScaleSelector
+              value={checkInData.stress}
+              onChange={(stress) => setCheckInData({ ...checkInData, stress })}
+              labels={['Very Calm', 'Very Stressed']}
+              emoji="🧘"
+            />
+          </div>
+        );
+
+      case 4:
+        return (
+          <div className="space-y-6">
+            <div className="text-center">
+              <h3 className="text-xl font-semibold mb-2">What are your wins today?</h3>
+              <p className="text-gray-600">Celebrate progress, no matter how small</p>
+            </div>
+            <div className="space-y-4">
+              {checkInData.wins.map((win, index) => (
+                <div key={index} className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <div className="text-green-500">🎉</div>
+                    <input
+                      type="text"
+                      value={win}
+                      onChange={(e) => updateArrayField('wins', index, e.target.value)}
+                      placeholder="What went well today?"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    {checkInData.wins.length > 1 && (
+                      <button
+                        onClick={() => removeArrayItem('wins', index)}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                  <VoiceInput
+                    onTranscript={(text, isFinal) => {
+                      if (isFinal) {
+                        updateArrayField('wins', index, text);
+                      }
+                    }}
+                    placeholder="Tap mic to speak your win..."
+                    showTranscript={false}
+                    className="ml-8"
+                  />
+                </div>
+              ))}
+              {checkInData.wins.length < 5 && (
+                <button
+                  onClick={() => addArrayItem('wins')}
+                  className="text-blue-500 hover:text-blue-700 text-sm"
+                >
+                  + Add another win
+                </button>
+              )}
+            </div>
+          </div>
+        );
+
+      case 5:
+        return (
+          <div className="space-y-6">
+            <div className="text-center">
+              <h3 className="text-xl font-semibold mb-2">What challenges are you facing?</h3>
+              <p className="text-gray-600">Acknowledging challenges helps us grow</p>
+            </div>
+            <div className="space-y-4">
+              {checkInData.challenges.map((challenge, index) => (
+                <div key={index} className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <div className="text-orange-500">⚡</div>
+                    <input
+                      type="text"
+                      value={challenge}
+                      onChange={(e) => updateArrayField('challenges', index, e.target.value)}
+                      placeholder="What's challenging you?"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    {checkInData.challenges.length > 1 && (
+                      <button
+                        onClick={() => removeArrayItem('challenges', index)}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                  <VoiceInput
+                    onTranscript={(text, isFinal) => {
+                      if (isFinal) {
+                        updateArrayField('challenges', index, text);
+                      }
+                    }}
+                    placeholder="Tap mic to speak your challenge..."
+                    showTranscript={false}
+                    className="ml-8"
+                  />
+                </div>
+              ))}
+              {checkInData.challenges.length < 5 && (
+                <button
+                  onClick={() => addArrayItem('challenges')}
+                  className="text-blue-500 hover:text-blue-700 text-sm"
+                >
+                  + Add another challenge
+                </button>
+              )}
+            </div>
+          </div>
+        );
+
+      case 6:
+        return (
+          <div className="space-y-6">
+            <div className="text-center">
+              <h3 className="text-xl font-semibold mb-2">Any thoughts to share?</h3>
+              <p className="text-gray-600">Reflection deepens self-awareness</p>
+            </div>
+            <div className="space-y-3">
+              <textarea
+                value={checkInData.reflection}
+                onChange={(e) => setCheckInData({ ...checkInData, reflection: e.target.value })}
+                placeholder="What's on your mind? Any insights, feelings, or thoughts you'd like to capture?"
+                className="w-full h-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              />
+              <VoiceInput
+                onTranscript={(text, isFinal) => {
+                  if (isFinal) {
+                    setCheckInData({ ...checkInData, reflection: text });
+                  }
+                }}
+                placeholder="Tap mic to speak your reflection..."
+                showTranscript={false}
+                className="w-full"
+              />
+            </div>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">Daily Check-In</h2>
-              <p className="text-gray-600 mt-1">How did today go? Let's celebrate your wins! 🎉</p>
+    <AnimatePresence>
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.9 }}
+          className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto"
+        >
+          {/* Header */}
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold">Daily Check-In</h2>
+                <p className="text-sm text-gray-500">Step {step} of {totalSteps}</p>
+              </div>
+              <button
+                onClick={onClose}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
             </div>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 p-1"
-            >
-              <X className="w-6 h-6" />
-            </button>
-          </div>
-        </div>
-
-        <div className="p-6 space-y-6">
-          {/* Mood Selection */}
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <Heart className="w-5 h-5 mr-2 text-red-500" />
-              How are you feeling today?
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {moods.map((moodOption) => (
-                <button
-                  key={moodOption.id}
-                  onClick={() => setMood(moodOption.id as any)}
-                  className={`p-4 rounded-xl border-2 transition-all ${
-                    mood === moodOption.id
-                      ? `${moodOption.color} text-white border-transparent`
-                      : 'border-gray-200 hover:border-gray-300 text-gray-700'
-                  }`}
-                >
-                  <div className="text-2xl mb-2">{moodOption.emoji}</div>
-                  <div className="text-sm font-medium">{moodOption.label}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Habit Tracking */}
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <Target className="w-5 h-5 mr-2 text-blue-500" />
-              Today's Habits
-            </h3>
             
-            {goals.map((goal) => (
-              <div key={goal.id} className="mb-6 last:mb-0">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-medium text-gray-800">{goal.title}</h4>
-                  <div className="flex items-center text-orange-600">
-                    <Flame className="w-4 h-4 mr-1" />
-                    <span className="text-sm font-bold">{goal.currentStreak || 0} day streak</span>
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  {/* Safe fallback for goals without habits */}
-                  {(goal.habits || []).length > 0 ? (
-                    (goal.habits || []).map((habit) => (
-                      <div
-                        key={habit.id}
-                        onClick={() => handleHabitToggle(habit.id)}
-                        className={`flex items-center p-3 rounded-lg border cursor-pointer transition-all ${
-                          completedHabits[habit.id]
-                            ? 'bg-green-50 border-green-200 text-green-900'
-                            : 'bg-gray-50 border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
-                        {completedHabits[habit.id] ? (
-                          <CheckCircle className="w-5 h-5 text-green-600 mr-3" />
-                        ) : (
-                          <Circle className="w-5 h-5 text-gray-400 mr-3" />
-                        )}
-                        <span className={`${completedHabits[habit.id] ? 'line-through' : ''}`}>
-                          {habit.text}
-                        </span>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="p-3 text-gray-500 text-center italic">
-                      No habits set for this goal yet. Add some habits to track daily progress!
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-
-            {/* Progress Summary */}
-            <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <div className="flex items-center justify-between">
-                <span className="text-blue-800 font-medium">Today's Progress</span>
-                <span className="text-blue-600 font-bold">{completedCount}/{totalHabits} completed ({completionRate}%)</span>
-              </div>
-              <div className="mt-2 w-full bg-blue-200 rounded-full h-2">
-                <div 
-                  className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${completionRate}%` }}
-                ></div>
-              </div>
+            {/* Progress Bar */}
+            <div className="mt-3 bg-gray-200 rounded-full h-2">
+              <div
+                className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${(step / totalSteps) * 100}%` }}
+              />
             </div>
           </div>
 
-          {/* Motivation Note */}
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
-              <Zap className="w-5 h-5 mr-2 text-yellow-500" />
-              What's driving you today? (Optional)
-            </h3>
-            <textarea
-              value={motivation}
-              onChange={(e) => setMotivation(e.target.value)}
-              placeholder="Share what's motivating you or any challenges you faced..."
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-              rows={3}
-            />
+          {/* Content */}
+          <div className="px-6 py-6">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={step}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                {renderStep()}
+              </motion.div>
+            </AnimatePresence>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex space-x-3 pt-4">
+          {/* Footer */}
+          <div className="px-6 py-4 border-t border-gray-200 flex justify-between">
             <button
-              onClick={onClose}
-              className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              onClick={handlePrev}
+              disabled={step === 1}
+              className={`px-4 py-2 rounded-lg ${
+                step === 1
+                  ? 'text-gray-400 cursor-not-allowed'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
             >
-              Skip Today
+              Previous
             </button>
-            <button
-              onClick={handleSubmit}
-              className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-colors font-medium"
-            >
-              Complete Check-In 🎉
-            </button>
+            
+            {step < totalSteps ? (
+              <button
+                onClick={handleNext}
+                className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              >
+                Next
+              </button>
+            ) : (
+              <button
+                onClick={handleSubmit}
+                className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+              >
+                Complete Check-In
+              </button>
+            )}
           </div>
-        </div>
+        </motion.div>
       </div>
-    </div>
+    </AnimatePresence>
   );
 } 

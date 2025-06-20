@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
-import { supabase, Goal } from "@/lib/supabase"
+import { createClient } from "@supabase/supabase-js"
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
 
 // Transform Supabase data to mobile app format
 function transformGoalData(supabaseGoal: any) {
@@ -22,99 +27,244 @@ function transformGoalData(supabaseGoal: any) {
   };
 }
 
+// GET - Fetch all goals for a user
 export async function GET(request: NextRequest) {
   try {
-    console.log('🔍 Fetching goals from Supabase...')
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId') || 'demo-user';
+    
+    console.log('🔍 Fetching goals from Supabase...');
     
     const { data: goals, error } = await supabase
       .from('goals')
       .select('*')
-      .order('created_at', { ascending: false })
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('❌ Supabase error:', error)
-      return NextResponse.json({ error: 'Failed to fetch goals' }, { status: 500 })
+      console.error('❌ Supabase error:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Transform data to mobile app format
-    const transformedGoals = (goals || []).map(transformGoalData);
+    console.log(`✅ Successfully fetched ${goals?.length || 0} goals from database`);
+    
+    // Transform data to match frontend expectations
+    const transformedGoals = goals?.map(goal => ({
+      id: goal.id,
+      title: goal.title,
+      description: goal.description || '',
+      progress: goal.progress || 0,
+      status: goal.status || 'active',
+      currentStreak: goal.current_streak || 0,
+      bestStreak: goal.best_streak || 0,
+      completionRate: goal.completion_rate || 0,
+      deadline: goal.deadline || null,
+      category: goal.category || 'personal',
+      priority: goal.priority || 'medium',
+      habits: goal.habits || [],
+      milestones: goal.milestones || [],
+      createdAt: goal.created_at,
+      updatedAt: goal.updated_at,
+      lastCheckIn: goal.last_check_in
+    })) || [];
 
-    console.log(`✅ Successfully fetched ${transformedGoals.length} goals from database`)
-    return NextResponse.json(transformedGoals)
+    return NextResponse.json({ goals: transformedGoals });
+
   } catch (error) {
-    console.error('❌ Error fetching goals:', error)
-    return NextResponse.json({ error: 'Failed to fetch goals' }, { status: 500 })
+    console.error('❌ Goals fetch error:', error);
+    return NextResponse.json({ 
+      error: 'Failed to fetch goals',
+      goals: [] // Return empty array as fallback
+    }, { status: 500 });
   }
 }
 
+// POST - Create a new goal
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { title, description, emotionalContext, deadline, habits } = body
-    
-    console.log('🎯 Creating new goal:', title)
-    
-    const newGoal = {
-      id: `goal-${Date.now()}`,
-      title,
-      description,
-      emotional_context: emotionalContext,
-      progress: 0,
-      status: 'active',
-      deadline: deadline || null,
-      user_id: 'default-user'
+    const body = await request.json();
+    const { 
+      title, 
+      description, 
+      category = 'personal',
+      priority = 'medium',
+      deadline,
+      habits = [],
+      userId = 'demo-user'
+    } = body;
+
+    if (!title) {
+      return NextResponse.json({ error: 'Title is required' }, { status: 400 });
     }
 
-    const { data, error } = await supabase
+    console.log('📝 Creating new goal:', { title, category, priority });
+
+    const goalData = {
+      user_id: userId,
+      title: title.trim(),
+      description: description?.trim() || '',
+      category,
+      priority,
+      deadline: deadline || null,
+      habits: habits || [],
+      status: 'active',
+      progress: 0,
+      current_streak: 0,
+      best_streak: 0,
+      completion_rate: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    const { data: goal, error } = await supabase
       .from('goals')
-      .insert(newGoal)
+      .insert([goalData])
       .select()
-      .single()
+      .single();
 
     if (error) {
-      console.error('❌ Supabase insert error:', error)
-      return NextResponse.json({ error: 'Failed to create goal' }, { status: 500 })
+      console.error('❌ Goal creation error:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Transform and return the created goal
-    const transformedGoal = transformGoalData(data);
-    console.log('✅ Goal created successfully in database!')
-    return NextResponse.json(transformedGoal, { status: 201 })
+    console.log('✅ Goal created successfully:', goal.id);
+
+    // Transform for frontend
+    const transformedGoal = {
+      id: goal.id,
+      title: goal.title,
+      description: goal.description,
+      progress: goal.progress,
+      status: goal.status,
+      currentStreak: goal.current_streak,
+      bestStreak: goal.best_streak,
+      completionRate: goal.completion_rate,
+      deadline: goal.deadline,
+      category: goal.category,
+      priority: goal.priority,
+      habits: goal.habits,
+      createdAt: goal.created_at,
+      updatedAt: goal.updated_at
+    };
+
+    return NextResponse.json({ goal: transformedGoal }, { status: 201 });
+
   } catch (error) {
-    console.error('❌ Error creating goal:', error)
-    return NextResponse.json({ error: 'Failed to create goal' }, { status: 500 })
+    console.error('❌ Goal creation error:', error);
+    return NextResponse.json({ error: 'Failed to create goal' }, { status: 500 });
   }
 }
 
+// PUT - Update an existing goal
 export async function PUT(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { id, progress, status } = body
-    
-    console.log('📈 Updating goal progress:', id, progress)
+    const body = await request.json();
+    const { 
+      id,
+      title,
+      description,
+      progress,
+      status,
+      category,
+      priority,
+      deadline,
+      habits,
+      currentStreak,
+      bestStreak,
+      completionRate
+    } = body;
 
-    const { data, error } = await supabase
-      .from('goals')
-      .update({ 
-        progress, 
-        status,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error) {
-      console.error('❌ Supabase update error:', error)
-      return NextResponse.json({ error: 'Failed to update goal' }, { status: 500 })
+    if (!id) {
+      return NextResponse.json({ error: 'Goal ID is required' }, { status: 400 });
     }
 
-    // Transform and return the updated goal
-    const transformedGoal = transformGoalData(data);
-    console.log('✅ Goal updated successfully!')
-    return NextResponse.json(transformedGoal)
+    console.log('📝 Updating goal:', id);
+
+    const updateData: any = {
+      updated_at: new Date().toISOString()
+    };
+
+    // Only update provided fields
+    if (title !== undefined) updateData.title = title.trim();
+    if (description !== undefined) updateData.description = description?.trim() || '';
+    if (progress !== undefined) updateData.progress = Math.max(0, Math.min(100, progress));
+    if (status !== undefined) updateData.status = status;
+    if (category !== undefined) updateData.category = category;
+    if (priority !== undefined) updateData.priority = priority;
+    if (deadline !== undefined) updateData.deadline = deadline;
+    if (habits !== undefined) updateData.habits = habits;
+    if (currentStreak !== undefined) updateData.current_streak = currentStreak;
+    if (bestStreak !== undefined) updateData.best_streak = bestStreak;
+    if (completionRate !== undefined) updateData.completion_rate = completionRate;
+
+    const { data: goal, error } = await supabase
+      .from('goals')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('❌ Goal update error:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    console.log('✅ Goal updated successfully:', id);
+
+    // Transform for frontend
+    const transformedGoal = {
+      id: goal.id,
+      title: goal.title,
+      description: goal.description,
+      progress: goal.progress,
+      status: goal.status,
+      currentStreak: goal.current_streak,
+      bestStreak: goal.best_streak,
+      completionRate: goal.completion_rate,
+      deadline: goal.deadline,
+      category: goal.category,
+      priority: goal.priority,
+      habits: goal.habits,
+      createdAt: goal.created_at,
+      updatedAt: goal.updated_at
+    };
+
+    return NextResponse.json({ goal: transformedGoal });
+
   } catch (error) {
-    console.error('❌ Error updating goal:', error)
-    return NextResponse.json({ error: 'Failed to update goal' }, { status: 500 })
+    console.error('❌ Goal update error:', error);
+    return NextResponse.json({ error: 'Failed to update goal' }, { status: 500 });
+  }
+}
+
+// DELETE - Delete a goal
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ error: 'Goal ID is required' }, { status: 400 });
+    }
+
+    console.log('🗑️ Deleting goal:', id);
+
+    const { error } = await supabase
+      .from('goals')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('❌ Goal deletion error:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    console.log('✅ Goal deleted successfully:', id);
+
+    return NextResponse.json({ message: 'Goal deleted successfully' });
+
+  } catch (error) {
+    console.error('❌ Goal deletion error:', error);
+    return NextResponse.json({ error: 'Failed to delete goal' }, { status: 500 });
   }
 } 

@@ -83,6 +83,7 @@
   /* Hide browser UI when installed as PWA */
   body {
     -webkit-user-select: none;
+    user-select: none;
     -webkit-touch-callout: none;
     -webkit-tap-highlight-color: transparent;
   }
@@ -219,7 +220,8 @@ input, select, textarea {
   --foreground: #171717;
 }
 
-@theme inline {
+/* Custom theme variables for better compatibility */
+:root {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
