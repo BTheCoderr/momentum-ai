@@ -208,7 +208,7 @@ export default function TestPage() {
 
         {/* AI Insights Section */}
         <div className="bg-white rounded-xl p-6 border border-gray-200">
-          <InsightCards userId="test-user-id" limit={10} />
+          <InsightCards />
         </div>
 
         {/* Debug Info */}

@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: momentum-ai-web
+    env: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXTAUTH_URL
+        value: https://momentum-ai-web.onrender.com
+      - key: NEXTAUTH_SECRET
+        generateValue: true
+      - key: GROQ_API_KEY
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+    healthCheckPath: /api/health
+    domains:
+      - momentum-ai-web.onrender.com 

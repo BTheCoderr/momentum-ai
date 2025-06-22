@@ -1,488 +1,405 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import InsightCards, { InsightCategories } from '../src/components/InsightCards';
-import StreakCard from '../src/components/StreakCard';
-import DailyCheckInModal from '../src/components/DailyCheckInModal';
-import OnboardingFlow from '../src/components/OnboardingFlow';
-import GoalManager from '../src/components/GoalManager';
-import AICoachPanel from '../src/components/AICoachPanel';
+import { supabase } from '../lib/supabase';
 
-export default function HomePage() {
-  const [currentView, setCurrentView] = useState<'insights' | 'dashboard' | 'goals' | 'chat' | 'check-in'>('insights');
-  const [showOnboarding, setShowOnboarding] = useState(false);
-  const [showCheckInModal, setShowCheckInModal] = useState(false);
-  const [userProfile, setUserProfile] = useState({
+// Authentication Component
+const AuthScreen = () => {
+  const [isLogin, setIsLogin] = useState(false);
+  const [formData, setFormData] = useState({
     name: '',
+    email: '',
+    phone: '',
     primaryGoal: '',
-    isOnboarded: false,
-    streak: 0,
-    totalCheckIns: 0
+    password: ''
   });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const [streakData] = useState({
-    currentStreak: 12,
-    longestStreak: 25,
-    totalDays: 45,
-    weekData: [true, true, false, true, true, true, true], // S M T W T F S
-    monthData: Array.from({ length: 30 }, (_, i) => Math.random() > 0.3), // 30 days with 70% completion
-    streakType: 'check-in' as const,
-    lastActivity: new Date().toISOString(),
-    nextMilestone: 14
-  });
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
 
-  const [insights] = useState([
-    {
-      id: '1',
-      text: "Your consistency is building something powerful. Every small action today is an investment in tomorrow's success.",
-      type: 'motivation' as const,
-      mood: 'focused',
-      streak: 12,
-      date: new Date().toISOString(),
-      userName: 'You',
-      category: 'motivation',
-      confidence: 0.92,
-      actionable: true,
-      tags: ['motivation', 'consistency', 'growth']
-    },
-    {
-      id: '2',
-      text: "I see you struggle most on Wednesdays. What's different about that day? Understanding this pattern could unlock your week.",
-      type: 'reflection' as const,
-      mood: 'thoughtful',
-      streak: 12,
-      date: new Date().toISOString(),
-      userName: 'You',
-      category: 'reflection',
-      confidence: 0.85,
-      actionable: true,
-      tags: ['reflection', 'patterns', 'self-awareness']
-    },
-    {
-      id: '3',
-      text: "You've mastered the basics. Ready for something that will stretch you? Try the 5-minute rule on your hardest task.",
-      type: 'challenge' as const,
-      mood: 'motivated',
-      streak: 12,
-      date: new Date().toISOString(),
-      userName: 'You',
-      category: 'challenge',
-      confidence: 0.78,
-      actionable: true,
-      tags: ['challenge', 'growth', 'productivity']
-    }
-  ]);
-
-  useEffect(() => {
-    // Check if user needs onboarding
-    const hasOnboarded = localStorage.getItem('momentum_onboarded');
-    if (!hasOnboarded) {
-      setShowOnboarding(true);
-    } else {
-      // Load user profile
-      const savedProfile = localStorage.getItem('momentum_profile');
-      if (savedProfile) {
-        setUserProfile(JSON.parse(savedProfile));
-      }
-    }
-  }, []);
-
-  const handleOnboardingComplete = (profile: any) => {
-    setUserProfile({ ...profile, isOnboarded: true });
-    localStorage.setItem('momentum_onboarded', 'true');
-    localStorage.setItem('momentum_profile', JSON.stringify(profile));
-    setShowOnboarding(false);
-  };
-
-  const handleCheckInComplete = (checkInData: any) => {
-    console.log('Check-in completed:', checkInData);
-    setShowCheckInModal(false);
-    
-    // Update user stats
-    setUserProfile(prev => ({
-      ...prev,
-      totalCheckIns: prev.totalCheckIns + 1,
-      streak: prev.streak + 1
-    }));
-
-    // Show success feedback
-    showToast('Check-in complete! Great job staying consistent! 🎉', 'success');
-  };
-
-  const handleInsightAction = (action: string, insight: any) => {
-    console.log(`User ${action}ed insight:`, insight);
-    
-    if (action === 'save') {
-      showToast('Insight saved to your collection! 💾', 'success');
-    } else if (action === 'share') {
-      // Native share if available
-      if (navigator.share) {
-        navigator.share({
-          title: 'My Momentum Insight',
-          text: insight.text,
-          url: window.location.href
+    try {
+      if (isLogin) {
+        // Login with Supabase
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: formData.email,
+          password: formData.password,
         });
+
+        if (error) throw error;
+        
+        console.log('✅ Login successful:', data);
       } else {
-        // Fallback to clipboard
-        navigator.clipboard.writeText(`${insight.text}\n\n- Shared from Momentum AI`);
-        showToast('Insight copied to clipboard! 📋', 'success');
+        // Sign up with Supabase
+        const { data, error } = await supabase.auth.signUp({
+          email: formData.email,
+          password: formData.password,
+          options: {
+            data: {
+              full_name: formData.name,
+              phone: formData.phone,
+              primary_goal: formData.primaryGoal,
+            }
+          }
+        });
+
+        if (error) throw error;
+
+        console.log('✅ Signup successful:', data);
+        
+        // Create user profile
+        if (data.user) {
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .insert([
+              {
+                id: data.user.id,
+                full_name: formData.name,
+                email: formData.email,
+                phone: formData.phone,
+                primary_goal: formData.primaryGoal,
+                created_at: new Date().toISOString()
+              }
+            ]);
+          
+          if (profileError) {
+            console.log('Profile creation error:', profileError);
+          }
+        }
       }
+    } catch (error: any) {
+      console.error('Auth error:', error);
+      setError(error.message || 'Authentication failed. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
-    const event = new CustomEvent('showToast', {
-      detail: { message, type }
-    });
-    window.dispatchEvent(event);
-  };
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Welcome to Momentum AI
+          </h1>
+          <p className="text-gray-600">
+            Your AI-powered accountability partner
+          </p>
+        </div>
 
-  const renderInsightsView = () => (
-    <div className="h-full flex flex-col">
-      {/* Categories */}
-      <div className="px-4 py-2 bg-gray-900/50 backdrop-blur-sm">
-        <InsightCategories onCategorySelect={(category) => console.log('Selected:', category)} />
+        <div className="flex mb-6">
+          <button
+            onClick={() => setIsLogin(false)}
+            className={`flex-1 py-2 px-4 rounded-l-lg transition-colors ${
+              !isLogin 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-gray-100 text-gray-700'
+            }`}
+          >
+            Sign Up
+          </button>
+          <button
+            onClick={() => setIsLogin(true)}
+            className={`flex-1 py-2 px-4 rounded-r-lg transition-colors ${
+              isLogin 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-gray-100 text-gray-700'
+            }`}
+          >
+            Login
+          </button>
+        </div>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-800 text-sm">{error}</p>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {!isLogin && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter your full name"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Primary Goal
+                </label>
+                <select
+                  required
+                  value={formData.primaryGoal}
+                  onChange={(e) => setFormData({...formData, primaryGoal: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">Select your main focus</option>
+                  <option value="fitness">Health & Fitness</option>
+                  <option value="career">Career Growth</option>
+                  <option value="learning">Learning & Skills</option>
+                  <option value="habits">Daily Habits</option>
+                  <option value="mindfulness">Mindfulness & Mental Health</option>
+                  <option value="productivity">Productivity</option>
+                  <option value="relationships">Relationships</option>
+                  <option value="creativity">Creativity & Hobbies</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Phone (Optional)
+                </label>
+                <input
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="For accountability reminders"
+                />
+            </div>
+            </>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Email
+            </label>
+            <input
+              type="email"
+              required
+              value={formData.email}
+              onChange={(e) => setFormData({...formData, email: e.target.value})}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Enter your email"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Password
+            </label>
+            <input
+              type="password"
+              required
+              value={formData.password}
+              onChange={(e) => setFormData({...formData, password: e.target.value})}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Create a secure password"
+            />
+        </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? 'Processing...' : (isLogin ? 'Login' : 'Start Your Journey')}
+          </button>
+        </form>
+
+        {!isLogin && (
+          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+            <h4 className="font-medium text-blue-900 mb-2">🚀 What You'll Get:</h4>
+            <ul className="text-sm text-blue-800 space-y-1">
+              <li>• AI-powered daily check-ins</li>
+              <li>• Personalized coaching insights</li>
+              <li>• Streak tracking & motivation</li>
+              <li>• Progress analytics & patterns</li>
+            </ul>
+          </div>
+        )}
       </div>
-      
-      {/* Insights Feed */}
-      <div className="flex-1 relative">
-        <InsightCards 
-          userId="demo-user"
-          onInsightAction={handleInsightAction}
-        />
-      </div>
-    </div>
+            </div>
   );
+};
 
-  const renderDashboardView = () => (
-    <div className="p-4 space-y-6 max-w-md mx-auto">
-      {/* Welcome Header */}
+// Simple Dashboard Components
+const DailyCheckInCard = () => (
+  <div className="bg-white rounded-xl shadow-sm border p-6">
+    <h3 className="text-lg font-semibold mb-4">Daily Check-In</h3>
+    <p className="text-gray-600 mb-4">How are you feeling today?</p>
+    <button className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors">
+      Start Check-In
+    </button>
+                  </div>
+);
+
+const ProgressDashboard = () => (
+  <div className="bg-white rounded-xl shadow-sm border p-6">
+    <h3 className="text-lg font-semibold mb-4">Progress Dashboard</h3>
+    <p className="text-gray-600 mb-4">Track your journey and celebrate wins</p>
+    <div className="grid grid-cols-3 gap-4">
       <div className="text-center">
-        <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          className="text-4xl mb-2"
-        >
-          👋
-        </motion.div>
-        <h1 className="text-2xl font-bold text-gray-900">
-          {userProfile.name ? `Hey ${userProfile.name}!` : 'Welcome back!'}
-        </h1>
-        <p className="text-gray-600">
-          Ready to make today count?
-        </p>
-      </div>
+        <div className="text-2xl font-bold text-blue-600">0</div>
+        <div className="text-sm text-gray-500">Goals</div>
+                  </div>
+      <div className="text-center">
+        <div className="text-2xl font-bold text-green-600">0</div>
+        <div className="text-sm text-gray-500">Streak</div>
+                  </div>
+      <div className="text-center">
+        <div className="text-2xl font-bold text-purple-600">0</div>
+        <div className="text-sm text-gray-500">Check-ins</div>
+                    </div>
+                  </div>
+                </div>
+);
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-2 gap-4">
-        <motion.div
-          whileTap={{ scale: 0.95 }}
-          className="bg-gradient-to-r from-blue-500 to-purple-500 rounded-2xl p-4 text-white"
-        >
-          <div className="text-2xl font-bold">{streakData.currentStreak}</div>
-          <div className="text-sm opacity-90">Day Streak</div>
-        </motion.div>
-        
-        <motion.div
-          whileTap={{ scale: 0.95 }}
-          className="bg-gradient-to-r from-green-500 to-blue-500 rounded-2xl p-4 text-white"
-        >
-          <div className="text-2xl font-bold">{userProfile.totalCheckIns}</div>
-          <div className="text-sm opacity-90">Check-ins</div>
-        </motion.div>
-      </div>
-
-      {/* Streak Card */}
-      <StreakCard
-        streakData={streakData}
-        onStreakTap={() => setShowCheckInModal(true)}
-        compact={false}
-      />
-
-      {/* Quick Actions */}
-      <div className="space-y-3">
-        <motion.button
-          whileTap={{ scale: 0.98 }}
-          onClick={() => setShowCheckInModal(true)}
-          className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white py-4 rounded-2xl font-semibold text-lg shadow-lg"
-        >
-          🎯 Daily Check-In
-        </motion.button>
-        
-        <motion.button
-          whileTap={{ scale: 0.98 }}
-          onClick={() => setCurrentView('insights')}
-          className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-4 rounded-2xl font-semibold text-lg shadow-lg"
-        >
-          💡 Get Insights
-        </motion.button>
-        
-        <motion.button
-          whileTap={{ scale: 0.98 }}
-          onClick={() => setCurrentView('goals')}
-          className="w-full bg-gradient-to-r from-green-500 to-blue-500 text-white py-4 rounded-2xl font-semibold text-lg shadow-lg"
-        >
-          🎯 My Goals
-        </motion.button>
-      </div>
+const InsightCards = () => (
+  <div className="bg-white rounded-xl shadow-sm border p-6">
+    <h3 className="text-lg font-semibold mb-4">AI Insights</h3>
+    <p className="text-gray-600 mb-4">Get personalized insights from your AI coach</p>
+    <div className="text-center py-8">
+      <div className="text-4xl mb-4">🌱</div>
+      <p className="text-gray-500">Complete a few check-ins to unlock insights</p>
     </div>
-  );
+  </div>
+);
 
-  const renderGoalsView = () => (
-    <div className="h-full bg-white text-gray-900 overflow-y-auto">
-      <GoalManager 
-        userId="demo-user"
-        onGoalUpdate={(goal: any) => {
-          console.log('Goal updated:', goal);
-          showToast(`Goal "${goal.title}" updated! 🎯`, 'success');
-        }}
-      />
+const StreakCard = () => (
+  <div className="bg-white rounded-xl shadow-sm border p-6">
+    <h3 className="text-lg font-semibold mb-4">Your Streak</h3>
+    <div className="text-center">
+      <div className="text-3xl font-bold text-orange-600 mb-2">0</div>
+      <p className="text-gray-600">Days in a row</p>
     </div>
-  );
+    <button className="w-full mt-4 bg-orange-600 text-white py-2 rounded-lg hover:bg-orange-700 transition-colors">
+      Start Today's Check-In
+    </button>
+  </div>
+);
 
-  const renderChatView = () => {
-    const [chatMessages, setChatMessages] = useState<Array<{
-      id: string;
-      type: 'insight' | 'encouragement' | 'question' | 'reminder';
-      content: string;
-      timestamp: string;
-      isAI: boolean;
-    }>>([
-      {
-        id: '1',
-        type: 'encouragement' as const,
-        content: "Hey there! I'm your AI coach. I'm here to help you stay motivated and achieve your goals. What's on your mind today?",
-        timestamp: new Date().toISOString(),
-        isAI: true
-      }
-    ]);
-    const [isTyping, setIsTyping] = useState(false);
+const GoalCard = () => (
+  <div className="bg-white rounded-xl shadow-sm border p-6">
+    <h3 className="text-lg font-semibold mb-4">Your Goals</h3>
+    <p className="text-gray-600 mb-4">Set and track your objectives</p>
+    <button className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-colors">
+      Add Your First Goal
+    </button>
+  </div>
+);
 
-    const handleSendMessage = async (message: string) => {
-      // Add user message
-      const userMessage = {
-        id: Date.now().toString(),
-        type: 'question' as const,
-        content: message,
-        timestamp: new Date().toISOString(),
-        isAI: false
-      };
-      
-      setChatMessages(prev => [...prev, userMessage]);
-      setIsTyping(true);
+const AICoachPanel = () => (
+  <div className="bg-white rounded-xl shadow-sm border p-6">
+    <h3 className="text-lg font-semibold mb-4">AI Coach</h3>
+    <div className="space-y-4">
+      <div className="bg-blue-50 p-3 rounded-lg">
+        <p className="text-sm text-blue-800">👋 Hello! I'm your AI coach. How can I help you today?</p>
+      </div>
+      <div className="flex space-x-2">
+        <input
+          type="text"
+          placeholder="Ask me anything..."
+          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+        />
+        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition-colors">
+          Send
+        </button>
+                        </div>
+                      </div>
+                    </div>
+    );
 
-      try {
-        // Call AI chat API
-        const response = await fetch('/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            message,
-            userId: 'demo-user',
-            goals: [], // Add user goals here
-            userContext: {}
-          })
-        });
-
-        const data = await response.json();
-        
-        // Add AI response
-        const aiMessage = {
-          id: (Date.now() + 1).toString(),
-          type: 'insight' as const,
-          content: data.response || "I'm here to help you with your goals!",
-          timestamp: new Date().toISOString(),
-          isAI: true
-        };
-        
-        setChatMessages(prev => [...prev, aiMessage]);
-      } catch (error) {
-        console.error('Chat error:', error);
-        const errorMessage = {
-          id: (Date.now() + 1).toString(),
-          type: 'encouragement' as const,
-          content: "I'm having trouble connecting right now, but I'm still here for you. What's challenging you today?",
-          timestamp: new Date().toISOString(),
-          isAI: true
-        };
-        setChatMessages(prev => [...prev, errorMessage]);
-      } finally {
-        setIsTyping(false);
-      }
-    };
+// Main App Component
+const MainApp = ({ user }: { user: any }) => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+  };
 
     return (
-      <div className="h-full bg-white text-gray-900 flex flex-col">
-        <AICoachPanel 
-          messages={chatMessages}
-          onSendMessage={handleSendMessage}
-          isTyping={isTyping}
-        />
-      </div>
-    );
-  };
-
-  return (
-    <div className="min-h-screen bg-gray-900 text-white overflow-hidden">
-      {/* Onboarding Flow */}
-      <AnimatePresence>
-        {showOnboarding && (
-          <OnboardingFlow
-            isOpen={showOnboarding}
-            onComplete={handleOnboardingComplete}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Daily Check-In Modal */}
-      <AnimatePresence>
-        {showCheckInModal && (
-          <DailyCheckInModal
-            isOpen={showCheckInModal}
-            onClose={() => setShowCheckInModal(false)}
-            onSubmit={handleCheckInComplete}
-          />
-        )}
-      </AnimatePresence>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center">
+              <h1 className="text-2xl font-bold text-gray-900">
+                Momentum AI
+          </h1>
+        </div>
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-600">
+                Welcome back, {user?.user_metadata?.full_name || user?.email || 'User'}!
+              </span>
+              <button
+                onClick={handleLogout}
+                className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                Logout
+              </button>
+          </div>
+          </div>
+        </div>
+      </header>
 
       {/* Main Content */}
-      <div className="h-screen flex flex-col">
-        {/* Header */}
-        <div className="flex-shrink-0 bg-gray-900/95 backdrop-blur-sm border-b border-gray-800 px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="text-2xl">🚀</div>
-              <div>
-                <h1 className="text-lg font-bold">Momentum AI</h1>
-                <p className="text-xs text-gray-400">Your lifelong partner</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              {currentView !== 'dashboard' && (
-                <motion.button
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => setCurrentView('dashboard')}
-                  className="p-2 rounded-full bg-gray-800 text-gray-300 hover:text-white"
-                >
-                  🏠
-                </motion.button>
-              )}
-              
-              <motion.button
-                whileTap={{ scale: 0.9 }}
-                onClick={() => setShowCheckInModal(true)}
-                className="p-2 rounded-full bg-orange-500 text-white"
-              >
-                ✓
-              </motion.button>
-            </div>
-          </div>
-        </div>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column */}
+          <div className="lg:col-span-2 space-y-8">
+            <DailyCheckInCard />
+            <ProgressDashboard />
+              <InsightCards />
+                    </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-hidden">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentView}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.3 }}
-              className="h-full"
-            >
-              {currentView === 'insights' && renderInsightsView()}
-              {currentView === 'dashboard' && renderDashboardView()}
-              {currentView === 'goals' && renderGoalsView()}
-              {currentView === 'chat' && renderChatView()}
-            </motion.div>
-          </AnimatePresence>
-        </div>
-
-        {/* Bottom Navigation */}
-        <div className="flex-shrink-0 bg-gray-900/95 backdrop-blur-sm border-t border-gray-800 px-4 py-2">
-          <div className="flex justify-around">
-            {[
-              { id: 'dashboard', icon: '🏠', label: 'Home' },
-              { id: 'insights', icon: '💡', label: 'Insights' },
-              { id: 'goals', icon: '🎯', label: 'Goals' },
-              { id: 'chat', icon: '🤖', label: 'AI Coach' },
-              { id: 'check-in', icon: '✓', label: 'Check-in' }
-            ].map((tab) => (
-              <motion.button
-                key={tab.id}
-                whileTap={{ scale: 0.9 }}
-                onClick={() => {
-                  if (tab.id === 'check-in') {
-                    setShowCheckInModal(true);
-                  } else {
-                    setCurrentView(tab.id as any);
-                  }
-                }}
-                className={`
-                  flex flex-col items-center space-y-1 py-2 px-3 rounded-lg
-                  ${currentView === tab.id 
-                    ? 'bg-blue-500/20 text-blue-400' 
-                    : 'text-gray-400 hover:text-white'
-                  }
-                `}
-              >
-                <span className="text-lg">{tab.icon}</span>
-                <span className="text-xs font-medium">{tab.label}</span>
-              </motion.button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Toast Notifications */}
-      <ToastContainer />
+          {/* Right Column */}
+          <div className="space-y-8">
+            <StreakCard />
+            <GoalCard />
+            <AICoachPanel />
+                  </div>
+                </div>
+      </main>
     </div>
   );
-}
+};
 
-// Toast notification component
-function ToastContainer() {
-  const [toasts, setToasts] = useState<Array<{id: string, message: string, type: string}>>([]);
+// Root Component with Supabase Authentication
+export default function Home() {
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    const handleToast = (event: CustomEvent) => {
-      const { message, type = 'info' } = event.detail;
-      const id = Date.now().toString();
-      
-      setToasts(prev => [...prev, { id, message, type }]);
-      
-      // Auto remove after 3 seconds
-      setTimeout(() => {
-        setToasts(prev => prev.filter(toast => toast.id !== id));
-      }, 3000);
-    };
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
 
-    window.addEventListener('showToast', handleToast as EventListener);
-    return () => window.removeEventListener('showToast', handleToast as EventListener);
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  return (
-    <div className="fixed top-4 right-4 z-50 space-y-2">
-      <AnimatePresence>
-        {toasts.map((toast) => (
-          <motion.div
-            key={toast.id}
-            initial={{ opacity: 0, x: 100, scale: 0.8 }}
-            animate={{ opacity: 1, x: 0, scale: 1 }}
-            exit={{ opacity: 0, x: 100, scale: 0.8 }}
-            className={`
-              px-4 py-3 rounded-lg shadow-lg text-white font-medium max-w-sm
-              ${toast.type === 'success' ? 'bg-green-500' : 
-                toast.type === 'error' ? 'bg-red-500' : 
-                'bg-blue-500'}
-            `}
-          >
-            {toast.message}
-          </motion.div>
-        ))}
-      </AnimatePresence>
-    </div>
-  );
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading Momentum AI...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return user ? <MainApp user={user} /> : <AuthScreen />;
 }
