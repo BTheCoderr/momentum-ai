@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import universalStorage from './storage';
 import { Platform } from 'react-native';
 
 export interface AnalyticsEvent {
@@ -26,20 +26,13 @@ export interface UserProperties {
   platform: string;
 }
 
+// Analytics service class
 class AnalyticsService {
-  private static instance: AnalyticsService;
   private sessionId: string;
   private userId: string | null = null;
   private sessionStartTime: number;
   private events: AnalyticsEvent[] = [];
   private userProperties: Partial<UserProperties> = {};
-
-  static getInstance(): AnalyticsService {
-    if (!AnalyticsService.instance) {
-      AnalyticsService.instance = new AnalyticsService();
-    }
-    return AnalyticsService.instance;
-  }
 
   constructor() {
     this.sessionId = this.generateSessionId();
@@ -50,13 +43,13 @@ class AnalyticsService {
   private async initializeAnalytics() {
     try {
       // Load user ID if exists
-      const storedUserId = await AsyncStorage.getItem('userId');
+      const storedUserId = await universalStorage.getItem('userId');
       if (storedUserId) {
         this.userId = storedUserId;
       }
 
       // Load user properties
-      const storedProperties = await AsyncStorage.getItem('userProperties');
+      const storedProperties = await universalStorage.getItem('userProperties');
       if (storedProperties) {
         this.userProperties = JSON.parse(storedProperties);
       }
@@ -81,7 +74,7 @@ class AnalyticsService {
 
   async setUserId(userId: string) {
     this.userId = userId;
-    await AsyncStorage.setItem('userId', userId);
+    await universalStorage.setItem('userId', userId);
     
     // Update user properties
     await this.updateUserProperties({ userId });
@@ -91,7 +84,7 @@ class AnalyticsService {
 
   async updateUserProperties(properties: Partial<UserProperties>) {
     this.userProperties = { ...this.userProperties, ...properties };
-    await AsyncStorage.setItem('userProperties', JSON.stringify(this.userProperties));
+    await universalStorage.setItem('userProperties', JSON.stringify(this.userProperties));
   }
 
   private async incrementSessionCount() {
@@ -102,33 +95,35 @@ class AnalyticsService {
     });
   }
 
-  track(eventName: string, properties?: Record<string, any>) {
-    const event: AnalyticsEvent = {
-      name: eventName,
-      properties: {
+  async track(eventName: string, properties?: Record<string, any>) {
+    try {
+      // Add userId to properties if available
+      const eventProps = {
         ...properties,
         userId: this.userId,
-        sessionId: this.sessionId,
-        platform: Platform.OS,
-        timestamp: Date.now(),
-      },
-      timestamp: Date.now(),
-      sessionId: this.sessionId,
-      userId: this.userId || undefined,
-    };
+      };
+      
+      console.log(`📊 [Analytics] ${eventName}:`, eventProps);
+      
+      // Here you would normally send to your analytics service
+      // For now, we just log
+    } catch (error) {
+      console.warn('Analytics error:', error);
+    }
+  }
 
-    this.events.push(event);
-    this.saveEventsToStorage();
-    
-    // In a real app, you'd send this to your analytics service
-    console.log('📊 Analytics Event:', eventName, properties);
+  async trackError(errorName: string, errorDetails?: any) {
+    await this.track('error', {
+      error_name: errorName,
+      error_details: errorDetails,
+    });
   }
 
   private async saveEventsToStorage() {
     try {
       // Keep only last 100 events in storage to prevent bloat
       const eventsToStore = this.events.slice(-100);
-      await AsyncStorage.setItem('analyticsEvents', JSON.stringify(eventsToStore));
+      await universalStorage.setItem('analyticsEvents', JSON.stringify(eventsToStore));
     } catch (error) {
       console.error('Error saving analytics events:', error);
     }
@@ -191,14 +186,6 @@ class AnalyticsService {
   trackFeatureUsage(featureName: string, context?: string) {
     this.track('feature_used', {
       feature_name: featureName,
-      context,
-    });
-  }
-
-  trackError(errorType: string, errorMessage: string, context?: string) {
-    this.track('error_occurred', {
-      error_type: errorType,
-      error_message: errorMessage,
       context,
     });
   }
@@ -271,7 +258,7 @@ class AnalyticsService {
     this.userProperties = {};
     this.userId = null;
     
-    await AsyncStorage.multiRemove([
+    await universalStorage.multiRemove([
       'analyticsEvents',
       'userProperties',
       'userId',
@@ -328,18 +315,21 @@ class AnalyticsService {
 
     return Math.round(sessionScore + checkInScore + goalScore + streakScore + durationScore);
   }
+
+  logEvent(eventName: string, params?: Record<string, any>) {
+    // Implementation
+    console.log('Analytics event:', eventName, params);
+  }
+
+  setUserId(userId: string) {
+    // Implementation
+    console.log('Set user ID:', userId);
+  }
 }
 
-// Export singleton instance
-export const analytics = AnalyticsService.getInstance();
+// Create a singleton instance
+const analyticsInstance = new AnalyticsService();
 
-// Convenience functions
-export const trackEvent = (name: string, properties?: Record<string, any>) => 
-  analytics.track(name, properties);
-
-export const trackScreen = (screenName: string, properties?: Record<string, any>) => 
-  analytics.trackScreen(screenName, properties);
-
-export const setUserId = (userId: string) => analytics.setUserId(userId);
-export const updateUserProperties = (properties: Partial<UserProperties>) => 
-  analytics.updateUserProperties(properties); 
+// Export the singleton instance as default and named exports
+export const { setUserId } = analyticsInstance;
+export default analyticsInstance;

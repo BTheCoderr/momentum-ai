@@ -1,6 +1,6 @@
 {
   "cli": {
-    "version": ">= 5.2.0",
+    "version": ">= 5.9.1",
     "appVersionSource": "remote"
   },
   "build": {
@@ -24,6 +24,11 @@
       }
     },
     "production": {
+      "distribution": "store",
+      "env": {
+        "APP_ENV": "production",
+        "OFFLINE_MODE": "true"
+      },
       "ios": {
         "resourceClass": "m-medium",
         "autoIncrement": true,
@@ -46,9 +51,22 @@
       "android": {
         "autoIncrement": true
       }
+    },
+    "appstore": {
+      "distribution": "store",
+      "env": {
+        "APP_ENV": "appstore",
+        "OFFLINE_MODE": "true",
+        "DEMO_MODE": "true"
+      }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "ascAppId": "6747629250",
+        "appleTeamId": "2PF2FNX9X6"
+      }
+    }
   }
 }

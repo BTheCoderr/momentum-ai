@@ -72,7 +72,7 @@ export default function ShareableInsightCard({
 }: ShareableInsightCardProps) {
   const [isLiked, setIsLiked] = useState(false);
   const [showActions, setShowActions] = useState(false);
-  
+
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-200, 200], [-25, 25]);
   const opacity = useTransform(x, [-200, -100, 0, 100, 200], [0, 1, 1, 1, 0]);
@@ -153,16 +153,16 @@ export default function ShareableInsightCard({
           bg-gradient-to-br ${getCardGradient()}
           flex flex-col justify-between p-8 text-white
         `}>
-          {/* Background Pattern */}
-          <div className="absolute inset-0 opacity-10">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-10">
             <div className="absolute top-10 left-10 w-32 h-32 rounded-full bg-white/20 blur-xl"></div>
             <div className="absolute bottom-20 right-10 w-24 h-24 rounded-full bg-white/15 blur-lg"></div>
             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-40 h-40 rounded-full bg-white/10 blur-2xl"></div>
-          </div>
+        </div>
 
-          {/* Header */}
+        {/* Header */}
           <div className="relative z-10 flex items-center justify-between">
-            <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-3">
               <div className="text-4xl">{getEmoji()}</div>
               <div>
                 <div className="text-sm font-semibold opacity-90">
@@ -200,7 +200,7 @@ export default function ShareableInsightCard({
                     onClick={() => onActionableButtonClick?.(button.action, insight)}
                   />
                 ))}
-              </div>
+        </div>
             </div>
           )}
 
@@ -211,8 +211,8 @@ export default function ShareableInsightCard({
             </div>
           </div>
 
-          {/* Footer */}
-          <div className="relative z-10 flex items-center justify-between">
+        {/* Footer */}
+        <div className="relative z-10 flex items-center justify-between">
             <div className="flex items-center space-x-1">
               <div className="text-xs opacity-75">
                 {insight.userName || 'Anonymous'}
@@ -284,7 +284,7 @@ export default function ShareableInsightCard({
       >
         ⏭️
       </motion.div>
-    </div>
+            </div>
   );
 }
 

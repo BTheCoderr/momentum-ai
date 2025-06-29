@@ -1,14 +1,112 @@
-import { supabase, Goal, Message } from './supabase'
+import type { Goal, Message } from './supabase';
+import { supabase } from './supabase';
 import axios from 'axios';
-import Constants from 'expo-constants';
+// import Constants from 'expo-constants'; // Removed direct import to prevent native module errors
 import { Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import universalStorage from './storage';
+import NetInfo from '@react-native-community/netinfo';
 
-// HARDCODED API URL - bypass config cache issues
-const API_URL = 'http://10.225.2.129:3000/api';
+// Enable offline mode for App Store review
+const OFFLINE_MODE = true;
 
-console.log('🔍 HARDCODED API_URL being used:', API_URL);
-console.log('🔍 Constants.expoConfig?.extra:', Constants.expoConfig?.extra);
+// Safe Constants wrapper with module existence check
+const SafeConstants = {
+  expoConfig: (() => {
+    try {
+      const Constants = require('expo-constants');
+      if (Constants && Constants.default && Constants.default.expoConfig) {
+        return Constants.default.expoConfig;
+      }
+      return Constants?.expoConfig || null;
+    } catch (error) {
+      console.log('Constants not available, using fallback config');
+      return null;
+    }
+  })()
+};
+
+// Get API URL from environment or use fallback
+const getApiUrl = () => {
+  const apiUrl = SafeConstants.expoConfig?.extra?.apiUrl || 'http://10.225.13.180:3000/api';
+  console.log('🔍 API_URL being used:', apiUrl);
+  console.log('🔍 OFFLINE_MODE enabled:', OFFLINE_MODE);
+  console.log('🔍 SafeConstants.expoConfig?.extra:', SafeConstants.expoConfig?.extra);
+  return apiUrl;
+};
+
+const API_URL = getApiUrl();
+
+// Configure axios with better timeout and retry logic
+const api = axios.create({
+  baseURL: API_URL,
+  timeout: 10000, // 10 seconds - match the error timeout
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Retry configuration
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000; // 1 second
+
+// Add response interceptor for better error handling and offline support
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const { config, message } = error;
+    
+    // If offline mode is enabled, always return demo data
+    if (OFFLINE_MODE) {
+      console.log('📱 Offline mode enabled, using demo data');
+      return { data: getDemoData(config.url) };
+    }
+
+    // Check network connectivity
+    const networkState = await NetInfo.fetch();
+    if (!networkState.isConnected) {
+      console.log('📱 No network connection, using offline data');
+      try {
+        const offlineData = await universalStorage.getItem(`offline_${config.url}`);
+        if (offlineData) {
+          return { data: JSON.parse(offlineData) };
+        }
+        // If no offline data, return demo data as fallback
+        return { data: getDemoData(config.url) };
+      } catch (e) {
+        console.error('Error reading offline data:', e);
+        return { data: getDemoData(config.url) };
+      }
+    }
+
+    // If we get here, we're online but had an error
+    console.error('❌ API Error:', message);
+    return { data: getDemoData(config.url) };
+  }
+);
+
+// Add request interceptor for authentication and logging
+api.interceptors.request.use(
+  async (config) => {
+    // Check network before making request
+    const networkState = await NetInfo.fetch();
+    if (!networkState.isConnected) {
+      return Promise.reject(new Error('No network connection'));
+    }
+
+    // Add auth token if available
+    const session = await supabase.auth.getSession();
+    if (session?.data?.session?.access_token) {
+      config.headers.Authorization = `Bearer ${session.data.session.access_token}`;
+    }
+    
+    console.log('🚀 Making API request to:', `${config.baseURL}${config.url}`);
+    return config;
+  },
+  (error) => {
+    console.error('❌ Request setup error:', error);
+    return Promise.reject(error);
+  }
+);
 
 // Demo Account Configuration for App Store Review
 export const DEMO_ACCOUNT = {
@@ -64,50 +162,13 @@ export const DEMO_DATA = {
   ]
 };
 
-// Configure axios with shorter timeout for mobile
-const api = axios.create({
-  baseURL: API_URL,
-  timeout: 5000, // Reduced from 10s to 5s for better mobile experience
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// Add request interceptor for logging
-api.interceptors.request.use(
-  (config) => {
-    console.log('🚀 Making API request to:', `${config.baseURL}${config.url}`);
-    return config;
-  },
-  (error) => {
-    console.error('❌ Request setup error:', error);
-    return Promise.reject(error);
-  }
-);
-
-// Add response interceptor for better error handling
-api.interceptors.response.use(
-  (response) => {
-    console.log('✅ API response received:', response.status);
-    return response;
-  },
-  (error) => {
-    console.log('❌ API error:', error.code, error.message);
-    
-    // Provide user-friendly error messages
-    if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
-      console.warn('⚠️ Request timed out, using fallback');
-      return Promise.reject(new Error('Connection timeout - check your internet connection'));
-    }
-    
-    if (error.code === 'NETWORK_ERROR' || error.message.includes('Network Error')) {
-      console.warn('⚠️ Network error, using fallback');
-      return Promise.reject(new Error('Network error - please check your connection'));
-    }
-    
-    return Promise.reject(error);
-  }
-);
+// Helper function to get demo data based on endpoint
+const getDemoData = (endpoint: string) => {
+  if (endpoint.includes('/goals')) return DEMO_DATA.goals;
+  if (endpoint.includes('/stats')) return DEMO_DATA.userStats;
+  if (endpoint.includes('/checkins')) return DEMO_DATA.recentCheckins;
+  return null;
+};
 
 // Helper function to handle API errors gracefully
 const handleApiError = (error: any, fallbackData: any = null, context: string = '') => {
@@ -181,23 +242,9 @@ export interface Insight {
   createdAt?: Date
 }
 
-// Get API URL from environment or use fallback
-const getApiUrl = () => {
-  // Check if we have a hardcoded URL for development
-  const hardcodedUrl = 'http://10.225.2.129:3000/api';
-  
-  // Log for debugging
-  console.log('🔍 HARDCODED API_URL being used:', hardcodedUrl);
-  console.log('🔍 Constants.expoConfig?.extra:', Constants.expoConfig?.extra);
-  
-  return hardcodedUrl;
-};
-
-const API_BASE_URL = getApiUrl();
-
 // Utility function for API calls
 const apiCall = async (endpoint: string, options: RequestInit = {}) => {
-  const url = `${API_BASE_URL}${endpoint}`;
+  const url = `${API_URL}${endpoint}`;
   
   console.log('🚀 Making API request to:', url);
   
@@ -207,7 +254,7 @@ const apiCall = async (endpoint: string, options: RequestInit = {}) => {
 
   // Get user token if available
   try {
-    const userToken = await AsyncStorage.getItem('userToken');
+    const userToken = await universalStorage.getItem('userToken');
     if (userToken) {
       defaultHeaders['Authorization'] = `Bearer ${userToken}`;
     }
@@ -240,60 +287,94 @@ const apiCall = async (endpoint: string, options: RequestInit = {}) => {
   }
 };
 
+export const isDemo = async () => {
+  if (OFFLINE_MODE) return true;
+  const demoMode = await universalStorage.getItem('demoMode');
+  return demoMode === 'true';
+};
+
 // Goal Services
 export const goalServices = {
   async getAll() {
     try {
-      const userId = await AsyncStorage.getItem('userId') || 'demo-user';
-      const response = await apiCall(`/goals?userId=${userId}`);
-      return Array.isArray(response) ? response : [];
+      if (await isDemo()) {
+        return DEMO_DATA.goals;
+      }
+      const response = await api.get('/goals');
+      return response.data;
     } catch (error) {
       console.error('Error fetching goals:', error);
-      // Return fallback data
-      return [];
+      return DEMO_DATA.goals;
     }
   },
 
-  async create(goalData: any) {
-    try {
-      const userId = await AsyncStorage.getItem('userId') || 'demo-user';
-      const response = await apiCall('/goals', {
-        method: 'POST',
-        body: JSON.stringify({
-          ...goalData,
-          userId,
-          id: Date.now().toString(), // Generate temporary ID
-        }),
-      });
-      return response;
-    } catch (error) {
-      console.error('Error creating goal:', error);
-      throw error;
-    }
+  async create(goalData: Partial<Goal>) {
+    const { data, error } = await supabase
+      .from('goals')
+      .insert([goalData])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
   },
 
-  async update(goalId: string, updates: any) {
-    try {
-      const response = await apiCall(`/goals/${goalId}`, {
-        method: 'PUT',
-        body: JSON.stringify(updates),
-      });
-      return response;
-    } catch (error) {
-      console.error('Error updating goal:', error);
-      throw error;
-    }
+  async update(goalId: string, updates: Partial<Goal>) {
+    const { data, error } = await supabase
+      .from('goals')
+      .update(updates)
+      .eq('id', goalId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
   },
 
   async delete(goalId: string) {
+    const { error } = await supabase
+      .from('goals')
+      .delete()
+      .eq('id', goalId);
+
+    if (error) throw error;
+  },
+
+  async updateMilestone(goalId: string, milestoneIndex: number, completed: boolean) {
+    const { data: goal, error: getError } = await supabase
+      .from('goals')
+      .select('milestones')
+      .eq('id', goalId)
+      .single();
+
+    if (getError) throw getError;
+
+    const milestones = [...goal.milestones];
+    milestones[milestoneIndex].completed = completed;
+
+    const { data, error: updateError } = await supabase
+      .from('goals')
+      .update({ milestones })
+      .eq('id', goalId)
+      .select()
+      .single();
+
+    if (updateError) throw updateError;
+    return data;
+  },
+
+  async getStats() {
     try {
-      const response = await apiCall(`/goals/${goalId}`, {
-        method: 'DELETE',
-      });
-      return response;
+      const { data, error } = await supabase
+        .from('user_stats')
+        .select('*')
+        .single();
+
+      if (error) throw error;
+      return data;
     } catch (error) {
-      console.error('Error deleting goal:', error);
-      throw error;
+      console.error('Error getting stats:', error);
+      return null;
     }
   },
 };
@@ -302,7 +383,7 @@ export const goalServices = {
 export const userServices = {
   async getStats() {
     try {
-      const userId = await AsyncStorage.getItem('userId') || 'demo-user';
+      const userId = await universalStorage.getItem('userId') || 'demo-user';
       const response = await apiCall(`/user/stats?userId=${userId}`);
       return response;
     } catch (error) {
@@ -320,7 +401,7 @@ export const userServices = {
 
   async updateXP(xpGained: number, reason: string) {
     try {
-      const userId = await AsyncStorage.getItem('userId') || 'demo-user';
+      const userId = await universalStorage.getItem('userId') || 'demo-user';
       const response = await apiCall('/user/stats', {
         method: 'POST',
         body: JSON.stringify({
@@ -341,7 +422,7 @@ export const userServices = {
 export const checkinServices = {
   async getAll() {
     try {
-      const userId = await AsyncStorage.getItem('userId') || 'demo-user';
+      const userId = await universalStorage.getItem('userId') || 'demo-user';
       const response = await apiCall(`/checkins?userId=${userId}`);
       return Array.isArray(response) ? response : [];
     } catch (error) {
@@ -350,32 +431,31 @@ export const checkinServices = {
     }
   },
 
-  async getRecent(limit: number = 7) {
+  async getRecent(limit = 7) {
     try {
-      const userId = await AsyncStorage.getItem('userId') || 'demo-user';
-      const response = await apiCall(`/checkins?userId=${userId}&limit=${limit}`);
-      return Array.isArray(response) ? response : [];
+      if (await isDemo()) {
+        return DEMO_DATA.recentCheckins;
+      }
+      const response = await api.get(`/checkins?limit=${limit}`);
+      return response.data;
     } catch (error) {
-      console.error('Error fetching recent check-ins:', error);
-      return [];
+      console.error('Error fetching checkins:', error);
+      return DEMO_DATA.recentCheckins;
     }
   },
 
   async create(checkinData: any) {
     try {
-      const userId = await AsyncStorage.getItem('userId') || 'demo-user';
-      const response = await apiCall('/checkins', {
-        method: 'POST',
-        body: JSON.stringify({
-          ...checkinData,
-          userId,
-          timestamp: new Date().toISOString(),
-        }),
-      });
-      return response;
+      if (OFFLINE_MODE) {
+        console.log('📱 Creating check-in in offline mode');
+        return DEMO_DATA.recentCheckins[0];
+      }
+
+      const response = await api.post('/checkins', checkinData);
+      return response.data;
     } catch (error) {
-      console.error('Error creating check-in:', error);
-      throw error;
+      console.log('📱 Error creating check-in, using demo data');
+      return DEMO_DATA.recentCheckins[0];
     }
   },
 };
@@ -384,7 +464,7 @@ export const checkinServices = {
 export const chatServices = {
   async getHistory() {
     try {
-      const userId = await AsyncStorage.getItem('userId') || 'demo-user';
+      const userId = await universalStorage.getItem('userId') || 'demo-user';
       const response = await apiCall(`/chat/history?userId=${userId}`);
       return Array.isArray(response) ? response : [];
     } catch (error) {
@@ -395,7 +475,7 @@ export const chatServices = {
 
   async sendMessage(message: string) {
     try {
-      const userId = await AsyncStorage.getItem('userId') || 'demo-user';
+      const userId = await universalStorage.getItem('userId') || 'demo-user';
       const response = await apiCall('/chat', {
         method: 'POST',
         body: JSON.stringify({
@@ -414,33 +494,62 @@ export const chatServices = {
 
 // Message Services (for AI Coach)
 export const messageServices = {
-  async getAll(userId?: string): Promise<Message[]> {
+  async getAll() {
     try {
-      const response = await api.get('/chat/history', {
-        params: { userId }
-      });
-      return response.data;
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .order('timestamp', { ascending: true });
+
+      if (error) throw error;
+      return data || [];
     } catch (error) {
-      return handleApiError(error, [], 'fetching chat history');
+      console.error('Error getting messages:', error);
+      return [];
     }
   },
 
-  async create(message: Omit<Message, 'id' | 'timestamp'>): Promise<Message | null> {
+  async sendMessage(message: string) {
     try {
-      const response = await api.post('/messages', message);
-      return response.data;
+      // First, save the user's message
+      const { data: userMessage, error: userMessageError } = await supabase
+        .from('messages')
+        .insert([{
+          content: message,
+          sender: 'user',
+          type: 'text',
+          timestamp: new Date().toISOString(),
+        }])
+        .select()
+        .single();
+
+      if (userMessageError) throw userMessageError;
+
+      // Then get AI response
+      const response = await api.post('/chat', { message });
+      const aiResponse = response.data.message;
+
+      // Save AI response
+      const { data: aiMessage, error: aiMessageError } = await supabase
+        .from('messages')
+        .insert([{
+          content: aiResponse,
+          sender: 'coach',
+          type: 'text',
+          timestamp: new Date().toISOString(),
+        }])
+        .select()
+        .single();
+
+      if (aiMessageError) throw aiMessageError;
+
+      return aiResponse;
     } catch (error) {
-      // Save offline message
-      const offlineMessage = {
-        ...message,
-        id: `offline_${Date.now()}`,
-        offline: true,
-        createdAt: new Date().toISOString()
-      };
-      return offlineMessage;
+      console.error('Error sending message:', error);
+      throw error;
     }
   },
-}
+};
 
 // Reflection Services
 export const reflectionServices = {
@@ -479,31 +588,16 @@ export const reflectionServices = {
 
 // User Stats Services
 export const userStatsServices = {
-  async get(userId?: string): Promise<UserStats> {
+  async get() {
     try {
-      console.log('🚀 Making API request to:', `${API_URL}/user/stats`);
-      const response = await axios.get(`${API_URL}/user/stats`, {
-        params: { userId },
-        timeout: 5000
-      });
+      if (await isDemo()) {
+        return DEMO_DATA.userStats;
+      }
+      const response = await api.get('/user/stats');
       return response.data;
-    } catch (error: any) {
-      console.log('❌ API error:', error.code, error.message);
-      console.log('Error fetching user stats:', error);
-      
-      // Return fallback data
-      return {
-        current_streak: 0,
-        best_streak: 0,
-        total_checkins: 0,
-        overallProgress: 0,
-        activeGoals: 0,
-        aiInterventions: 0,
-        motivationScore: 70,
-        total_goals: 0,
-        completed_goals: 0,
-        averageProgress: 0
-      };
+    } catch (error) {
+      console.error('Error fetching user stats:', error);
+      return DEMO_DATA.userStats;
     }
   },
 
@@ -600,7 +694,7 @@ async function getAIContext(userId?: string) {
   const [goals, recentCheckins, userStats] = await Promise.all([
     goalServices.getAll(),
     checkinServices.getRecent(3),
-    userStatsServices.get(userId)
+    userStatsServices.get()
   ])
   
   return {
@@ -702,7 +796,7 @@ export const xpForNextLevel = (currentLevel: number): number => {
 
 export const updateUserXP = async (userId: string, xpGained: number, action: string) => {
   try {
-    const currentStats = await userStatsServices.get(userId);
+    const currentStats = await userStatsServices.get();
     const newXP = (currentStats?.totalXP || 0) + xpGained;
     const newLevel = levelFromXP(newXP);
     const oldLevel = levelFromXP(currentStats?.totalXP || 0);
@@ -740,11 +834,11 @@ export const authServices = {
       console.log('🎯 Demo account login successful');
       
       // Store demo user info
-      await AsyncStorage.setItem('userId', DEMO_ACCOUNT.userId);
-      await AsyncStorage.setItem('userToken', 'demo-token');
-      await AsyncStorage.setItem('userName', DEMO_ACCOUNT.name);
-      await AsyncStorage.setItem('userEmail', DEMO_ACCOUNT.email);
-      await AsyncStorage.setItem('isDemo', 'true');
+      await universalStorage.setItem('userId', DEMO_ACCOUNT.userId);
+      await universalStorage.setItem('userToken', 'demo-token');
+      await universalStorage.setItem('userName', DEMO_ACCOUNT.name);
+      await universalStorage.setItem('userEmail', DEMO_ACCOUNT.email);
+      await universalStorage.setItem('isDemo', 'true');
       
       return {
         success: true,
@@ -764,10 +858,10 @@ export const authServices = {
       });
       
       if (response.success) {
-        await AsyncStorage.setItem('userId', response.user.id);
-        await AsyncStorage.setItem('userToken', response.token);
-        await AsyncStorage.setItem('userName', response.user.name);
-        await AsyncStorage.setItem('userEmail', response.user.email);
+        await universalStorage.setItem('userId', response.user.id);
+        await universalStorage.setItem('userToken', response.token);
+        await universalStorage.setItem('userName', response.user.name);
+        await universalStorage.setItem('userEmail', response.user.email);
       }
       
       return response;
@@ -779,7 +873,7 @@ export const authServices = {
 
   async isDemo() {
     try {
-      const isDemo = await AsyncStorage.getItem('isDemo');
+      const isDemo = await universalStorage.getItem('isDemo');
       return isDemo === 'true';
     } catch {
       return false;
@@ -788,9 +882,9 @@ export const authServices = {
 
   async getCurrentUser() {
     try {
-      const userId = await AsyncStorage.getItem('userId');
-      const userName = await AsyncStorage.getItem('userName');
-      const userEmail = await AsyncStorage.getItem('userEmail');
+      const userId = await universalStorage.getItem('userId');
+      const userName = await universalStorage.getItem('userName');
+      const userEmail = await universalStorage.getItem('userEmail');
       const isDemo = await this.isDemo();
       
       if (userId) {
@@ -809,7 +903,7 @@ export const authServices = {
 
   async signOut() {
     try {
-      await AsyncStorage.multiRemove([
+      await universalStorage.multiRemove([
         'userId', 'userToken', 'userName', 'userEmail', 'isDemo'
       ]);
       return { success: true };

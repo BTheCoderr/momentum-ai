@@ -1,0 +1,102 @@
+import React, { useEffect, useState } from 'react';
+import { StatusBar } from 'expo-status-bar';
+import { StyleSheet, View, Text, SafeAreaView, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Navigation from './navigation/Navigation';
+import AuthScreen from './screens/AuthScreen';
+import { ThemeProvider } from './components/ThemeProvider';
+import analytics, { setUserId } from './lib/analytics';
+import { notificationService } from './lib/notifications';
+import { SlideNotification } from './components/AnimatedComponents';
+import AppFallback from './components/AppFallback';
+import { supabase } from './lib/supabase';
+
+// Development mode warning
+if (__DEV__) {
+  console.warn("Running development mode build.");
+}
+
+function AppContent() {
+  const [session, setSession] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [notification, setNotification] = useState({
+    visible: false,
+    message: '',
+    type: 'info' as const
+  });
+
+  const handleAuthSuccess = (user: any) => {
+    setSession(user);
+    setNotification({
+      visible: true,
+      message: 'Successfully logged in!',
+      type: 'success'
+    });
+    setTimeout(() => {
+      setNotification(prev => ({ ...prev, visible: false }));
+    }, 3000);
+  };
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session?.user) {
+        setUserId(session.user.id);
+      }
+      setLoading(false);
+    });
+
+    supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (session?.user) {
+        setUserId(session.user.id);
+      }
+    });
+  }, []);
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#6c47ff" />
+      </View>
+    );
+  }
+
+  return (
+    <NavigationContainer>
+      {!session ? (
+        <AuthScreen onAuthSuccess={handleAuthSuccess} />
+      ) : (
+        <Navigation />
+      )}
+      <SlideNotification
+        visible={notification.visible}
+        message={notification.message}
+        type={notification.type}
+        onHide={() => setNotification(prev => ({ ...prev, visible: false }))}
+        duration={3000}
+      />
+    </NavigationContainer>
+  );
+}
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <StatusBar style="auto" />
+      <AppFallback>
+        <AppContent />
+      </AppFallback>
+    </ThemeProvider>
+  );
+}
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+  },
+});

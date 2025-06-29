@@ -9,7 +9,7 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#4F46E5"
+      "backgroundColor": "#FF6B6B"
     },
     "assetBundlePatterns": [
       "**/*"
@@ -18,6 +18,12 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.momentumai.app",
       "buildNumber": "1",
+      "icon": "./assets/icon.png",
+      "splash": {
+        "image": "./assets/splash.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#FF6B6B"
+      },
       "deploymentTarget": "13.0",
       "infoPlist": {
         "NSCameraUsageDescription": "This app uses the camera to capture progress photos for your goals.",
@@ -28,7 +34,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#4F46E5"
+        "backgroundColor": "#FF6B6B"
       },
       "package": "com.momentumai.app",
       "versionCode": 1,
@@ -42,27 +48,35 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "cli": {
-      "appVersionSource": "remote"
-    },
-    "developmentClient": {
-      "silentLaunch": true
-    },
-    "packagerOpts": {
-      "port": 8085
-    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#FF6B6B"
+        }
+      ]
+    ],
     "extra": {
-      "eas": {
-        "projectId": "momentum-ai-mobile"
-      },
       "apiUrl": "http://10.225.8.234:3001/api",
       "supabaseUrl": "https://nsgqhhbqpyvonirlfluv.supabase.co",
-      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZ3FoaGJxcHl2b25pcmxmbHV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk3NTY1NTgsImV4cCI6MjA2NTMzMjU1OH0.twGF9Y6clrRtJg_4S1OWHA1vhhYpKzn3ZpFJPGJbmEo"
+      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZ3FoaGJxcHl2b25pcmxmbHV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk3NTY1NTgsImV4cCI6MjA2NTMzMjU1OH0.twGF9Y6clrRtJg_4S1OWHA1vhhYpKzn3ZpFJPGJbmEo",
+      "eas": {
+        "projectId": "fb972645-26d4-4385-8898-7382359a1e05"
+      }
     },
-    "scheme": "momentum-ai",
-    "plugins": [],
-    "experiments": {
-      "typedRoutes": false
+    "owner": "bferrell514",
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/momentum-ai-mobile"
+    },
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
     }
   }
 }

@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Platform, Text } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import universalStorage from '../lib/storage';
+import { useTheme } from '../components/ThemeProvider';
 
 // Import screens
-import HomeScreen from '../screens/HomeScreen';
+import DuolingoHomeScreen from '../screens/DuolingoHomeScreen';
 import CheckInScreen from '../screens/CheckInScreen';
 import AICoachScreen from '../screens/AICoachScreen';
 import InsightsScreen from '../screens/InsightsScreen';
@@ -13,6 +14,17 @@ import SettingsScreen from '../screens/SettingsScreen';
 import ReflectionScreen from '../screens/ReflectionScreen';
 import GoalsScreen from '../screens/GoalsScreen';
 import XPProgressScreen from '../screens/XPProgressScreen';
+import LeaderboardScreen from '../screens/LeaderboardScreen';
+import { PrivacyPolicyScreen } from '../screens/PrivacyPolicyScreen';
+import { DataUsageScreen } from '../screens/DataUsageScreen';
+import { MemorySettingsScreen } from '../screens/MemorySettingsScreen';
+import { EditProfileScreen } from '../screens/EditProfileScreen';
+import { PlanCreatorScreen } from '../screens/PlanCreatorScreen';
+import { DailyCoachingScreen } from '../screens/DailyCoachingScreen';
+import { ProgressAnalyticsScreen } from '../screens/ProgressAnalyticsScreen';
+import { MemoryUsageScreen } from '../screens/MemoryUsageScreen';
+import { PrivacySettingsScreen } from '../screens/PrivacySettingsScreen';
+import { TermsOfServiceScreen } from '../screens/TermsOfServiceScreen';
 
 // Import tutorial
 import TutorialOverlay from '../components/TutorialOverlay';
@@ -22,29 +34,32 @@ const Stack = createStackNavigator();
 
 // Tab Navigator
 function MainTabs() {
+  const { theme } = useTheme();
+  
   return (
     <Tab.Navigator
       screenOptions={{
         tabBarStyle: {
-          backgroundColor: '#fff',
+          backgroundColor: theme.colors.background,
           borderTopWidth: 1,
-          borderTopColor: '#e0e0e0',
+          borderTopColor: theme.colors.border,
           paddingBottom: Platform.OS === 'ios' ? 20 : 10,
           paddingTop: 10,
           height: Platform.OS === 'ios' ? 90 : 70,
         },
-        tabBarActiveTintColor: '#007AFF',
-        tabBarInactiveTintColor: '#8E8E93',
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: theme.colors.textSecondary,
         tabBarLabelStyle: {
           fontSize: 12,
           fontWeight: '600',
+          color: theme.colors.text,
         },
         headerShown: false,
       }}
     >
       <Tab.Screen 
         name="Home" 
-        component={HomeScreen}
+        component={DuolingoHomeScreen}
         options={{
           tabBarIcon: ({ focused }) => (
             <TabIcon emoji="🏠" focused={focused} />
@@ -79,6 +94,15 @@ function MainTabs() {
         }}
       />
       <Tab.Screen 
+        name="Leaderboard" 
+        component={LeaderboardScreen}
+        options={{
+          tabBarIcon: ({ focused }) => (
+            <TabIcon emoji="🏆" focused={focused} />
+          ),
+        }}
+      />
+      <Tab.Screen 
         name="Settings" 
         component={SettingsScreen}
         options={{
@@ -92,47 +116,36 @@ function MainTabs() {
 }
 
 // Tab Icon Component
-const TabIcon = ({ emoji, focused }: { emoji: string; focused: boolean }) => (
-  <Text style={{
-    fontSize: focused ? 28 : 24,
-    opacity: focused ? 1 : 0.7,
-    transform: [{ scale: focused ? 1.1 : 1 }],
-  }}>
-    {emoji}
-  </Text>
-);
-
-// Stack Navigator (for modal screens)
-function RootNavigator() {
+const TabIcon = ({ emoji, focused }: { emoji: string; focused: boolean }) => {
+  const { theme } = useTheme();
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Text style={{
+      fontSize: focused ? 28 : 24,
+      opacity: focused ? 1 : 0.7,
+      transform: [{ scale: focused ? 1.1 : 1 }],
+      color: focused ? theme.colors.primary : theme.colors.textSecondary,
+    }}>
+      {emoji}
+    </Text>
+  );
+};
+
+// Stack Navigator
+function MainStack() {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
       <Stack.Screen name="MainTabs" component={MainTabs} />
-      <Stack.Screen 
-        name="Reflection" 
-        component={ReflectionScreen}
-        options={{
-          presentation: 'modal',
-          headerShown: true,
-          headerTitle: 'Reflection',
-        }}
-      />
-      <Stack.Screen 
-        name="Goals" 
-        component={GoalsScreen}
-        options={{
-          presentation: 'modal',
-          headerShown: true,
-          headerTitle: 'Goals',
-        }}
-      />
-      <Stack.Screen 
-        name="XPProgress" 
-        component={XPProgressScreen}
-        options={{
-          presentation: 'modal',
-          headerShown: false,
-        }}
-      />
+      <Stack.Screen name="PlanCreator" component={PlanCreatorScreen} />
+      <Stack.Screen name="DailyCoaching" component={DailyCoachingScreen} />
+      <Stack.Screen name="ProgressAnalytics" component={ProgressAnalyticsScreen} />
+      <Stack.Screen name="MemorySettings" component={MemorySettingsScreen} />
+      <Stack.Screen name="MemoryUsage" component={MemoryUsageScreen} />
+      <Stack.Screen name="PrivacySettings" component={PrivacySettingsScreen} />
+      <Stack.Screen name="TermsOfService" component={TermsOfServiceScreen} />
     </Stack.Navigator>
   );
 }
@@ -147,7 +160,7 @@ export default function Navigation() {
 
   const checkTutorialStatus = async () => {
     try {
-      const hasSeenTutorial = await AsyncStorage.getItem('hasSeenTutorial');
+      const hasSeenTutorial = await universalStorage.getItem('hasSeenTutorial');
       if (!hasSeenTutorial) {
         // Show tutorial after a brief delay to let the app load
         setTimeout(() => {
@@ -169,7 +182,7 @@ export default function Navigation() {
 
   return (
     <>
-      <RootNavigator />
+      <MainStack />
       <TutorialOverlay
         visible={showTutorial}
         onComplete={handleTutorialComplete}

@@ -1,6 +1,48 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
-import * as SecureStore from 'expo-secure-store';
 import { supabase } from '../lib/supabase';
+
+// Safe SecureStore wrapper with module existence check
+const SafeSecureStore = {
+  async setItemAsync(key: string, value: string) {
+    try {
+      // Check if the module exists first
+      const SecureStore = require('expo-secure-store');
+      if (SecureStore && SecureStore.setItemAsync) {
+        return await SecureStore.setItemAsync(key, value);
+      }
+    } catch (error) {
+      // Module not available
+    }
+    console.log('SecureStore not available, skipping token storage');
+    return Promise.resolve();
+  },
+  async getItemAsync(key: string) {
+    try {
+      // Check if the module exists first
+      const SecureStore = require('expo-secure-store');
+      if (SecureStore && SecureStore.getItemAsync) {
+        return await SecureStore.getItemAsync(key);
+      }
+    } catch (error) {
+      // Module not available
+    }
+    console.log('SecureStore not available, no stored token');
+    return Promise.resolve(null);
+  },
+  async deleteItemAsync(key: string) {
+    try {
+      // Check if the module exists first
+      const SecureStore = require('expo-secure-store');
+      if (SecureStore && SecureStore.deleteItemAsync) {
+        return await SecureStore.deleteItemAsync(key);
+      }
+    } catch (error) {
+      // Module not available
+    }
+    console.log('SecureStore not available, skipping token deletion');
+    return Promise.resolve();
+  }
+};
 
 interface User {
   id: string;
@@ -52,7 +94,7 @@ export const useAuthProvider = () => {
           email: session.user.email || '',
           name: session.user.user_metadata?.name
         });
-        await SecureStore.setItemAsync('accessToken', session.access_token);
+        await SafeSecureStore.setItemAsync('accessToken', session.access_token);
       }
     } catch (error) {
       console.log('Session check error:', error);
@@ -76,7 +118,7 @@ export const useAuthProvider = () => {
         name: data.user.user_metadata?.name
       });
       if (data.session?.access_token) {
-        await SecureStore.setItemAsync('accessToken', data.session.access_token);
+        await SafeSecureStore.setItemAsync('accessToken', data.session.access_token);
       }
     }
   };
@@ -107,7 +149,7 @@ export const useAuthProvider = () => {
     try {
       console.log('🚪 Signing out user...');
       await supabase.auth.signOut();
-      await SecureStore.deleteItemAsync('accessToken');
+      await SafeSecureStore.deleteItemAsync('accessToken');
       setUser(null);
       console.log('✅ User signed out successfully');
     } catch (error) {
@@ -115,7 +157,7 @@ export const useAuthProvider = () => {
       // Force sign out even if there's an error
       setUser(null);
       try {
-        await SecureStore.deleteItemAsync('accessToken');
+        await SafeSecureStore.deleteItemAsync('accessToken');
       } catch (e) {
         console.log('Token cleanup error (non-critical):', e);
       }

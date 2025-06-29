@@ -40,12 +40,13 @@ CREATE TABLE IF NOT EXISTS goals (
     user_id TEXT NOT NULL,
     title TEXT NOT NULL,
     description TEXT,
-    target_date DATE,
-    status TEXT DEFAULT 'active' CHECK (status IN ('active', 'completed', 'paused', 'archived')),
+    category TEXT NOT NULL DEFAULT 'Personal',
+    target_date DATE NOT NULL,
+    status TEXT DEFAULT 'active' CHECK (status IN ('active', 'completed')),
     progress INTEGER DEFAULT 0 CHECK (progress >= 0 AND progress <= 100),
-    category TEXT, -- 'health', 'career', 'learning', 'personal', etc.
-    habits JSONB DEFAULT '[]', -- Array of habit objects
-    meta JSONB DEFAULT '{}', -- Additional goal metadata
+    milestones JSONB DEFAULT '[]',
+    priority TEXT DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high')),
+    reminder_frequency TEXT DEFAULT 'daily' CHECK (reminder_frequency IN ('daily', 'weekly', 'none')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -75,6 +76,46 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Add new tables for plans, coaching sessions, and saved insights
+
+-- Plans table
+CREATE TABLE IF NOT EXISTS plans (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  description TEXT,
+  duration TEXT CHECK (duration IN ('day', 'week', 'month')),
+  milestones JSONB,
+  reminders_enabled BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()),
+  status TEXT CHECK (status IN ('active', 'completed', 'archived')) DEFAULT 'active'
+);
+
+-- Coaching sessions table
+CREATE TABLE IF NOT EXISTS coaching_sessions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  description TEXT,
+  type TEXT CHECK (type IN ('motivation', 'strategy', 'reflection', 'challenge')),
+  completed BOOLEAN DEFAULT false,
+  xp_reward INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()),
+  completed_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Saved insights table
+CREATE TABLE IF NOT EXISTS saved_insights (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  insight_id UUID NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT,
+  type TEXT,
+  saved_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
+);
+
 -- Indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_user_events_user_id ON user_events(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_events_timestamp ON user_events(timestamp DESC);
@@ -97,6 +138,11 @@ CREATE INDEX IF NOT EXISTS idx_streaks_goal_id ON streaks(goal_id);
 CREATE INDEX IF NOT EXISTS idx_chat_messages_user_id ON chat_messages(user_id);
 CREATE INDEX IF NOT EXISTS idx_chat_messages_timestamp ON chat_messages(timestamp DESC);
 
+-- Add indexes for better query performance
+CREATE INDEX IF NOT EXISTS idx_plans_user_id ON plans(user_id);
+CREATE INDEX IF NOT EXISTS idx_coaching_sessions_user_id ON coaching_sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_saved_insights_user_id ON saved_insights(user_id);
+
 -- Row Level Security (RLS) policies
 -- Enable RLS on all tables
 ALTER TABLE user_events ENABLE ROW LEVEL SECURITY;
@@ -104,6 +150,11 @@ ALTER TABLE insights ENABLE ROW LEVEL SECURITY;
 ALTER TABLE goals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE streaks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
+
+-- Add RLS policies
+ALTER TABLE plans ENABLE ROW LEVEL SECURITY;
+ALTER TABLE coaching_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE saved_insights ENABLE ROW LEVEL SECURITY;
 
 -- Policy: Users can only access their own data
 CREATE POLICY "Users can access own events" ON user_events
@@ -120,6 +171,57 @@ CREATE POLICY "Users can access own streaks" ON streaks
 
 CREATE POLICY "Users can access own chat messages" ON chat_messages
     FOR ALL USING (user_id = auth.uid()::text OR user_id = current_setting('app.current_user_id', true));
+
+CREATE POLICY "Users can view their own plans"
+  ON plans FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own plans"
+  ON plans FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own plans"
+  ON plans FOR UPDATE
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own plans"
+  ON plans FOR DELETE
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can view their own coaching sessions"
+  ON coaching_sessions FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own coaching sessions"
+  ON coaching_sessions FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own coaching sessions"
+  ON coaching_sessions FOR UPDATE
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own coaching sessions"
+  ON coaching_sessions FOR DELETE
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can view their own saved insights"
+  ON saved_insights FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own saved insights"
+  ON saved_insights FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own saved insights"
+  ON saved_insights FOR UPDATE
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own saved insights"
+  ON saved_insights FOR DELETE
+  USING (auth.uid() = user_id);
 
 -- Functions for common queries
 -- Function to get recent check-ins for a user

@@ -11,18 +11,22 @@ export const supabase = createClient(supabaseUrl, supabaseKey)
 
 // Database types
 export interface Goal {
-  id: string
-  title: string
-  description?: string
-  emotional_context?: string
-  progress: number
-  status: string
-  deadline?: string
-  created_at?: string
-  updated_at?: string
-  user_id?: string
-  category?: string
-  target?: number
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  progress: number;
+  target_date: string;
+  milestones: Array<{
+    title: string;
+    completed: boolean;
+  }>;
+  priority: 'low' | 'medium' | 'high';
+  reminder_frequency: 'daily' | 'weekly' | 'none';
+  status: 'active' | 'completed';
+  created_at: string;
+  updated_at?: string;
+  user_id?: string;
 }
 
 export interface Message {

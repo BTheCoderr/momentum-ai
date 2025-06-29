@@ -1,156 +1,108 @@
-import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createStackNavigator } from '@react-navigation/stack';
-import { Ionicons } from '@expo/vector-icons';
+import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
+import { StyleSheet, View, Text, SafeAreaView, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Navigation from './navigation/Navigation';
+import AuthScreen from './screens/AuthScreen';
+import { ThemeProvider } from './components/ThemeProvider';
+import analytics, { setUserId } from './lib/analytics';
+// import { notificationService } from './lib/notifications'; // Temporarily disabled for build fix
+import { SlideNotification } from './components/AnimatedComponents';
+import AppFallback from './components/AppFallback';
+import { supabase } from './lib/supabase';
 
-// Import screens
-import WelcomeScreen from './src/screens/WelcomeScreen';
-import HomeScreen from './src/screens/HomeScreen';
-import GoalsScreen from './src/screens/GoalsScreen';
-import ChatScreen from './src/screens/ChatScreen';
-import HistoryScreen from './src/screens/HistoryScreen';
-import ProfileScreen from './src/screens/ProfileScreen';
-import NotificationSettingsScreen from './src/screens/NotificationSettingsScreen';
-import PlanCreatorScreen from './src/screens/PlanCreatorScreen';
-import DailyCoachingScreen from './src/screens/DailyCoachingScreen';
-import ProgressAnalyticsScreen from './src/screens/ProgressAnalyticsScreen';
-
-import { RootTabParamList } from './src/navigation/types';
-import { AuthProvider } from './src/hooks/useAuth';
-
-const Tab = createBottomTabNavigator<RootTabParamList>();
-const Stack = createStackNavigator();
-
-// Main Tab Navigator (after onboarding)
-function MainTabNavigator() {
-  return (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName: keyof typeof Ionicons.glyphMap;
-
-          if (route.name === 'Dashboard') {
-            iconName = focused ? 'home' : 'home-outline';
-          } else if (route.name === 'Goals') {
-            iconName = focused ? 'trophy' : 'trophy-outline';
-          } else if (route.name === 'Chat') {
-            iconName = focused ? 'chatbubble' : 'chatbubble-outline';
-          } else if (route.name === 'History') {
-            iconName = focused ? 'analytics' : 'analytics-outline';
-          } else if (route.name === 'Profile') {
-            iconName = focused ? 'person' : 'person-outline';
-          } else {
-            iconName = 'help-outline';
-          }
-
-          return <Ionicons name={iconName} size={size} color={color} />;
-        },
-        tabBarActiveTintColor: '#4F46E5',
-        tabBarInactiveTintColor: '#6B7280',
-        tabBarStyle: {
-          backgroundColor: '#FFFFFF',
-          borderTopWidth: 1,
-          borderTopColor: '#E5E7EB',
-          height: 88,
-          paddingBottom: 20,
-          paddingTop: 8,
-        },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '500',
-        },
-        headerShown: false,
-      })}
-    >
-      <Tab.Screen 
-        name="Dashboard" 
-        component={HomeScreen}
-        options={{ tabBarLabel: 'Home' }}
-      />
-      <Tab.Screen 
-        name="Goals" 
-        component={GoalsScreen}
-        options={{ tabBarLabel: 'Goals' }}
-      />
-      <Tab.Screen 
-        name="Chat" 
-        component={ChatScreen}
-        options={{ tabBarLabel: 'AI Coach' }}
-      />
-      <Tab.Screen 
-        name="History" 
-        component={HistoryScreen}
-        options={{ tabBarLabel: 'Progress' }}
-      />
-      <Tab.Screen 
-        name="Profile" 
-        component={ProfileScreen}
-        options={{ tabBarLabel: 'Profile' }}
-      />
-    </Tab.Navigator>
-  );
+// Development mode warning
+if (__DEV__) {
+  console.warn("Running development mode build.");
 }
 
-// Root Stack Navigator (includes Welcome screen)
-function RootNavigator() {
+type NotificationType = 'success' | 'error' | 'info' | 'warning';
+
+function AppContent() {
+  const [session, setSession] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [notification, setNotification] = useState<{
+    visible: boolean;
+    message: string;
+    type: NotificationType;
+  }>({
+    visible: false,
+    message: '',
+    type: 'info'
+  });
+
+  const handleAuthSuccess = (user: any) => {
+    setSession(user);
+    setNotification({
+      visible: true,
+      message: 'Successfully logged in!',
+      type: 'success'
+    });
+    setTimeout(() => {
+      setNotification(prev => ({ ...prev, visible: false }));
+    }, 3000);
+  };
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session?.user) {
+        setUserId(session.user.id);
+      }
+      setLoading(false);
+    });
+
+    supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (session?.user) {
+        setUserId(session.user.id);
+      }
+    });
+  }, []);
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#6c47ff" />
+      </View>
+    );
+  }
+
   return (
-    <Stack.Navigator
-      screenOptions={{
-        headerShown: false,
-      }}
-    >
-      <Stack.Screen 
-        name="Welcome" 
-        component={WelcomeScreen}
-        options={{ gestureEnabled: false }}
+    <NavigationContainer>
+      {!session ? (
+        <AuthScreen onAuthSuccess={handleAuthSuccess} />
+      ) : (
+        <Navigation />
+      )}
+      <SlideNotification
+        visible={notification.visible}
+        message={notification.message}
+        type={notification.type}
+        onHide={() => setNotification(prev => ({ ...prev, visible: false }))}
+        duration={3000}
       />
-      <Stack.Screen 
-        name="MainTabs" 
-        component={MainTabNavigator}
-        options={{ gestureEnabled: false }}
-      />
-      <Stack.Screen 
-        name="NotificationSettings" 
-        component={NotificationSettingsScreen}
-        options={{ 
-          headerShown: true,
-          title: 'Notification Settings',
-        }}
-      />
-      <Stack.Screen 
-        name="PlanCreator" 
-        component={PlanCreatorScreen}
-        options={{ 
-          headerShown: false,
-        }}
-      />
-      <Stack.Screen 
-        name="DailyCoaching" 
-        component={DailyCoachingScreen}
-        options={{ 
-          headerShown: false,
-        }}
-      />
-      <Stack.Screen 
-        name="ProgressAnalytics" 
-        component={ProgressAnalyticsScreen}
-        options={{ 
-          headerShown: false,
-        }}
-      />
-    </Stack.Navigator>
+    </NavigationContainer>
   );
 }
 
 export default function App() {
   return (
-    <AuthProvider>
-      <StatusBar style="light" />
-      <NavigationContainer>
-        <RootNavigator />
-      </NavigationContainer>
-    </AuthProvider>
+    <ThemeProvider>
+      <StatusBar style="auto" />
+      <AppFallback>
+        <AppContent />
+      </AppFallback>
+    </ThemeProvider>
   );
-} 
+}
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+  },
+});
