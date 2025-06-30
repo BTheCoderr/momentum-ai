@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
   },
   actionCard: {
     flex: 1,
-    backgroundColor: '#FFF',
+    backgroundColor: '#ffffff',
     borderRadius: 12,
     padding: 16,
     marginHorizontal: 6,
