@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Image } from 'react-native';
 
 interface MomentumLogoProps {
   size?: 'small' | 'medium' | 'large';
@@ -29,15 +29,15 @@ export const MomentumLogo: React.FC<MomentumLogoProps> = ({
           backgroundColor: color,
         }
       ]}>
-        <Text style={[
-          styles.logoText, 
-          { 
-            fontSize: sizeConfig.logoSize * 0.5,
-            color: '#fff'
-          }
-        ]}>
-          🚀
-        </Text>
+        <Image 
+          source={require('../assets/icon.png')} 
+          style={{
+            width: sizeConfig.logoSize * 0.8,
+            height: sizeConfig.logoSize * 0.8,
+            borderRadius: 6
+          }}
+          resizeMode="contain"
+        />
       </View>
       
       {/* App Name */}
@@ -65,6 +65,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#ffffff',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,

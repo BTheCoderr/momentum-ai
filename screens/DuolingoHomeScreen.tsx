@@ -315,6 +315,7 @@ const styles = StyleSheet.create({
     marginLeft: 20,
   },
   logoShadowWrapper: {
+    backgroundColor: '#ffffff',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
@@ -432,7 +433,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   recentBox: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(255,255,255,0.9)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
