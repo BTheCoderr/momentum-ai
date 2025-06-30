@@ -52,8 +52,6 @@
     "@babel/preset-typescript": "^7.27.1",
     "@babel/runtime": "^7.27.6",
     "@jest/globals": "^29.7.0",
-    "@react-native-community/cli": "^18.0.0",
-    "@react-native-community/cli-server-api": "^18.0.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/jest-native": "^5.4.3",
     "@testing-library/react-hooks": "^8.0.1",
