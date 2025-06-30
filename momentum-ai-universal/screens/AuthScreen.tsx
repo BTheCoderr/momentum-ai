@@ -337,7 +337,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
 
               <TouchableOpacity 
                 style={[styles.submitButton, loading && styles.submitButtonDisabled]}
-                onPress={isLogin ? handleSignIn : handleSignUp}
+                onPress={handleSubmit}
                 disabled={loading}
               >
                 {loading ? (

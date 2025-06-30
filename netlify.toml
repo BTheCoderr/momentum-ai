@@ -1,5 +1,5 @@
 [build]
-  command = "cd momentum-ai-universal && npm install && npm run web:build"
+  command = "cd momentum-ai-universal && npm install --legacy-peer-deps && npm run web:build"
   publish = "momentum-ai-universal/dist"
 
 [build.environment]
