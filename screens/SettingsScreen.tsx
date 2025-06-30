@@ -31,7 +31,6 @@ const SettingsScreen = ({ navigation }: any) => {
   const [dataSharing, setDataSharing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
-  const [userId, setUserId] = useState(null);
 
   useEffect(() => {
     loadNotificationPreferences();
@@ -97,7 +96,7 @@ const SettingsScreen = ({ navigation }: any) => {
       if (isMounted) setShowSignOutModal(false);
       
       // Clear analytics user ID first
-      setUserId(null);
+      setUserId('');
       
       // Sign out from Supabase (this will trigger the auth state change)
       const { error } = await supabase.auth.signOut();
@@ -143,7 +142,7 @@ const SettingsScreen = ({ navigation }: any) => {
       console.error('❌ Error signing out:', error);
       
       // Force sign out even if there's an error
-      setUserId(null);
+      setUserId('');
       await AsyncStorage.clear();
       
       if (isMounted) {

@@ -68,13 +68,13 @@ function AppContent() {
         } else {
           // No authentication found anywhere
           setSession(null);
-          setUserId(null);
+          setUserId('');
         }
       } catch (error) {
         console.error('Authentication check error:', error);
         // On error, clear everything to be safe
         setSession(null);
-        setUserId(null);
+        setUserId('');
       } finally {
         setLoading(false);
       }
