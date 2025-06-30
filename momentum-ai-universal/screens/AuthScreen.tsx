@@ -245,7 +245,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient
-        colors={['#667eea', '#764ba2']}
+        colors={['#FF6B35', '#F7931E', '#FF8C42']}
         style={styles.gradient}
       >
         <KeyboardAvoidingView 
@@ -256,7 +256,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
             
             {/* Header */}
             <View style={styles.header}>
-              <MomentumLogo />
+              <MomentumLogo size="large" color="white" showText={true} />
               <Text style={styles.title}>Welcome to Momentum AI</Text>
               <Text style={styles.subtitle}>Your personal AI-powered goal achievement companion</Text>
             </View>
@@ -446,7 +446,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   toggleTextActive: {
-    color: '#667eea',
+    color: '#FF6B35',
   },
   form: {
     marginBottom: 30,
@@ -483,13 +483,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
-    backgroundColor: '#ffffff',
   },
   submitButtonDisabled: {
     opacity: 0.7,
   },
   submitButtonText: {
-    color: '#667eea',
+    color: '#FF6B35',
     fontSize: 18,
     fontWeight: 'bold',
   },
