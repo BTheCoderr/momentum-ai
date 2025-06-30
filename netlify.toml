@@ -6,16 +6,26 @@
   EXPO_PUBLIC_SUPABASE_URL = "https://nsgqhhbqpyvonirlfluv.supabase.co"
   EXPO_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZ3FoaGJxcHl2b25pcmxmbHV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk3NTY1NTgsImV4cCI6MjA2NTMzMjU1OH0.twGF9Y6clrRtJg_4S1OWHA1vhhYpKzn3ZpFJPGJbmEo"
   GROQ_API_KEY = "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"
-  NETLIFY_NEXT_PLUGIN_SKIP = "true"
-  DISABLE_NEXT_PLUGIN = "true"
 
-# Disable all framework detection - we're using Expo
+# Expo web build configuration
 [build.processing]
   skip_processing = false
 
-# Force disable Next.js plugin
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
-  disabled = true
+# No plugins needed for Expo web builds
+# The Next.js plugin is removed as this is an Expo app, not Next.js
+
+# Headers for SPA routing
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+
+# Redirect all routes to index.html for client-side routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
 
  

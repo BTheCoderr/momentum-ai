@@ -222,7 +222,7 @@ const HomeScreen = () => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#2563EB" />
+          <ActivityIndicator size="large" color="#FF6B35" />
           <Text style={styles.loadingText}>Loading your dashboard...</Text>
         </View>
       </SafeAreaView>
@@ -239,8 +239,8 @@ const HomeScreen = () => {
           <RefreshControl
             refreshing={loading}
             onRefresh={loadDashboardData}
-            colors={['#2563EB']}
-            tintColor="#2563EB"
+            colors={['#FF6B35']}
+            tintColor="#FF6B35"
             title="Pull to refresh"
             titleColor="#666"
           />
@@ -416,7 +416,7 @@ const styles = StyleSheet.create({
   streakCount: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#2563EB',
+    color: '#FF6B35',
   },
   streakEmoji: {
     fontSize: 24,
@@ -504,7 +504,7 @@ const styles = StyleSheet.create({
   },
   seeAllText: {
     fontSize: 16,
-    color: '#2563EB',
+    color: '#FF6B35',
   },
   emptyGoals: {
     alignItems: 'center',
@@ -547,7 +547,7 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: '100%',
-    backgroundColor: '#2563EB',
+    backgroundColor: '#FF6B35',
     borderRadius: 3,
   },
   progressText: {
@@ -575,7 +575,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   retryButton: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#FF6B35',
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,

@@ -188,7 +188,7 @@ export default function GoalsScreen({ navigation }: Props) {
                 <View style={styles.progressBarContainer}>
                   <View style={styles.progressBarBackground}>
                     <LinearGradient
-                      colors={['#4F46E5', '#7C3AED']}
+                      colors={['#FF6B35', '#F7931E']}
                       style={[styles.progressBarFill, { width: `${goal.progress}%` }]}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 0 }}
@@ -513,7 +513,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
   checkInButton: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#FF6B35',
   },
   checkInButtonText: {
     color: '#fff',

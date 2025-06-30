@@ -48,7 +48,16 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": [],
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#FF6B6B"
+        }
+      ]
+    ],
     "extra": {
       "apiUrl": "https://momentum-ai-api.onrender.com/api",
       "supabaseUrl": "https://nsgqhhbqpyvonirlfluv.supabase.co",

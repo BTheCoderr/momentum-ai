@@ -398,7 +398,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
   },
   categoryButtonSelected: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#FF6B35',
   },
   categoryText: {
     color: '#666',
@@ -412,7 +412,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   addButton: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#FF6B35',
     width: 44,
     height: 44,
     borderRadius: 22,
@@ -486,7 +486,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
   },
   reminderButtonSelected: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#FF6B35',
   },
   reminderText: {
     fontSize: 16,
@@ -514,7 +514,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   nextButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#FF6B35',
   },
   footerButtonText: {
     fontSize: 16,

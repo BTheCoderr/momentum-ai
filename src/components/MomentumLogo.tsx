@@ -11,8 +11,8 @@ export default function MomentumLogo({ size = 40, color = '#fff' }: MomentumLogo
     <Svg width={size} height={size} viewBox="0 0 100 100">
       <Defs>
         <LinearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <Stop offset="0%" stopColor="#60A5FA" />
-          <Stop offset="100%" stopColor="#3B82F6" />
+          <Stop offset="0%" stopColor="#FF6B35" />
+          <Stop offset="100%" stopColor="#F7931E" />
         </LinearGradient>
       </Defs>
       

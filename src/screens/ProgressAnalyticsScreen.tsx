@@ -261,7 +261,7 @@ export default function ProgressAnalyticsScreen({ navigation }: Props) {
           });
         }}
       >
-        <LinearGradient colors={['#4F46E5', '#7C3AED']} style={styles.actionButtonGradient}>
+        <LinearGradient colors={['#FF6B35', '#F7931E']} style={styles.actionButtonGradient}>
           <Text style={styles.actionButtonText}>Get Optimization Tips 🚀</Text>
         </LinearGradient>
       </TouchableOpacity>

@@ -734,7 +734,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   actionButton: {
-    backgroundColor: '#6366f1',
+    backgroundColor: '#FF6B35',
     paddingHorizontal: 32,
     paddingVertical: 16,
     borderRadius: 12,
@@ -757,7 +757,7 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#6366f1',
+    color: '#FF6B35',
   },
   statLabel: {
     fontSize: 14,

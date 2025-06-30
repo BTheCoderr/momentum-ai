@@ -45,20 +45,87 @@ function AppContent() {
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session?.user) {
-        setUserId(session.user.id);
+    // Check both Supabase session and AsyncStorage for authentication
+    const checkAuthentication = async () => {
+      try {
+        // First check Supabase session
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          setSession(session);
+          setUserId(session.user.id);
+          setLoading(false);
+          return;
+        }
+
+        // If no Supabase session, check AsyncStorage for demo/local auth
+        const isAuthenticated = await AsyncStorage.getItem('isAuthenticated');
+        const userData = await AsyncStorage.getItem('user');
+        
+        if (isAuthenticated === 'true' && userData) {
+          const user = JSON.parse(userData);
+          setSession(user);
+          setUserId(user.id);
+        } else {
+          // No authentication found anywhere
+          setSession(null);
+          setUserId(null);
+        }
+      } catch (error) {
+        console.error('Authentication check error:', error);
+        // On error, clear everything to be safe
+        setSession(null);
+        setUserId(null);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
+    };
+
+    checkAuthentication();
+
+    // Listen for Supabase auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state change:', event, session?.user?.id);
+      
+      if (event === 'SIGNED_OUT' || !session?.user) {
+        // User signed out or session ended
+        setSession(null);
+        setUserId(null);
+        
+        // Also clear AsyncStorage fallback
+        try {
+          await AsyncStorage.multiRemove(['isAuthenticated', 'user']);
+        } catch (error) {
+          console.error('Error clearing AsyncStorage on sign out:', error);
+        }
+      } else if (session?.user) {
+        // User signed in
+        setSession(session);
+        setUserId(session.user.id);
+      } else {
+        // Check AsyncStorage fallback
+        try {
+          const isAuthenticated = await AsyncStorage.getItem('isAuthenticated');
+          const userData = await AsyncStorage.getItem('user');
+          
+          if (isAuthenticated === 'true' && userData) {
+            const user = JSON.parse(userData);
+            setSession(user);
+            if (user.id) {
+              setUserId(user.id);
+            }
+          } else {
+            setSession(null);
+            setUserId(null);
+          }
+        } catch (error) {
+          console.error('Error checking AsyncStorage auth:', error);
+          setSession(null);
+          setUserId(null);
+        }
+      }
     });
 
-    supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      if (session?.user) {
-        setUserId(session.user.id);
-      }
-    });
+    return () => subscription.unsubscribe();
   }, []);
 
   if (loading) {

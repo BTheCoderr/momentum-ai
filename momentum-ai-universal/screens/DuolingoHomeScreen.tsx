@@ -72,6 +72,134 @@ export default function DuolingoHomeScreen({ navigation }: DuolingoHomeScreenPro
 
   const levelProgress = (userXP.totalXP % 100) / 100;
 
+  const GitHubStyleProgress: React.FC<{ goals: any[]; userXP: any }> = ({ goals, userXP }) => {
+    const { theme } = useTheme();
+
+    interface ContributionDay {
+      date: string;
+      level: number;
+      day: number;
+      week: number;
+    }
+
+    const generateContributionData = (): ContributionDay[] => {
+      const data: ContributionDay[] = [];
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 84); // 12 weeks * 7 days
+
+      for (let i = 0; i < 84; i++) {
+        const currentDate = new Date(startDate);
+        currentDate.setDate(startDate.getDate() + i);
+        
+        // Simulate activity levels (0-4)
+        const dayOfWeek = currentDate.getDay();
+        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+        
+        let activityLevel = 0;
+        if (Math.random() > 0.3) { // 70% chance of activity
+          if (isWeekend) {
+            activityLevel = Math.floor(Math.random() * 3) + 1; // 1-3 for weekends
+          } else {
+            activityLevel = Math.floor(Math.random() * 4) + 1; // 1-4 for weekdays
+          }
+        }
+
+        data.push({
+          date: currentDate.toISOString().split('T')[0],
+          level: activityLevel,
+          day: dayOfWeek,
+          week: Math.floor(i / 7),
+        });
+      }
+      return data;
+    };
+
+    const contributionData = generateContributionData();
+    
+    // Group data into weeks for display
+    const weeks: ContributionDay[][] = [];
+    for (let i = 0; i < 12; i++) {
+      weeks.push(contributionData.slice(i * 7, (i + 1) * 7));
+    }
+
+    const getBoxColor = (level: number): string => {
+      const colors = [
+        '#F0F0F0', // No activity (light gray)
+        '#FFE4D6', // Very low (very light orange)
+        '#FFCC99', // Low activity (light orange)
+        '#FF8C42', // Medium high (bright orange)
+        '#FF6B35', // High activity (main orange)
+      ];
+      return colors[level] || colors[0];
+    };
+
+    const totalContributions = contributionData.filter(d => d.level > 0).length;
+    const weeklyAverage = Math.round(totalContributions / 12);
+
+    return (
+      <View style={styles.contributionContainer}>
+        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Your 12-Week Progress Journey</Text>
+        
+        <View style={styles.contributionGraph}>
+          {/* Horizontal grid layout - more compact */}
+          <View style={styles.horizontalGrid}>
+            {/* Month labels at top */}
+            <View style={styles.monthLabels}>
+              <Text style={[styles.monthLabel, { color: theme.colors.textSecondary }]}>3 months ago</Text>
+              <Text style={[styles.monthLabel, { color: theme.colors.textSecondary }]}>2 months ago</Text>
+              <Text style={[styles.monthLabel, { color: theme.colors.textSecondary }]}>1 month ago</Text>
+              <Text style={[styles.monthLabel, { color: theme.colors.textSecondary }]}>Today</Text>
+            </View>
+
+            {/* Grid rows by day of week */}
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((dayName, dayIndex) => (
+              <View key={dayIndex} style={styles.gridRow}>
+                <Text style={[styles.dayLabelHorizontal, { color: theme.colors.textSecondary }]}>
+                  {dayName}
+                </Text>
+                <View style={styles.dayRow}>
+                  {weeks.map((week, weekIndex) => {
+                    const dayData = week.find(d => d.day === dayIndex);
+                    return (
+                      <TouchableOpacity
+                        key={weekIndex}
+                        style={[
+                          styles.contributionBoxHorizontal,
+                          {
+                            backgroundColor: dayData ? getBoxColor(dayData.level) : '#F3F4F6',
+                          },
+                        ]}
+                        activeOpacity={0.7}
+                      />
+                    );
+                  })}
+                </View>
+              </View>
+            ))}
+          </View>
+          
+          <View style={styles.contributionLegend}>
+            <Text style={[styles.legendText, { color: theme.colors.textSecondary }]}>Less</Text>
+            {[0, 1, 2, 3, 4].map(level => (
+              <View
+                key={level}
+                style={[
+                  styles.legendBox,
+                  { backgroundColor: getBoxColor(level) },
+                ]}
+              />
+            ))}
+            <Text style={[styles.legendText, { color: theme.colors.textSecondary }]}>More</Text>
+          </View>
+          
+          <Text style={[styles.contributionStats, { color: theme.colors.textSecondary }]}>
+            {totalContributions} active days • {weeklyAverage} per week average
+          </Text>
+        </View>
+      </View>
+    );
+  };
+
   if (loading || xpLoading) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -136,6 +264,10 @@ export default function DuolingoHomeScreen({ navigation }: DuolingoHomeScreenPro
               <Text style={[styles.actionTitle, { color: theme.colors.text }]}>My Goals</Text>
             </TouchableOpacity>
           </View>
+        </View>
+
+        <View style={styles.section}>
+          <GitHubStyleProgress goals={goals} userXP={userXP} />
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -231,7 +363,7 @@ const styles = StyleSheet.create({
   },
   goalsCard: {
     borderTopWidth: 4,
-    borderTopColor: '#2196F3',
+    borderTopColor: '#FF6B35',
   },
   actionEmoji: {
     fontSize: 32,
@@ -241,5 +373,73 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     textAlign: 'center',
+  },
+  contributionContainer: {
+    paddingHorizontal: 20,
+  },
+  contributionGraph: {
+    marginBottom: 16,
+  },
+  horizontalGrid: {
+    marginBottom: 12,
+  },
+  monthLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingLeft: 40,
+    paddingRight: 10,
+    marginBottom: 8,
+  },
+  monthLabel: {
+    fontSize: 11,
+    textAlign: 'center',
+    flex: 1,
+  },
+  gridRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  dayRow: {
+    flexDirection: 'row',
+    flex: 1,
+  },
+  contributionBoxHorizontal: {
+    width: 11,
+    height: 11,
+    marginHorizontal: 1,
+    borderRadius: 2,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 107, 53, 0.1)',
+  },
+  contributionLegend: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+    marginBottom: 6,
+  },
+  legendText: {
+    fontSize: 11,
+    marginHorizontal: 4,
+  },
+  legendBox: {
+    width: 9,
+    height: 9,
+    marginHorizontal: 2,
+    borderRadius: 2,
+    borderWidth: 0.5,
+    borderColor: 'rgba(0,0,0,0.1)',
+  },
+  contributionStats: {
+    textAlign: 'center',
+    fontSize: 11,
+    marginTop: 4,
+  },
+  dayLabelHorizontal: {
+    fontSize: 11,
+    width: 35,
+    textAlign: 'right',
+    marginRight: 8,
   },
 });

@@ -299,7 +299,7 @@ Give me personalized coaching and specific actions I can take right now.`;
         </View>
 
         <TouchableOpacity style={styles.startButton} onPress={handleStartCoaching}>
-          <LinearGradient colors={['#4F46E5', '#7C3AED']} style={styles.startButtonGradient}>
+          <LinearGradient colors={['#FF6B35', '#F7931E']} style={styles.startButtonGradient}>
             <Text style={styles.startButtonText}>Start Coaching Session 🚀</Text>
           </LinearGradient>
         </TouchableOpacity>
@@ -350,7 +350,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FF6B35',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },

@@ -73,7 +73,7 @@ export const LeaderboardComponent: React.FC<LeaderboardComponentProps> = ({
       case 1: return '#FFD700'; // Gold
       case 2: return '#C0C0C0'; // Silver
       case 3: return '#CD7F32'; // Bronze
-      default: return '#58CC02'; // Green
+      default: return '#FF6B35'; // Orange
     }
   };
 
@@ -157,7 +157,7 @@ export const LeaderboardComponent: React.FC<LeaderboardComponentProps> = ({
         onPress={() => Alert.alert('Share', 'Share your progress with friends!')}
       >
         <LinearGradient
-          colors={['#58CC02', '#4CAF50']}
+          colors={['#FF6B35', '#F7931E']}
           style={styles.shareGradient}
         >
           <Text style={styles.shareText}>Share Your Progress 🚀</Text>
@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   activeTimeFrame: {
-    backgroundColor: '#58CC02',
+    backgroundColor: '#FF6B35',
   },
   timeFrameText: {
     fontSize: 14,
@@ -228,8 +228,8 @@ const styles = StyleSheet.create({
   },
   currentUserItem: {
     borderWidth: 2,
-    borderColor: '#58CC02',
-    backgroundColor: '#F0FFF0',
+    borderColor: '#FF6B35',
+    backgroundColor: '#FFF5F0',
   },
   rankContainer: {
     alignItems: 'center',
@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   currentUserName: {
-    color: '#58CC02',
+    color: '#FF6B35',
   },
   userStats: {
     flexDirection: 'row',
@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
     color: '#FF6B35',
   },
   currentUserBadge: {
-    backgroundColor: '#58CC02',
+    backgroundColor: '#FF6B35',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,

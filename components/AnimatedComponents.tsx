@@ -252,7 +252,7 @@ export const AnimatedProgressBar: React.FC<AnimatedProgressBarProps> = ({
     <View
       style={[
         styles.progressBarContainer,
-        { height, backgroundColor },
+        { height, backgroundColor: '#FF6B35' },
         style,
       ]}
     >
@@ -261,7 +261,7 @@ export const AnimatedProgressBar: React.FC<AnimatedProgressBarProps> = ({
           styles.progressBarFill,
           {
             height,
-            backgroundColor: progressColor,
+            backgroundColor: '#FF6B35',
             width: progressAnim.interpolate({
               inputRange: [0, 1],
               outputRange: ['0%', '100%'],
@@ -558,7 +558,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F59E0B',
   },
   infoNotification: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#FF6B35',
   },
   notificationIcon: {
     fontSize: 20,

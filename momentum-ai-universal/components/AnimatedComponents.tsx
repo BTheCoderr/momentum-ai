@@ -227,7 +227,7 @@ interface AnimatedProgressBarProps {
 export const AnimatedProgressBar: React.FC<AnimatedProgressBarProps> = ({
   progress,
   height = 8,
-  backgroundColor = '#E5E7EB',
+  backgroundColor = '#FF6B35',
   progressColor = '#10B981',
   style,
   animated = true,
@@ -495,7 +495,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   primaryButton: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#FF6B35',
   },
   secondaryButton: {
     backgroundColor: '#64748B',
@@ -558,7 +558,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F59E0B',
   },
   infoNotification: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#FF6B35',
   },
   notificationIcon: {
     fontSize: 20,

@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
+import { Defs, LinearGradient, Stop } from 'react-native-svg';
 
 interface MomentumLogoProps {
   size?: 'small' | 'medium' | 'large';

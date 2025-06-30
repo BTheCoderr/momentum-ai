@@ -355,7 +355,7 @@ export default function HomeScreen({ navigation }: Props) {
       >
         {/* Header */}
         <LinearGradient
-          colors={['#4F46E5', '#7C3AED']}
+          colors={['#FF6B35', '#F7931E', '#FFB74D']}
           style={styles.header}
         >
           <View style={styles.headerContent}>

@@ -142,6 +142,7 @@ function MainStack() {
       <Stack.Screen name="Goals" component={GoalsScreen} />
       <Stack.Screen name="Reflection" component={ReflectionScreen} />
       <Stack.Screen name="XPProgress" component={XPProgressScreen} />
+      <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       <Stack.Screen name="PlanCreator" component={PlanCreatorScreen} />
       <Stack.Screen name="DailyCoaching" component={DailyCoachingScreen} />
       <Stack.Screen name="ProgressAnalytics" component={ProgressAnalyticsScreen} />

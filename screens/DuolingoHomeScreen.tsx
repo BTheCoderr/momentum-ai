@@ -32,88 +32,100 @@ const GitHubStyleProgress: React.FC<{ goals: any[]; userXP: any }> = ({ goals, u
     week: number;
   }
   
-  // Generate last 365 days
   const generateContributionData = (): ContributionDay[] => {
-    const days: ContributionDay[] = [];
-    const today = new Date();
-    
-    for (let i = 364; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
+    const data: ContributionDay[] = [];
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - 84); // 12 weeks * 7 days
+
+    for (let i = 0; i < 84; i++) {
+      const currentDate = new Date(startDate);
+      currentDate.setDate(startDate.getDate() + i);
       
-      // Simulate activity level based on XP and randomness
-      const baseActivity = Math.floor((userXP.totalXP || 0) / 100) % 5; // 0-4 activity level
-      const randomVariation = Math.floor(Math.random() * 3); // 0-2 variation
-      const activityLevel = Math.min(4, Math.max(0, baseActivity + randomVariation - 1));
+      // Simulate activity levels (0-4)
+      const dayOfWeek = currentDate.getDay();
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
       
-      days.push({
-        date: date.toISOString().split('T')[0],
-        level: activityLevel, // 0 = no activity, 1-4 = increasing activity
-        day: date.getDay(),
+      let activityLevel = 0;
+      if (Math.random() > 0.3) { // 70% chance of activity
+        if (isWeekend) {
+          activityLevel = Math.floor(Math.random() * 3) + 1; // 1-3 for weekends
+        } else {
+          activityLevel = Math.floor(Math.random() * 4) + 1; // 1-4 for weekdays
+        }
+      }
+
+      data.push({
+        date: currentDate.toISOString().split('T')[0],
+        level: activityLevel,
+        day: dayOfWeek,
         week: Math.floor(i / 7),
       });
     }
-    return days;
+    return data;
   };
 
   const contributionData = generateContributionData();
-  const weeks: ContributionDay[][] = Array.from({ length: 53 }, (_, weekIndex) => 
-    contributionData.filter(day => Math.floor((364 - contributionData.indexOf(day)) / 7) === weekIndex)
-  );
+  
+  // Group data into weeks for display
+  const weeks: ContributionDay[][] = [];
+  for (let i = 0; i < 12; i++) {
+    weeks.push(contributionData.slice(i * 7, (i + 1) * 7));
+  }
 
   const getBoxColor = (level: number): string => {
     const colors = [
-      theme.colors.border, // No activity
-      '#c6e48b', // Low activity  
-      '#7bc96f', // Medium low
-      '#39d353', // Medium high
-      '#196127', // High activity
+      '#F0F0F0', // No activity (light gray)
+      '#FFE4D6', // Very low (very light orange)
+      '#FFCC99', // Low activity (light orange)
+      '#FF8C42', // Medium high (bright orange)
+      '#FF6B35', // High activity (main orange)
     ];
     return colors[level] || colors[0];
   };
 
+  const totalContributions = contributionData.filter(d => d.level > 0).length;
+  const weeklyAverage = Math.round(totalContributions / 12);
+
   return (
     <View style={styles.contributionContainer}>
-      <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Your Progress Journey</Text>
+      <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Your 12-Week Progress Journey</Text>
       
       <View style={styles.contributionGraph}>
-        <View style={styles.monthLabels}>
-          {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((month, index) => (
-            <Text key={month} style={[styles.monthLabel, { color: theme.colors.textSecondary }]}>
-              {month}
-            </Text>
-          ))}
-        </View>
-        
-        <View style={styles.contributionGrid}>
-          <View style={styles.dayLabels}>
-            {['', 'Mon', '', 'Wed', '', 'Fri', ''].map((day, index) => (
-              <Text key={index} style={[styles.dayLabel, { color: theme.colors.textSecondary }]}>
-                {day}
-              </Text>
-            ))}
+        {/* Horizontal grid layout - more compact */}
+        <View style={styles.horizontalGrid}>
+          {/* Month labels at top */}
+          <View style={styles.monthLabels}>
+            <Text style={[styles.monthLabel, { color: theme.colors.textSecondary }]}>3 months ago</Text>
+            <Text style={[styles.monthLabel, { color: theme.colors.textSecondary }]}>2 months ago</Text>
+            <Text style={[styles.monthLabel, { color: theme.colors.textSecondary }]}>1 month ago</Text>
+            <Text style={[styles.monthLabel, { color: theme.colors.textSecondary }]}>Today</Text>
           </View>
-          
-          <View style={styles.gridContainer}>
-            {weeks.map((week, weekIndex) => (
-              <View key={weekIndex} style={styles.week}>
-                {Array.from({ length: 7 }, (_, dayIndex) => {
+
+          {/* Grid rows by day of week */}
+          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((dayName, dayIndex) => (
+            <View key={dayIndex} style={styles.gridRow}>
+              <Text style={[styles.dayLabelHorizontal, { color: theme.colors.textSecondary }]}>
+                {dayName}
+              </Text>
+              <View style={styles.dayRow}>
+                {weeks.map((week, weekIndex) => {
                   const dayData = week.find(d => d.day === dayIndex);
                   return (
-                    <View
-                      key={dayIndex}
+                    <TouchableOpacity
+                      key={weekIndex}
                       style={[
-                        styles.contributionBox,
+                        styles.contributionBoxHorizontal,
                         {
-                          backgroundColor: dayData ? getBoxColor(dayData.level) : theme.colors.border,
+                          backgroundColor: dayData ? getBoxColor(dayData.level) : '#F3F4F6',
                         },
                       ]}
+                      activeOpacity={0.7}
                     />
                   );
                 })}
               </View>
-            ))}
-          </View>
+            </View>
+          ))}
         </View>
         
         <View style={styles.contributionLegend}>
@@ -131,7 +143,7 @@ const GitHubStyleProgress: React.FC<{ goals: any[]; userXP: any }> = ({ goals, u
         </View>
         
         <Text style={[styles.contributionStats, { color: theme.colors.textSecondary }]}>
-          {contributionData.filter(d => d.level > 0).length} contributions in the last year
+          {totalContributions} active days • {weeklyAverage} per week average
         </Text>
       </View>
     </View>
@@ -366,71 +378,76 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingHorizontal: 20,
   },
-  // Progress Grid Styles - The "boxes" visual
+  // Progress Grid Styles - Updated for horizontal layout
   contributionContainer: {
     paddingHorizontal: 20,
   },
   contributionGraph: {
-    marginBottom: 24,
+    marginBottom: 16, // Reduced from 24 to save space
+  },
+  // New horizontal layout styles
+  horizontalGrid: {
+    marginBottom: 12,
   },
   monthLabels: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    paddingLeft: 40, // Space for day labels
+    paddingRight: 10,
     marginBottom: 8,
   },
   monthLabel: {
-    fontSize: 12,
-    fontWeight: 'bold',
+    fontSize: 11,
+    textAlign: 'center',
+    flex: 1,
   },
-  contributionGrid: {
+  gridRow: {
     flexDirection: 'row',
-    marginBottom: 8,
+    alignItems: 'center',
+    marginBottom: 2,
   },
-  dayLabels: {
-    flexDirection: 'column',
-    justifyContent: 'space-between',
+  dayLabelHorizontal: {
+    fontSize: 11,
+    width: 35,
+    textAlign: 'right',
     marginRight: 8,
   },
-  dayLabel: {
-    fontSize: 12,
-  },
-  gridContainer: {
-    flexDirection: 'column',
-  },
-  week: {
+  dayRow: {
     flexDirection: 'row',
+    flex: 1,
   },
-  contributionBox: {
-    width: 10,
-    height: 10,
-    margin: 1,
+  contributionBoxHorizontal: {
+    width: 11, // Slightly smaller for horizontal layout
+    height: 11,
+    marginHorizontal: 1,
     borderRadius: 2,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.1)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 107, 53, 0.1)',
   },
+  // Existing styles (kept for backward compatibility but some removed)
   contributionLegend: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 12,
-    marginBottom: 8,
+    marginTop: 8, // Reduced spacing
+    marginBottom: 6,
   },
   legendText: {
-    fontSize: 12,
+    fontSize: 11, // Slightly smaller
     marginHorizontal: 4,
   },
   legendBox: {
-    width: 10,
-    height: 10,
+    width: 9, // Slightly smaller
+    height: 9,
     marginHorizontal: 2,
     borderRadius: 2,
-    borderWidth: 1,
+    borderWidth: 0.5,
     borderColor: 'rgba(0,0,0,0.1)',
   },
   contributionStats: {
     textAlign: 'center',
-    fontSize: 12,
-    marginTop: 8,
+    fontSize: 11, // Slightly smaller
+    marginTop: 4, // Reduced spacing
   },
   recentBox: {
     backgroundColor: 'rgba(255,255,255,0.9)',
@@ -469,7 +486,7 @@ const styles = StyleSheet.create({
   },
   goalsCard: {
     borderTopWidth: 4,
-    borderTopColor: '#2196F3',
+    borderTopColor: '#FF6B35',
   },
   actionEmoji: {
     fontSize: 32,

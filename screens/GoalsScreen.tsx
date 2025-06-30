@@ -208,7 +208,7 @@ export default function GoalsScreen({ navigation }: any) {
             <Text style={styles.statsButtonText}>📊</Text>
           </TouchableOpacity>
           <TouchableOpacity 
-            style={[styles.addButton, { backgroundColor: theme.colors.primary }]}
+            style={[styles.addButton, { backgroundColor: '#FF6B35' }]}
             onPress={() => setShowAddModal(true)}
           >
             <Text style={[styles.addButtonText, { color: theme.colors.text }]}>+ Add</Text>
@@ -230,7 +230,7 @@ export default function GoalsScreen({ navigation }: any) {
               Create your first goal to start your journey!
             </Text>
             <TouchableOpacity 
-              style={[styles.createFirstGoalButton, { backgroundColor: theme.colors.primary }]}
+              style={[styles.createFirstGoalButton, { backgroundColor: '#FF6B35' }]}
               onPress={() => setShowAddModal(true)}
             >
               <Text style={[styles.createFirstGoalButtonText, { color: theme.colors.text }]}>
@@ -260,7 +260,7 @@ export default function GoalsScreen({ navigation }: any) {
                   <View 
                     style={[
                       styles.progressFill,
-                      { width: `${goal.progress}%`, backgroundColor: theme.colors.primary }
+                      { width: `${goal.progress}%`, backgroundColor: '#FF6B35' }
                     ]} 
                   />
                 </View>
@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
   checkInButton: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#FF6B35',
   },
   shareButton: {
     backgroundColor: '#10B981',

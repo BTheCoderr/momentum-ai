@@ -85,7 +85,7 @@ export default function NotificationSettingsScreen({ navigation }: Props) {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <LinearGradient
-          colors={['#4F46E5', '#7C3AED']}
+          colors={['#FF6B35', '#F7931E']}
           style={styles.header}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
@@ -169,7 +169,7 @@ export default function NotificationSettingsScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#FF6B35',
   },
   scrollView: {
     flex: 1,

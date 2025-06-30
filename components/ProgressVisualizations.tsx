@@ -155,7 +155,7 @@ export const ProgressVisualizations = ({ goals, stats, timeframe = 'week' }: Pro
             propsForDots: {
               r: '6',
               strokeWidth: '2',
-              stroke: '#2563EB',
+              stroke: '#FF6B35',
             },
           }}
           style={{

@@ -15,6 +15,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 
 type RootStackParamList = {
   Welcome: undefined;
+  Auth: undefined;
   MainTabs: undefined;
   NotificationSettings: undefined;
 };
@@ -103,8 +104,8 @@ export default function WelcomeScreen({ navigation }: Props) {
       // Here you would typically save the user profile to your backend
       console.log('User profile:', userProfile);
       
-      // Navigate to the main tabs
-      navigation.navigate('MainTabs');
+      // Navigate to authentication screen instead of MainTabs
+      navigation.navigate('Auth');
     } catch (error) {
       console.error('Error saving profile:', error);
       Alert.alert('Error', 'Failed to save your profile. Please try again.');
@@ -248,7 +249,7 @@ export default function WelcomeScreen({ navigation }: Props) {
 
   return (
     <LinearGradient
-      colors={['#667eea', '#764ba2']}
+      colors={['#FF6B35', '#F7931E', '#FF8C42']}
       style={styles.container}
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -266,12 +267,6 @@ export default function WelcomeScreen({ navigation }: Props) {
             <Text style={styles.progressText}>
               {currentStep + 1} of {steps.length}
             </Text>
-            <TouchableOpacity 
-              style={styles.skipButton}
-              onPress={() => navigation.navigate('MainTabs')}
-            >
-              <Text style={styles.skipText}>Skip</Text>
-            </TouchableOpacity>
           </View>
         </View>
 
@@ -346,14 +341,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
     opacity: 0.8,
-  },
-  skipButton: {
-    padding: 8,
-  },
-  skipText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
   },
   contentContainer: {
     flex: 1,

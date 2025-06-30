@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   backButton: {
-    color: '#4F46E5',
+    color: '#FF6B35',
     fontSize: 16,
     marginRight: 16,
   },

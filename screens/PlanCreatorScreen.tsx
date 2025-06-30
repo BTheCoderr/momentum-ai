@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   backButtonText: {
-    color: '#4F46E5',
+    color: '#FF6B35',
     fontSize: 16,
   },
   title: {
@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   durationButtonActive: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#FF6B35',
   },
   durationButtonText: {
     color: '#fff',
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   addButtonText: {
-    color: '#4F46E5',
+    color: '#FF6B35',
     fontSize: 14,
   },
   milestoneContainer: {
@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
   },
   saveButton: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#FF6B35',
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',

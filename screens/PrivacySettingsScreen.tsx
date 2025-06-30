@@ -73,7 +73,7 @@ export const PrivacySettingsScreen = () => {
             <Switch
               value={settings.shareProgress}
               onValueChange={() => handleToggle('shareProgress')}
-              trackColor={{ false: '#767577', true: '#4F46E5' }}
+              trackColor={{ false: '#767577', true: '#FF6B35' }}
             />
           </View>
 
@@ -87,7 +87,7 @@ export const PrivacySettingsScreen = () => {
             <Switch
               value={settings.shareInsights}
               onValueChange={() => handleToggle('shareInsights')}
-              trackColor={{ false: '#767577', true: '#4F46E5' }}
+              trackColor={{ false: '#767577', true: '#FF6B35' }}
             />
           </View>
 
@@ -101,7 +101,7 @@ export const PrivacySettingsScreen = () => {
             <Switch
               value={settings.allowDataAnalysis}
               onValueChange={() => handleToggle('allowDataAnalysis')}
-              trackColor={{ false: '#767577', true: '#4F46E5' }}
+              trackColor={{ false: '#767577', true: '#FF6B35' }}
             />
           </View>
 
@@ -115,7 +115,7 @@ export const PrivacySettingsScreen = () => {
             <Switch
               value={settings.showProfilePublicly}
               onValueChange={() => handleToggle('showProfilePublicly')}
-              trackColor={{ false: '#767577', true: '#4F46E5' }}
+              trackColor={{ false: '#767577', true: '#FF6B35' }}
             />
           </View>
         </View>
@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   backButtonText: {
-    color: '#4F46E5',
+    color: '#FF6B35',
     fontSize: 16,
   },
   title: {
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
     maxWidth: '80%',
   },
   saveButton: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#FF6B35',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',

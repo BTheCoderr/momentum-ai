@@ -10,6 +10,7 @@ import {
   Switch,
   Alert,
   Modal,
+  Platform,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -17,6 +18,8 @@ import { supabase } from '../lib/supabase';
 import { useTheme } from '../components/ThemeProvider';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { notificationService, getNotificationPreferences, updateNotificationPreferences } from '../lib/notifications';
+import { setUserId } from '../lib/analytics';
+import { Ionicons } from '@expo/vector-icons';
 
 const SettingsScreen = ({ navigation }: any) => {
   const { theme } = useTheme();
@@ -28,6 +31,7 @@ const SettingsScreen = ({ navigation }: any) => {
   const [dataSharing, setDataSharing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
+  const [userId, setUserId] = useState(null);
 
   useEffect(() => {
     loadNotificationPreferences();
@@ -81,11 +85,14 @@ const SettingsScreen = ({ navigation }: any) => {
     try {
       console.log('🚪 Signing out user...');
       
+      // Clear analytics user ID first
+      setUserId(null);
+      
       // Sign out from Supabase (this will trigger the auth state change)
       const { error } = await supabase.auth.signOut();
       
       if (error) {
-        throw error;
+        console.warn('Supabase sign out error (continuing anyway):', error);
       }
       
       // Clear all user data from AsyncStorage
@@ -96,19 +103,36 @@ const SettingsScreen = ({ navigation }: any) => {
         'userCheckins',
         'userMessages',
         'userReflections',
-        'hasSeenTutorial'
+        'hasSeenTutorial',
+        'isAuthenticated',
+        'user'
       ]);
       
       console.log('✅ User data cleared successfully');
       
-      // Close modal
+      // Close modal first
       setShowSignOutModal(false);
+      
+      // Force navigation reset to Auth screen
+      // Use replace to prevent back navigation
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Auth' }],
+      });
       
       console.log('✅ User signed out successfully');
       
     } catch (error) {
       console.error('❌ Error signing out:', error);
-      Alert.alert('Error', 'Failed to sign out. Please try again.');
+      setShowSignOutModal(false);
+      
+      // Force sign out even if there's an error
+      setUserId(null);
+      await AsyncStorage.clear();
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Auth' }],
+      });
     }
   };
 
@@ -441,12 +465,7 @@ const SettingsScreen = ({ navigation }: any) => {
             subtitle="1.0.0 (Beta)"
             showArrow={false}
           />
-          <SettingsItem
-            icon="📋"
-            title="Terms of Service"
-            subtitle="Read our terms"
-            onPress={() => Alert.alert('Terms of Service', 'Terms of service coming soon!')}
-          />
+
         </View>
 
         {/* Account Actions */}
@@ -595,7 +614,7 @@ const styles = StyleSheet.create({
     fontWeight: '300',
   },
   logoutButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#FF6B35',
     borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 24,
@@ -669,7 +688,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   signOutButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#FF6B35',
   },
   signOutButtonText: {
     color: '#fff',

@@ -203,9 +203,10 @@ const styles = StyleSheet.create({
     borderBottomColor: '#2a2b2e',
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#1a1b1e',
   },
   backButton: {
-    color: '#4F46E5',
+    color: '#FF6B35',
     fontSize: 16,
     marginRight: 16,
   },
@@ -232,6 +233,8 @@ const styles = StyleSheet.create({
     padding: 12,
     color: '#fff',
     fontSize: 16,
+    borderWidth: 1,
+    borderColor: '#3a3b3e',
   },
   textArea: {
     height: 100,
@@ -253,9 +256,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginHorizontal: 4,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#3a3b3e',
   },
   styleButtonActive: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#FF6B35',
+    borderColor: '#FF6B35',
   },
   styleButtonText: {
     color: '#fff',
@@ -263,14 +269,20 @@ const styles = StyleSheet.create({
   },
   styleButtonTextActive: {
     fontWeight: 'bold',
+    color: '#fff',
   },
   saveButton: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#FF6B35',
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 24,
     marginBottom: 32,
+    shadowColor: '#FF6B35',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   saveButtonText: {
     color: '#fff',

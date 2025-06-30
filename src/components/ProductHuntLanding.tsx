@@ -110,7 +110,7 @@ export default function ProductHuntLanding({ onGetStarted }: ProductHuntLandingP
             
             <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
               Your AI Accountability Agent <br />
-              <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-orange-500 to-orange-600 bg-clip-text text-transparent">
                 That Actually Cares
               </span>
             </h1>
@@ -123,7 +123,7 @@ export default function ProductHuntLanding({ onGetStarted }: ProductHuntLandingP
             <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-4 mb-12">
               <button
                 onClick={handleGetStarted}
-                className="flex items-center space-x-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold text-lg hover:shadow-xl transition-all transform hover:scale-105"
+                className="flex items-center space-x-2 px-8 py-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-semibold text-lg hover:shadow-xl transition-all transform hover:scale-105"
               >
                 <span>Start Free Beta</span>
                 <ArrowRight className="w-5 h-5" />
@@ -159,7 +159,7 @@ export default function ProductHuntLanding({ onGetStarted }: ProductHuntLandingP
           {/* Hero Visual */}
           <div className="relative">
             <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
-              <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-4">
+              <div className="bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-4">
                 <div className="flex items-center space-x-3">
                   <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
                     <Target className="w-5 h-5 text-white" />

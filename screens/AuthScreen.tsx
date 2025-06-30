@@ -110,25 +110,32 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
             console.error('Profile creation error:', profileError);
             throw profileError;
           }
+
+          // Create user stats entry
+          const { error: statsError } = await supabase
+            .from('user_stats')
+            .insert([
+              {
+                user_id: data.user.id,
+                total_xp: 0,
+                current_level: 1,
+                streak_count: 0,
+                goals_completed: 0,
+                checkins_completed: 0,
+                achievements: []
+              }
+            ]);
+          
+          if (statsError) {
+            console.error('Stats creation error:', statsError);
+          }
         }
 
         onAuthSuccess(data.user);
       }
     } catch (error: any) {
       console.error('Auth error:', error);
-      
-      let errorMessage = error.message || 'Please try again.';
-      
-      // Handle specific Supabase errors
-      if (error.message?.includes('For security purposes, you can only request this after')) {
-        errorMessage = 'Too many signup attempts. Please wait a minute and try again, or try logging in if you already have an account.';
-      } else if (error.message?.includes('Invalid login credentials')) {
-        errorMessage = 'Invalid email or password. Please check your credentials.';
-      } else if (error.message?.includes('User already registered')) {
-        errorMessage = 'This email is already registered. Please try logging in instead.';
-      }
-      
-      Alert.alert('Authentication Failed', errorMessage);
+      Alert.alert('Error', error.message || 'Authentication failed');
     } finally {
       setLoading(false);
     }

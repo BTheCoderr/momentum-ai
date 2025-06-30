@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#2563EB',
+    color: '#FF6B35',
     marginBottom: 8,
     textAlign: 'center',
   },
@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
     maxWidth: 320,
   },
   button: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#FF6B35',
     paddingHorizontal: 32,
     paddingVertical: 16,
     borderRadius: 12,

@@ -221,7 +221,7 @@ export default function PlanCreatorScreen({ navigation }: Props) {
 
       <TouchableOpacity style={styles.createButton} onPress={handleCreatePlan}>
         <LinearGradient
-          colors={['#4F46E5', '#7C3AED']}
+          colors={['#FF6B35', '#F7931E']}
           style={styles.createButtonGradient}
         >
           <Text style={styles.createButtonText}>Create My Plan 🚀</Text>

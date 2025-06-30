@@ -36,9 +36,9 @@ const AICoachScreen = ({ navigation }: any) => {
   const [loading, setLoading] = useState(true);
   const [selectedCoach, setSelectedCoach] = useState<CoachPersona>({
     id: 'supportive',
-    name: 'Supportive Sam',
+    name: 'Alex (Supportive)',
     emoji: '🤗',
-    description: 'Warm, encouraging, and understanding',
+    description: 'Empathetic AI coach focused on emotional support',
     tone: 'supportive',
     systemPrompt: 'You are a supportive, warm AI coach. Be encouraging and understanding.'
   });
@@ -66,41 +66,41 @@ const AICoachScreen = ({ navigation }: any) => {
   const coachPersonas: CoachPersona[] = [
     {
       id: 'supportive',
-      name: 'Supportive Sam',
+      name: 'Alex (Supportive)',
       emoji: '🤗',
-      description: 'Warm, encouraging, and understanding',
+      description: 'Empathetic AI coach focused on emotional support',
       tone: 'supportive',
       systemPrompt: 'You are a supportive, warm AI coach. Be encouraging and understanding. Focus on emotional support and gentle guidance.'
     },
     {
       id: 'motivational',
-      name: 'Motivational Mike',
+      name: 'Max (Motivational)',
       emoji: '💪',
-      description: 'High-energy and goal-focused',
+      description: 'High-energy AI coach that drives results',
       tone: 'motivational',
       systemPrompt: 'You are a high-energy, motivational AI coach. Push users to achieve their goals with enthusiasm and determination.'
     },
     {
       id: 'analytical',
-      name: 'Analytical Anna',
+      name: 'Nova (Analytical)',
       emoji: '🧠',
-      description: 'Data-driven and strategic',
+      description: 'Data-driven AI coach for strategic insights',
       tone: 'analytical',
       systemPrompt: 'You are an analytical, strategic AI coach. Focus on data, patterns, and logical approaches to problem-solving.'
     },
     {
       id: 'mindful',
-      name: 'Mindful Maya',
+      name: 'Zen (Mindful)',
       emoji: '🧘',
-      description: 'Calm, reflective, and wise',
+      description: 'Mindfulness-focused AI coach for inner wisdom',
       tone: 'mindful',
       systemPrompt: 'You are a mindful, calm AI coach. Focus on reflection, mindfulness, and inner wisdom. Speak slowly and thoughtfully.'
     },
     {
       id: 'practical',
-      name: 'Practical Pete',
-      emoji: '🔧',
-      description: 'Direct, actionable, and efficient',
+      name: 'Swift (Practical)',
+      emoji: '🎯',
+      description: 'No-nonsense AI coach for actionable solutions',
       tone: 'practical',
       systemPrompt: 'You are a practical, no-nonsense AI coach. Give direct, actionable advice. Be efficient and solution-focused.'
     }
