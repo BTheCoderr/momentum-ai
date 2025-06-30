@@ -60,7 +60,7 @@
       ]
     ],
     "extra": {
-      "apiUrl": "http://10.225.8.234:3001/api",
+      "apiUrl": "https://momentum-ai-api.onrender.com/api",
       "supabaseUrl": "https://nsgqhhbqpyvonirlfluv.supabase.co",
       "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZ3FoaGJxcHl2b25pcmxmbHV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk3NTY1NTgsImV4cCI6MjA2NTMzMjU1OH0.twGF9Y6clrRtJg_4S1OWHA1vhhYpKzn3ZpFJPGJbmEo",
       "eas": {
@@ -71,9 +71,9 @@
     "runtimeVersion": {
       "policy": "sdkVersion"
     },
-    "updates": {
-      "url": "https://u.expo.dev/momentum-ai-mobile"
-    },
+          "updates": {
+        "url": "https://u.expo.dev/fb972645-26d4-4385-8898-7382359a1e05"
+      },
     "development": {
       "developmentClient": true,
       "distribution": "internal"
