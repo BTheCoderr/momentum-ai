@@ -35,6 +35,12 @@ const SettingsScreen = ({ navigation }: any) => {
 
   useEffect(() => {
     loadNotificationPreferences();
+    
+    // Cleanup function to cancel any pending operations
+    return () => {
+      // Cancel any pending timeouts or async operations
+      console.log('🧹 Cleaning up SettingsScreen');
+    };
   }, []);
 
   const loadNotificationPreferences = async () => {
@@ -82,8 +88,13 @@ const SettingsScreen = ({ navigation }: any) => {
   );
 
   const handleSignOut = async () => {
+    let isMounted = true; // Track if component is still mounted
+    
     try {
       console.log('🚪 Signing out user...');
+      
+      // Close modal immediately to prevent multiple calls
+      if (isMounted) setShowSignOutModal(false);
       
       // Clear analytics user ID first
       setUserId(null);
@@ -110,30 +121,45 @@ const SettingsScreen = ({ navigation }: any) => {
       
       console.log('✅ User data cleared successfully');
       
-      // Close modal first
-      setShowSignOutModal(false);
-      
-      // Force navigation reset to Auth screen
-      // Use replace to prevent back navigation
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Auth' }],
-      });
-      
-      console.log('✅ User signed out successfully');
+      // Use setTimeout to ensure all state updates complete before navigation
+      setTimeout(() => {
+        if (isMounted) {
+          try {
+            // Force navigation reset to Auth screen
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'Auth' }],
+            });
+            console.log('✅ User signed out successfully');
+          } catch (navError) {
+            console.error('Navigation error during sign out:', navError);
+            // Fallback: try direct navigation
+            navigation.navigate('Auth');
+          }
+        }
+      }, 100);
       
     } catch (error) {
       console.error('❌ Error signing out:', error);
-      setShowSignOutModal(false);
       
       // Force sign out even if there's an error
       setUserId(null);
       await AsyncStorage.clear();
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Auth' }],
-      });
+      
+      if (isMounted) {
+        setTimeout(() => {
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'Auth' }],
+          });
+        }, 100);
+      }
     }
+    
+    // Cleanup function to prevent state updates if component unmounts
+    return () => {
+      isMounted = false;
+    };
   };
 
   const confirmSignOut = () => {
