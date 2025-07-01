@@ -1,7 +1,7 @@
 # Mobile/Expo specific files - ignore for web deployment
-App.tsx
-app.json
-metro.config.js
+# App.tsx - NEEDED for Expo web build!
+# app.json - NEEDED for Expo web build!
+# metro.config.js - NEEDED for Expo web build!
 .expo/
 start-mobile.sh
 MOBILE_README.md
