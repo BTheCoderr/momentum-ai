@@ -1,13 +1,28 @@
+import Constants from 'expo-constants';
+
 // Mobile App Configuration
 export const API_CONFIG = {
-  // Use your network IP for mobile development
-  BASE_URL: __DEV__ ? 'http://10.225.13.180:3000' : 'https://your-production-url.com',
+  // AI Backend - running on port 8000
+  BASE_URL: __DEV__ ? 'http://localhost:8000' : 'https://your-ai-backend-url.com',
   
-  // API Endpoints
+  // Legacy API URLs (for non-AI services if needed)
+  LEGACY_BASE_URL: __DEV__ ? 'http://localhost:3000' : 'https://your-production-url.com',
+  
+  // AI-Enhanced API Endpoints (matching the actual running backend)
   ENDPOINTS: {
-    CHAT: '/api/ai/productivity-coach',  // Use our new productivity-focused coach
+    // AI Services - Actual endpoints from the running backend
+    SMART_COACH: '/smart-coaching',
+    BEHAVIOR_TRACK: '/behavior-tracking', 
+    DRIFT_PREDICT: '/drift-prediction',
+    INSIGHTS: '/insights-generation',
+    FUTURE_PLAN: '/future-planning',
+    SEMANTIC_SEARCH: '/semantic-search',
+    HEALTH: '/health',
+    USER_CONTEXT: '/user-context',
+    
+    // Legacy Endpoints (if needed for fallback)
+    CHAT: '/api/ai/productivity-coach',  // Legacy coach fallback
     GOALS: '/api/goals', 
-    INSIGHTS: '/api/ai/reflect',
     CHECKINS: '/api/checkins',
     STREAKS: '/api/streaks'
   },
@@ -39,4 +54,13 @@ export const MOBILE_CONFIG = {
 // Development helpers
 export const isDev = __DEV__;
 export const isWeb = typeof window !== 'undefined';
-export const isMobile = !isWeb; 
+export const isMobile = !isWeb;
+
+export const getApiUrl = () => {
+  const apiUrl = Constants.expoConfig?.extra?.apiUrl || 'https://api.momentum-ai.app';
+  return apiUrl;
+};
+
+export const isOfflineMode = () => {
+  return Constants.expoConfig?.extra?.offlineMode || false;
+}; 

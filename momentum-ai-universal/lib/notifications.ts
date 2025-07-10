@@ -2,13 +2,15 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from './supabase';
+import { aiService } from './ai-service';
 
 // Configure notification behavior
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
     shouldPlaySound: true,
-    shouldSetBadge: true,
+    shouldSetBadge: false,
     shouldShowBanner: true,
     shouldShowList: true,
   }),
@@ -82,14 +84,17 @@ export class NotificationService {
         return null;
       }
 
-      const token = (await Notifications.getExpoPushTokenAsync()).data;
-      this.pushToken = token;
+      const token = await Notifications.getExpoPushTokenAsync({
+        projectId: process.env.EXPO_PROJECT_ID,
+      });
+
+      this.pushToken = token.data;
 
       // Save token to AsyncStorage and potentially send to backend
-      await AsyncStorage.setItem('pushToken', token);
+      await AsyncStorage.setItem('pushToken', token.data);
       
       // TODO: Send token to your backend server
-      // await this.sendTokenToBackend(token);
+      // await this.sendTokenToBackend(token.data);
 
       if (Platform.OS === 'android') {
         Notifications.setNotificationChannelAsync('default', {
@@ -100,7 +105,15 @@ export class NotificationService {
         });
       }
 
-      return token;
+      // Save token to user profile
+      const { error } = await supabase
+        .from('profiles')
+        .update({ push_token: token.data })
+        .eq('id', supabase.auth.getUser()?.then(user => user.data.user?.id));
+
+      if (error) throw error;
+
+      return token.data;
     } catch (error) {
       console.error('Error registering for push notifications:', error);
       return null;
@@ -370,3 +383,56 @@ export const initializeNotifications = () => notificationService.initialize();
 export const getNotificationPreferences = () => notificationService.getPreferences();
 export const updateNotificationPreferences = (prefs: Partial<NotificationPreferences>) => 
   notificationService.savePreferences(prefs); 
+
+export async function sendPushNotification(token: string, title: string, body: string) {
+  try {
+    const message = {
+      to: token,
+      sound: 'default',
+      title,
+      body,
+      data: { someData: 'goes here' },
+    };
+
+    await fetch('https://exp.host/--/api/v2/push/send', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Accept-encoding': 'gzip, deflate',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(message),
+    });
+  } catch (error) {
+    console.error('Error sending push notification:', error);
+  }
+}
+
+export async function sendSmartReminder(userId: string) {
+  try {
+    // Get user's profile with push token
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('push_token')
+      .eq('id', userId)
+      .single();
+
+    if (!profile?.push_token) return;
+
+    // Get weekly summary to analyze patterns
+    const summary = await aiService.getWeeklySummary(userId);
+    
+    // If summary indicates a dip or inconsistency, send a push
+    if (summary.toLowerCase().includes('dip') || 
+        summary.toLowerCase().includes('inconsistent') ||
+        summary.toLowerCase().includes('missed')) {
+      await sendPushNotification(
+        profile.push_token,
+        'Time for a Momentum Check-in! 🎯',
+        'Your pattern shows a dip around this time. Ready to bounce back?'
+      );
+    }
+  } catch (error) {
+    console.error('Error sending smart reminder:', error);
+  }
+} 

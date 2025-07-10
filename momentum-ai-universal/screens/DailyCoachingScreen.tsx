@@ -104,7 +104,8 @@ export const DailyCoachingScreen = () => {
   };
 
   const handleStartSession = (session: CoachingSession) => {
-    navigation.navigate('Chat', {
+    // @ts-ignore - Navigation type issue
+    navigation.navigate('Coach', {
       initialPrompt: `Let's start my ${session.title.toLowerCase()} session. ${session.description}`,
       sessionId: session.id,
       xpReward: session.xp_reward,
@@ -183,7 +184,6 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   backButtonText: {
-    color: '#4F46E5',
     fontSize: 16,
   },
   title: {
@@ -243,7 +243,6 @@ const styles = StyleSheet.create({
     borderTopColor: '#3a3b3e',
   },
   xpReward: {
-    color: '#4F46E5',
     fontSize: 16,
     fontWeight: 'bold',
   },

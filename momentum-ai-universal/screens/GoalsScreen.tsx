@@ -2,106 +2,59 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
+  StyleSheet,
+  SafeAreaView,
   ScrollView,
   TouchableOpacity,
-  StyleSheet,
   Alert,
   ActivityIndicator,
-  Share,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import { goalServices } from '../lib/services';
-import { GoalCreationModal } from '../components/GoalCreationModal';
-import { ProgressVisualizations } from '../components/ProgressVisualizations';
+import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../components/ThemeProvider';
-import { trackEvent } from '../lib/analytics';
+import { goalServices } from '../lib/services';
+import { Goal } from '../lib/supabase';
+import { GoalCreationModal } from '../components/GoalCreationModal';
 
-interface Goal {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  progress: number;
-  created_at: string;
-  target_date?: string;
-  priority?: 'low' | 'medium' | 'high';
-  reminder_frequency?: 'daily' | 'weekly' | 'none';
-  milestones?: Array<{ title: string; completed: boolean; }>;
-}
-
-interface Stats {
-  current_streak: number;
-  best_streak: number;
-  total_checkins: number;
-  total_goals: number;
-  completed_goals: number;
-  totalXP: number;
-  level: number;
-  motivationScore: number;
-}
-
-export default function GoalsScreen({ navigation }: any) {
+export default function GoalsScreen() {
+  const navigation = useNavigation();
   const { theme } = useTheme();
   const [goals, setGoals] = useState<Goal[]>([]);
-  const [stats, setStats] = useState<Stats>({
-    current_streak: 0,
-    best_streak: 0,
-    total_checkins: 0,
-    total_goals: 0,
-    completed_goals: 0,
-    totalXP: 0,
-    level: 1,
-    motivationScore: 0,
-  });
   const [loading, setLoading] = useState(true);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showStats, setShowStats] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   useEffect(() => {
-    loadData();
+    loadGoals();
   }, []);
 
-  const loadData = async () => {
+  const loadGoals = async () => {
     try {
       setLoading(true);
-      const [userGoals, userStats] = await Promise.all([
-        goalServices.getAll(),
-        goalServices.getStats(),
-      ]);
-      setGoals(Array.isArray(userGoals) ? userGoals : []);
-      setStats(userStats || {
-        current_streak: 0,
-        best_streak: 0,
-        total_checkins: 0,
-        total_goals: 0,
-        completed_goals: 0,
-        totalXP: 0,
-        level: 1,
-        motivationScore: 0,
-      });
+      const goalsData = await goalServices.getAll();
+      setGoals(Array.isArray(goalsData) ? goalsData : []);
     } catch (error) {
-      console.error('Error loading data:', error);
-      Alert.alert(
-        'Error',
-        'Failed to load goals. Please try again.',
-        [
-          {
-            text: 'Retry',
-            onPress: loadData
-          }
-        ]
-      );
-      setGoals([]);
+      console.error('Error loading goals:', error);
+      Alert.alert('Error', 'Failed to load goals. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDeleteGoal = async (goalId: string) => {
+  const handleCreateGoal = () => {
+    if (goals.length >= 3) {
+      Alert.alert(
+        'Goal Limit Reached',
+        'You can have a maximum of 3 active goals. Complete or delete an existing goal to add a new one.',
+        [{ text: 'OK', style: 'default' }]
+      );
+      return;
+    }
+    setShowCreateModal(true);
+  };
+
+  const handleDeleteGoal = (goalId: string) => {
     Alert.alert(
       'Delete Goal',
-      'Are you sure you want to delete this goal?',
+      'Are you sure you want to delete this goal? This action cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -110,7 +63,8 @@ export default function GoalsScreen({ navigation }: any) {
           onPress: async () => {
             try {
               await goalServices.delete(goalId);
-              loadData();
+              await loadGoals();
+              Alert.alert('Success', 'Goal deleted successfully!');
             } catch (error) {
               console.error('Error deleting goal:', error);
               Alert.alert('Error', 'Failed to delete goal. Please try again.');
@@ -121,67 +75,56 @@ export default function GoalsScreen({ navigation }: any) {
     );
   };
 
-  const updateProgress = async (goalId: string, newProgress: number) => {
+  const handleUpdateProgress = async (goalId: string, newProgress: number) => {
     try {
-      await goalServices.update(goalId, { progress: newProgress });
+      const goal = goals.find(g => g.id === goalId);
+      if (!goal) return;
+
+      const updatedGoal = { ...goal, progress: newProgress };
+      await goalServices.update(goalId, updatedGoal);
+      await loadGoals();
+
       if (newProgress >= 100) {
-        Alert.alert('Congratulations! 🎯', 'Goal completed! +100 XP');
+        Alert.alert(
+          '🎉 Goal Completed!',
+          `Congratulations on completing "${goal.title}"!`,
+          [{ text: 'Awesome!', style: 'default' }]
+        );
       }
-      loadData();
     } catch (error) {
-      console.error('Error updating progress:', error);
+      console.error('Error updating goal progress:', error);
       Alert.alert('Error', 'Failed to update progress. Please try again.');
     }
   };
 
-  const handleAddGoal = async (goalData: any) => {
-    try {
-      setGoals(prev => [...prev, goalData]);
-      setShowAddModal(false);
-      
-      // Track goal creation
-      analytics.trackGoalCreated(goalData.category, goalData.priority);
-    } catch (error) {
-      console.error('Error adding goal:', error);
-      Alert.alert('Error', 'Failed to add goal. Please try again.');
-    }
+  const handleGoalCreated = (goalData: any) => {
+    setShowCreateModal(false);
+    loadGoals();
   };
 
-  const handleShareProgress = async (goal: Goal) => {
-    try {
-      const shareMessage = `I'm ${goal.progress}% through my goal: ${goal.title}! 🎯\n\nTracking my progress with Momentum AI.`;
-      
-      // Use the Share API
-      const result = await Share.share({
-        message: shareMessage,
-        title: 'Share Goal Progress',
-      });
+  const getProgressColor = (progress: number) => {
+    if (progress >= 100) return theme.colors.success;
+    if (progress >= 75) return '#34D399';
+    if (progress >= 50) return theme.colors.warning;
+    if (progress >= 25) return '#FBBF24';
+    return theme.colors.textSecondary;
+  };
 
-      if (result.action === Share.sharedAction) {
-        // Track sharing analytics
-        trackEvent('goal_shared', {
-          goalId: goal.id,
-          progress: goal.progress,
-        });
-      }
-    } catch (error) {
-      console.error('Error sharing progress:', error);
-      Alert.alert('Error', 'Failed to share progress. Please try again.');
-    }
+  const getProgressQuickActions = (currentProgress: number) => {
+    const actions = [];
+    if (currentProgress < 25) actions.push(25);
+    if (currentProgress < 50) actions.push(50);
+    if (currentProgress < 75) actions.push(75);
+    if (currentProgress < 100) actions.push(100);
+    return actions;
   };
 
   if (loading) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-        <LinearGradient
-          colors={[theme.colors.primary, theme.colors.secondary]}
-          style={styles.header}
-        >
-          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Goals</Text>
-        </LinearGradient>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={[styles.loadingText, { color: theme.colors.text }]}>Loading goals...</Text>
+          <Text style={[styles.loadingText, { color: theme.colors.text }]}>Loading your goals...</Text>
         </View>
       </SafeAreaView>
     );
@@ -189,109 +132,175 @@ export default function GoalsScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <LinearGradient
-        colors={[theme.colors.primary, theme.colors.secondary]}
-        style={styles.header}
-      >
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={[styles.backButtonText, { color: theme.colors.text }]}>← Back</Text>
+      <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Text style={[styles.backButtonText, { color: theme.colors.primary }]}>← Back</Text>
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Goals</Text>
-        <View style={styles.headerButtons}>
-          <TouchableOpacity 
-            style={[styles.statsButton, { backgroundColor: theme.colors.surface }]}
-            onPress={() => setShowStats(!showStats)}
-          >
-            <Text style={styles.statsButtonText}>📊</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.addButton, { backgroundColor: theme.colors.primary }]}
-            onPress={() => setShowAddModal(true)}
-          >
-            <Text style={[styles.addButtonText, { color: theme.colors.text }]}>+ Add</Text>
-          </TouchableOpacity>
-        </View>
-      </LinearGradient>
+        <Text style={[styles.title, { color: theme.colors.text }]}>My Goals</Text>
+        <TouchableOpacity onPress={handleCreateGoal} style={styles.addButton}>
+          <Text style={[styles.addButtonText, { color: theme.colors.primary }]}>+ New</Text>
+        </TouchableOpacity>
+      </View>
 
-      <ScrollView 
-        style={[styles.scrollView, { backgroundColor: theme.colors.background }]}
-        showsVerticalScrollIndicator={false}
-      >
-        {showStats ? (
-          <ProgressVisualizations goals={goals} stats={stats} />
-        ) : goals.length === 0 ? (
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {goals.length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyStateEmoji}>🎯</Text>
-            <Text style={[styles.emptyStateTitle, { color: theme.colors.text }]}>No Goals Yet</Text>
-            <Text style={[styles.emptyStateText, { color: theme.colors.textSecondary }]}>
-              Create your first goal to start your journey!
+            <Text style={styles.emptyEmoji}>🎯</Text>
+            <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>No Goals Yet</Text>
+            <Text style={[styles.emptySubtitle, { color: theme.colors.textSecondary }]}>
+              Create your first goal to start tracking your progress and building momentum.
             </Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.createFirstGoalButton, { backgroundColor: theme.colors.primary }]}
-              onPress={() => setShowAddModal(true)}
+              onPress={handleCreateGoal}
             >
-              <Text style={[styles.createFirstGoalButtonText, { color: theme.colors.text }]}>
-                Create First Goal
-              </Text>
+              <Text style={styles.createFirstGoalButtonText}>Create Your First Goal</Text>
             </TouchableOpacity>
           </View>
         ) : (
-          goals.map((goal) => (
-            <View key={goal.id} style={[styles.goalCard, { backgroundColor: theme.colors.surface }]}>
-              <View style={styles.goalHeader}>
-                <Text style={[styles.goalTitle, { color: theme.colors.text }]}>{goal.title}</Text>
-                <TouchableOpacity
-                  onPress={() => handleDeleteGoal(goal.id)}
-                  style={styles.deleteButton}
-                >
-                  <Text style={styles.deleteButtonText}>×</Text>
-                </TouchableOpacity>
-              </View>
-
-              <Text style={[styles.goalDescription, { color: theme.colors.textSecondary }]}>
-                {goal.description}
-              </Text>
-
-              <View style={styles.progressSection}>
-                <View style={styles.progressBar}>
-                  <View 
-                    style={[
-                      styles.progressFill,
-                      { width: `${goal.progress}%`, backgroundColor: theme.colors.primary }
-                    ]} 
-                  />
+          <>
+            {/* Goals Overview */}
+            <View style={[styles.overviewCard, { backgroundColor: theme.colors.card }]}>
+              <Text style={[styles.overviewTitle, { color: theme.colors.text }]}>Goals Overview</Text>
+              <View style={styles.overviewStats}>
+                <View style={styles.statItem}>
+                  <Text style={[styles.statNumber, { color: theme.colors.primary }]}>
+                    {goals.length}
+                  </Text>
+                  <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
+                    Active Goals
+                  </Text>
                 </View>
-                <Text style={[styles.progressText, { color: theme.colors.text }]}>
-                  {goal.progress}%
-                </Text>
-              </View>
-
-              <View style={styles.actionButtons}>
-                <TouchableOpacity 
-                  style={[styles.actionButton, styles.checkInButton]}
-                  onPress={() => navigation.navigate('Check-In', { goalId: goal.id })}
-                >
-                  <Text style={styles.checkInButtonText}>Daily Check-In</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.actionButton, styles.shareButton]}
-                  onPress={() => handleShareProgress(goal)}
-                >
-                  <Text style={styles.shareButtonText}>Share Progress</Text>
-                </TouchableOpacity>
+                <View style={styles.statItem}>
+                  <Text style={[styles.statNumber, { color: theme.colors.success }]}>
+                    {goals.filter(g => g.progress >= 100).length}
+                  </Text>
+                  <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
+                    Completed
+                  </Text>
+                </View>
+                <View style={styles.statItem}>
+                  <Text style={[styles.statNumber, { color: theme.colors.warning }]}>
+                    {Math.round(goals.reduce((sum, g) => sum + g.progress, 0) / goals.length) || 0}%
+                  </Text>
+                  <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
+                    Avg Progress
+                  </Text>
+                </View>
               </View>
             </View>
-          ))
+
+            {/* Goals List */}
+            {goals.map((goal) => (
+              <View key={goal.id} style={[styles.goalCard, { backgroundColor: theme.colors.card }]}>
+                <View style={styles.goalHeader}>
+                  <View style={styles.goalInfo}>
+                    <Text style={[styles.goalTitle, { color: theme.colors.text }]}>
+                      {goal.title}
+                    </Text>
+                    {goal.description && (
+                      <Text style={[styles.goalDescription, { color: theme.colors.textSecondary }]}>
+                        {goal.description}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+
+                {/* Progress Bar */}
+                <View style={styles.progressSection}>
+                  <View style={styles.progressHeader}>
+                    <Text style={[styles.progressLabel, { color: theme.colors.text }]}>
+                      Progress
+                    </Text>
+                    <Text style={[styles.progressPercentage, { color: getProgressColor(goal.progress) }]}>
+                      {Math.round(goal.progress)}%
+                    </Text>
+                  </View>
+                  <View style={[styles.progressBar, { backgroundColor: theme.colors.border }]}>
+                    <View
+                      style={[
+                        styles.progressFill,
+                        {
+                          backgroundColor: getProgressColor(goal.progress),
+                          width: `${Math.min(goal.progress, 100)}%`,
+                        },
+                      ]}
+                    />
+                  </View>
+                </View>
+
+                {/* Quick Progress Actions */}
+                {goal.progress < 100 && (
+                  <View style={styles.quickActionsSection}>
+                    <Text style={[styles.quickActionsLabel, { color: theme.colors.textSecondary }]}>
+                      Quick Update:
+                    </Text>
+                    <View style={styles.quickActions}>
+                      {getProgressQuickActions(goal.progress).map((percentage) => (
+                        <TouchableOpacity
+                          key={percentage}
+                          style={[
+                            styles.quickActionButton,
+                            { borderColor: theme.colors.primary }
+                          ]}
+                          onPress={() => handleUpdateProgress(goal.id, percentage)}
+                        >
+                          <Text style={[styles.quickActionText, { color: theme.colors.primary }]}>
+                            {percentage}%
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                )}
+
+                {/* Goal Actions */}
+                <View style={styles.goalActions}>
+                  {goal.progress >= 100 ? (
+                    <View style={[styles.completedBadge, { backgroundColor: theme.colors.success }]}>
+                      <Text style={styles.completedText}>✓ Completed</Text>
+                    </View>
+                  ) : (
+                    <TouchableOpacity
+                      style={[styles.markCompleteButton, { backgroundColor: theme.colors.success }]}
+                      onPress={() => handleUpdateProgress(goal.id, 100)}
+                    >
+                      <Text style={styles.markCompleteText}>Mark Complete</Text>
+                    </TouchableOpacity>
+                  )}
+                  
+                  <TouchableOpacity
+                    style={[styles.deleteButton, { borderColor: theme.colors.error }]}
+                    onPress={() => handleDeleteGoal(goal.id)}
+                  >
+                    <Text style={[styles.deleteButtonText, { color: theme.colors.error }]}>Delete</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))}
+
+            {/* Add New Goal Card */}
+            {goals.length < 3 && (
+              <TouchableOpacity
+                style={[styles.addGoalCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
+                onPress={handleCreateGoal}
+              >
+                <Text style={styles.addGoalEmoji}>➕</Text>
+                <Text style={[styles.addGoalText, { color: theme.colors.text }]}>Add New Goal</Text>
+                <Text style={[styles.addGoalSubtext, { color: theme.colors.textSecondary }]}>
+                  {3 - goals.length} slots remaining
+                </Text>
+              </TouchableOpacity>
+            )}
+          </>
         )}
       </ScrollView>
 
+      {/* Goal Creation Modal */}
       <GoalCreationModal
-        visible={showAddModal}
-        onClose={() => setShowAddModal(false)}
-        onSuccess={handleAddGoal}
+        visible={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={handleGoalCreated}
       />
     </SafeAreaView>
   );
@@ -301,188 +310,229 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  progressSection: {
-    marginBottom: 16,
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 16,
-  },
-  actionButton: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginHorizontal: 4,
-  },
-  checkInButton: {
-    backgroundColor: '#FF6B35',
-  },
-  shareButton: {
-    backgroundColor: '#10B981',
-  },
-  checkInButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  shareButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-  },
-  backButton: {
-    padding: 8,
-  },
-  backButtonText: {
-    fontSize: 16,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  headerButtons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statsButton: {
-    padding: 8,
-    borderRadius: 8,
-    marginRight: 8,
-  },
-  statsButtonText: {
-    fontSize: 20,
-  },
-  addButton: {
-    padding: 8,
-    borderRadius: 8,
-  },
-  addButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  scrollView: {
-    flex: 1,
-    padding: 16,
-  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   loadingText: {
-    fontSize: 16,
     marginTop: 16,
+    fontSize: 16,
+  },
+  header: {
+    padding: 16,
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  backButton: {
+    flex: 1,
+  },
+  backButtonText: {
+    fontSize: 16,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    flex: 2,
+    textAlign: 'center',
+  },
+  addButton: {
+    flex: 1,
+    alignItems: 'flex-end',
+  },
+  addButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  content: {
+    flex: 1,
+    padding: 16,
   },
   emptyState: {
-    flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
-    padding: 32,
+    paddingVertical: 60,
+    paddingHorizontal: 32,
   },
-  emptyStateEmoji: {
-    fontSize: 48,
+  emptyEmoji: {
+    fontSize: 64,
     marginBottom: 16,
   },
-  emptyStateTitle: {
+  emptyTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 8,
   },
-  emptyStateText: {
+  emptySubtitle: {
     fontSize: 16,
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: 32,
+    lineHeight: 24,
   },
   createFirstGoalButton: {
-    padding: 16,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
     borderRadius: 12,
   },
   createFirstGoalButtonText: {
-    fontSize: 18,
+    color: '#fff',
+    fontSize: 16,
     fontWeight: '600',
   },
-  goalCard: {
-    borderRadius: 12,
-    padding: 16,
+  overviewCard: {
+    padding: 20,
+    borderRadius: 16,
     marginBottom: 16,
-    borderWidth: 1,
+  },
+  overviewTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  overviewStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  statItem: {
+    alignItems: 'center',
+  },
+  statNumber: {
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  statLabel: {
+    fontSize: 14,
+    marginTop: 4,
+  },
+  goalCard: {
+    padding: 20,
+    borderRadius: 16,
+    marginBottom: 16,
   },
   goalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 8,
+    marginBottom: 16,
   },
   goalInfo: {
     flex: 1,
+    marginRight: 12,
   },
   goalTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: 'bold',
     marginBottom: 4,
-  },
-  goalMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  goalCategory: {
-    fontSize: 14,
-    marginRight: 8,
-  },
-  goalPriority: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  deleteButton: {
-    padding: 4,
-  },
-  deleteButtonText: {
-    fontSize: 20,
   },
   goalDescription: {
     fontSize: 14,
+    lineHeight: 20,
+  },
+  progressSection: {
     marginBottom: 16,
   },
-  progressContainer: {
+  progressHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 8,
+  },
+  progressLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  progressPercentage: {
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   progressBar: {
-    flex: 1,
     height: 8,
     borderRadius: 4,
-    marginRight: 8,
   },
   progressFill: {
     height: '100%',
     borderRadius: 4,
   },
-  progressText: {
+  quickActionsSection: {
+    marginBottom: 16,
+  },
+  quickActionsLabel: {
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  quickActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  quickActionButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  quickActionText: {
     fontSize: 14,
     fontWeight: '600',
-    width: 40,
-    textAlign: 'right',
   },
-  milestonesContainer: {
-    marginTop: 8,
-  },
-  milestone: {
+  goalActions: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 8,
+  },
+  completedBadge: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 8,
+    flex: 1,
+    marginRight: 8,
+  },
+  completedText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  markCompleteButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    flex: 1,
+    marginRight: 8,
+  },
+  markCompleteText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  deleteButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  deleteButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  addGoalCard: {
+    padding: 32,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+  },
+  addGoalEmoji: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  addGoalText: {
+    fontSize: 18,
+    fontWeight: '600',
     marginBottom: 4,
   },
-  milestoneText: {
+  addGoalSubtext: {
     fontSize: 14,
   },
-});
+}); 

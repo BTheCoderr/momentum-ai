@@ -18,6 +18,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 import analytics from '../lib/analytics';
 import { useTheme } from '../components/ThemeProvider';
+import { AIInsightsCard } from '../components/AIInsightsCard';
 
 const { width } = Dimensions.get('window');
 
@@ -143,8 +144,14 @@ const InsightsScreen = ({ navigation }: any) => {
   const handleStartJourney = () => {
     // Navigate to check-in or goals screen
     Alert.alert('Let\'s Start!', 'Choose an action to begin building your insights.', [
-      { text: 'Do Check-In', onPress: () => {/* Navigate to check-in */} },
-      { text: 'Set Goals', onPress: () => {/* Navigate to goals */} },
+      { 
+        text: 'Do Check-In', 
+        onPress: () => navigation.navigate('CheckIn')
+      },
+      { 
+        text: 'Set Goals', 
+        onPress: () => navigation.navigate('Goals')
+      },
       { text: 'Cancel', style: 'cancel' }
     ]);
   };
@@ -172,10 +179,10 @@ const InsightsScreen = ({ navigation }: any) => {
   const getInsightColor = (type: string) => {
     switch (type) {
       case 'pattern': return '#FF6B35';
-      case 'encouragement': return '#34C759';
-      case 'suggestion': return '#007AFF';
+      case 'encouragement': return '#FF6B35';
+      case 'suggestion': return '#FF6B35';
       case 'reflection': return '#AF52DE';
-      default: return '#007AFF';
+      default: return '#FF6B35';
     }
   };
 
@@ -310,7 +317,7 @@ const InsightsScreen = ({ navigation }: any) => {
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="dark-content" backgroundColor="#fff" />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366f1" />
+          <ActivityIndicator size="large" color="#FF6B35" />
           <Text style={styles.loadingText}>Checking your progress...</Text>
         </View>
       </SafeAreaView>
@@ -415,6 +422,13 @@ const InsightsScreen = ({ navigation }: any) => {
           {currentIndex + 1} of {insights.length}
         </Text>
       </View>
+
+      {/* AI Insights Card */}
+      <AIInsightsCard 
+        userId={undefined} 
+        onRefresh={onRefresh}
+        compact={false}
+      />
 
       {/* Insights Stack */}
       <ScrollView 
@@ -622,10 +636,10 @@ const styles = StyleSheet.create({
     minWidth: 80,
   },
   saveButton: {
-    backgroundColor: 'rgba(52, 199, 89, 0.1)',
+    backgroundColor: 'rgba(255, 107, 53, 0.1)',
   },
   shareButton: {
-    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+    backgroundColor: 'rgba(255, 107, 53, 0.1)',
   },
   coachButton: {
     backgroundColor: 'rgba(175, 82, 222, 0.1)',
@@ -655,7 +669,7 @@ const styles = StyleSheet.create({
   },
   navButtonText: {
     fontSize: 16,
-    color: '#007AFF',
+    color: '#FF6B35',
     fontWeight: '600',
   },
   navButtonDisabled: {
@@ -673,7 +687,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
   activeDot: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#FF6B35',
     width: 12,
     height: 12,
     borderRadius: 6,

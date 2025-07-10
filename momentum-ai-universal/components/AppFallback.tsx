@@ -38,7 +38,7 @@ export default function AppFallback({ children }: Props) {
 function LoadingScreen() {
   return (
     <View style={styles.centered}>
-      <ActivityIndicator size="large" color="#6c47ff" />
+      <ActivityIndicator size="large" color="#FF6B35" />
       <Text style={styles.loadingText}>Loading Momentum AI...</Text>
       <Text style={styles.subtitle}>Getting your goals ready</Text>
     </View>
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   retryButton: {
-    backgroundColor: '#6c47ff',
+    backgroundColor: '#FF6B35',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,

@@ -12,7 +12,7 @@ import {
   Vibration,
   RefreshControl,
 } from 'react-native';
-import { goalServices, userStatsServices, checkinServices, utils, UserStats, CheckIn } from '../lib/services';
+import { goalServices, userStatsServices, checkinServices, userProfileServices, utils, UserStats, CheckIn } from '../lib/services';
 import { Goal } from '../lib/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import AnalysisScreen from './AnalysisScreen';
@@ -45,7 +45,7 @@ const HomeScreen = () => {
   const MAX_RETRIES = 3;
 
   useEffect(() => {
-    checkAuthStatus();
+    loadUserData();
     loadDashboardData();
     const checkUserData = async () => {
       try {
@@ -62,13 +62,30 @@ const HomeScreen = () => {
     checkTodaysCheckin();
   }, []);
 
-  const checkAuthStatus = async () => {
-    const session = await supabase.auth.getSession();
-    if (!session.data.session) {
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Auth' }],
-      });
+  const loadUserData = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        // Handle not authenticated
+        if (global.handleSignOut) {
+          global.handleSignOut();
+        }
+        return;
+      }
+
+      // Get user profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (profile) {
+        setUserName(profile.full_name || profile.email?.split('@')[0] || 'Friend');
+      }
+    } catch (error) {
+      console.error('Error loading user data:', error);
+      setError('Failed to load user data');
     }
   };
 
@@ -76,62 +93,88 @@ const HomeScreen = () => {
     try {
       setLoading(true);
       setError(null);
-      
-      // Load data with retry mechanism
-      const loadDataWithRetry = async (fetchFn: () => Promise<any>, errorMsg: string) => {
-        for (let i = 0; i < MAX_RETRIES; i++) {
-          try {
-            return await fetchFn();
-          } catch (err) {
-            console.error(`${errorMsg} (Attempt ${i + 1}/${MAX_RETRIES}):`, err);
-            if (i === MAX_RETRIES - 1) throw err;
-            await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1))); // Exponential backoff
-          }
-        }
-      };
 
-      // Load all data in parallel with retry
-      const [stats, goals, checkins] = await Promise.all([
-        loadDataWithRetry(() => userStatsServices.get(), 'Error fetching user stats'),
-        loadDataWithRetry(() => goalServices.getAll(), 'Error fetching goals'),
-        loadDataWithRetry(() => checkinServices.getRecent(1), 'Error fetching checkins'),
-      ]);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('No authenticated user');
+      }
 
-      setUserStats(stats);
-      setCurrentStreak(stats?.current_streak || 0);
-      setWeeklyGoals(Array.isArray(goals) ? goals.slice(0, 3) : []);
-      
-      if (Array.isArray(checkins) && checkins.length > 0) {
+      // Get user stats
+      const { data: stats } = await supabase
+        .from('user_stats')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (stats) {
+        setUserStats(stats);
+        setCurrentStreak(stats.streak_count || 0);
+      }
+
+      // Get weekly goals
+      const { data: goals } = await supabase
+        .from('goals')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (goals) {
+        setWeeklyGoals(goals);
+      }
+
+      // Get recent checkin
+      const { data: checkins } = await supabase
+        .from('checkins')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('date', { ascending: false })
+        .limit(1);
+
+      if (checkins && checkins.length > 0) {
         setRecentCheckin(checkins[0]);
         setTodayMood(checkins[0].mood);
       }
 
     } catch (error) {
       console.error('Error loading dashboard data:', error);
-      setError('Failed to load data. Please check your internet connection and try again.');
+      setError('Failed to load dashboard data');
       
-      // Set fallback data
-      setWeeklyGoals([]);
-      setUserStats({
-        current_streak: 0,
-        best_streak: 0,
-        total_checkins: 0,
-        total_goals: 0,
-        overallProgress: 0,
-        activeGoals: 0,
-        motivationScore: 70,
-        level: 1,
-        totalXP: 0
-      });
+      // Retry logic
+      if (retryCount < MAX_RETRIES) {
+        setTimeout(() => {
+          setRetryCount(prev => prev + 1);
+          loadDashboardData();
+        }, 2000 * (retryCount + 1)); // Exponential backoff
+      }
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
-  const onRefresh = async () => {
+  const checkTodaysCheckin = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const today = new Date().toISOString().split('T')[0];
+      const { data: checkins } = await supabase
+        .from('checkins')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('date', today)
+        .limit(1);
+
+      setHasCheckedInToday(checkins && checkins.length > 0);
+    } catch (error) {
+      console.error('Error checking today\'s checkin:', error);
+    }
+  };
+
+  const handleRefresh = () => {
     setRefreshing(true);
-    await loadDashboardData();
-    setRefreshing(false);
+    loadDashboardData();
   };
 
   const getMoodEmoji = (mood: number) => {
@@ -185,29 +228,19 @@ const HomeScreen = () => {
     return "📊 Based on your patterns, consistency is key. Keep up your daily check-ins for optimal results.";
   };
 
-  const checkTodaysCheckin = async () => {
-    try {
-      const recentCheckins = await checkinServices.getRecent(1);
-      const today = new Date().toISOString().split('T')[0];
-      setHasCheckedInToday(
-        recentCheckins.length > 0 && 
-        recentCheckins[0].date === today
-      );
-    } catch (error) {
-      console.error('Error checking today\'s checkin:', error);
-    }
-  };
-
   const handleSignOut = async () => {
     try {
-      await supabase.auth.signOut();
       // Clear local storage
       await AsyncStorage.clear();
-      // Reset navigation to Auth screen
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Auth' }],
-      });
+      
+      // Use the global sign out function from App.tsx
+      // @ts-ignore
+      if (global.handleSignOut) {
+        // @ts-ignore
+        global.handleSignOut();
+      } else {
+        Alert.alert('Error', 'Sign out failed. Please restart the app.');
+      }
     } catch (error) {
       console.error('Error signing out:', error);
       Alert.alert('Error', 'Failed to sign out. Please try again.');
@@ -238,7 +271,7 @@ const HomeScreen = () => {
         refreshControl={
           <RefreshControl
             refreshing={loading}
-            onRefresh={loadDashboardData}
+            onRefresh={handleRefresh}
             colors={['#FF6B35']}
             tintColor="#FF6B35"
             title="Pull to refresh"

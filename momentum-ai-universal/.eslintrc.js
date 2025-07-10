@@ -1,33 +1,19 @@
 module.exports = {
   root: true,
   extends: [
-    'eslint:recommended',
+    '@react-native',
     'plugin:@typescript-eslint/recommended',
-    'plugin:react/recommended',
-    'plugin:react-native/all',
   ],
   parser: '@typescript-eslint/parser',
-  plugins: ['@typescript-eslint', 'react', 'react-native'],
-  parserOptions: {
-    ecmaFeatures: {
-      jsx: true,
-    },
-    project: './tsconfig.json',
-  },
-  settings: {
-    react: {
-      version: 'detect',
-    },
-  },
+  plugins: ['@typescript-eslint'],
   rules: {
-    'react/prop-types': 'off',
-    'react/react-in-jsx-scope': 'off',
+    'no-shadow': 'off',
+    '@typescript-eslint/no-shadow': ['error'],
+    'no-unused-vars': 'off',
+    '@typescript-eslint/no-unused-vars': ['error'],
     '@typescript-eslint/explicit-function-return-type': 'off',
     '@typescript-eslint/explicit-module-boundary-types': 'off',
     '@typescript-eslint/no-explicit-any': 'warn',
-    'react-native/no-inline-styles': 'warn',
-  },
-  env: {
-    'react-native/react-native': true,
+    'react-native/no-inline-styles': 'off',
   },
 };

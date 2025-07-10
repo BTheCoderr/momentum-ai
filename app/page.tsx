@@ -1,405 +1,281 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { useRouter } from 'next/navigation';
 
-// Authentication Component
-const AuthScreen = () => {
-  const [isLogin, setIsLogin] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    primaryGoal: '',
-    password: ''
-  });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+const HomePage = () => {
+  const router = useRouter();
+  const [currentTime, setCurrentTime] = useState('');
+  const [streak, setStreak] = useState(7);
+  const [xp, setXP] = useState(2450);
+  const [level, setLevel] = useState(5);
+  const [progress, setProgress] = useState(85);
+  const [activeGoals, setActiveGoals] = useState(2);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('en-US', { 
+        hour: 'numeric', 
+        minute: '2-digit',
+        hour12: true 
+      });
+      setCurrentTime(timeStr);
+    };
 
-    try {
-      if (isLogin) {
-        // Login with Supabase
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: formData.email,
-          password: formData.password,
-        });
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
-        if (error) throw error;
-        
-        console.log('✅ Login successful:', data);
-      } else {
-        // Sign up with Supabase
-        const { data, error } = await supabase.auth.signUp({
-          email: formData.email,
-          password: formData.password,
-          options: {
-            data: {
-              full_name: formData.name,
-              phone: formData.phone,
-              primary_goal: formData.primaryGoal,
-            }
-          }
-        });
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    const day = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+    
+    if (hour < 12) return `Good morning! How's your ${day} going?`;
+    if (hour < 17) return `Good afternoon! How's your ${day} going?`;
+    return `Good evening! How's your ${day} going?`;
+  };
 
-        if (error) throw error;
-
-        console.log('✅ Signup successful:', data);
-        
-        // Create user profile
-        if (data.user) {
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .insert([
-              {
-                id: data.user.id,
-                full_name: formData.name,
-                email: formData.email,
-                phone: formData.phone,
-                primary_goal: formData.primaryGoal,
-                created_at: new Date().toISOString()
-              }
-            ]);
-          
-          if (profileError) {
-            console.log('Profile creation error:', profileError);
-          }
-        }
-      }
-    } catch (error: any) {
-      console.error('Auth error:', error);
-      setError(error.message || 'Authentication failed. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+  const continueStreak = () => {
+    // Simulate streak continuation
+    setStreak(prev => prev + 1);
+    setXP(prev => prev + 50);
+    alert('🔥 Streak continued! +50 XP');
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Welcome to Momentum AI
-          </h1>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="profile-header fade-in">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <div className="profile-avatar">
+              <img src="/images/icon.png" alt="Momentum AI" className="w-12 h-12 rounded-full" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold">Momentum AI</h1>
+              <div className="flex items-center space-x-2 text-white/90">
+                <span className="level-badge">Level {level}</span>
+                <span className="text-sm">BETA</span>
+              </div>
+            </div>
+          </div>
+          <div className="text-right">
+            <button 
+              onClick={() => router.push('/profile')}
+              className="profile-avatar hover:bg-white/30 transition-all duration-300"
+            >
+              👤
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="p-6 space-y-6 pb-20">
+        {/* Greeting */}
+        <div className="slide-up">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            {getGreeting()}
+          </h2>
           <p className="text-gray-600">
-            Your AI-powered accountability partner
+            You're making great progress today! Keep the momentum going.
           </p>
         </div>
 
-        <div className="flex mb-6">
-          <button
-            onClick={() => setIsLogin(false)}
-            className={`flex-1 py-2 px-4 rounded-l-lg transition-colors ${
-              !isLogin 
-                ? 'bg-blue-600 text-white' 
-                : 'bg-gray-100 text-gray-700'
-            }`}
-          >
-            Sign Up
-          </button>
-          <button
-            onClick={() => setIsLogin(true)}
-            className={`flex-1 py-2 px-4 rounded-r-lg transition-colors ${
-              isLogin 
-                ? 'bg-blue-600 text-white' 
-                : 'bg-gray-100 text-gray-700'
-            }`}
-          >
-            Login
-          </button>
-        </div>
-
-        {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-800 text-sm">{error}</p>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {!isLogin && (
-            <>
+        {/* Main Streak Card */}
+        <div className="duolingo-card slide-up" style={{ animationDelay: '0.1s' }}>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-3">
+              <div className="text-4xl streak-fire">🔥</div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Enter your full name"
-                />
+                <h3 className="text-2xl font-bold text-gray-900">
+                  {streak} day streak! Keep it going!
+                </h3>
+                <p className="text-gray-600">
+                  Your peak performance time is Tuesday mornings. Consider checking in then for best results.
+                </p>
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Primary Goal
-                </label>
-                <select
-                  required
-                  value={formData.primaryGoal}
-                  onChange={(e) => setFormData({...formData, primaryGoal: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">Select your main focus</option>
-                  <option value="fitness">Health & Fitness</option>
-                  <option value="career">Career Growth</option>
-                  <option value="learning">Learning & Skills</option>
-                  <option value="habits">Daily Habits</option>
-                  <option value="mindfulness">Mindfulness & Mental Health</option>
-                  <option value="productivity">Productivity</option>
-                  <option value="relationships">Relationships</option>
-                  <option value="creativity">Creativity & Hobbies</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Phone (Optional)
-                </label>
-                <input
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="For accountability reminders"
-                />
             </div>
-            </>
-          )}
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
-            </label>
-            <input
-              type="email"
-              required
-              value={formData.email}
-              onChange={(e) => setFormData({...formData, email: e.target.value})}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Enter your email"
-            />
+            <div className="text-4xl streak-fire animate-float">🔥</div>
           </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Password
-            </label>
-            <input
-              type="password"
-              required
-              value={formData.password}
-              onChange={(e) => setFormData({...formData, password: e.target.value})}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Create a secure password"
-            />
-        </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          
+          <button 
+            onClick={continueStreak}
+            className="duolingo-button w-full"
           >
-            {loading ? 'Processing...' : (isLogin ? 'Login' : 'Start Your Journey')}
+            Continue Streak 🎯
           </button>
-        </form>
+        </div>
 
-        {!isLogin && (
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-            <h4 className="font-medium text-blue-900 mb-2">🚀 What You'll Get:</h4>
-            <ul className="text-sm text-blue-800 space-y-1">
-              <li>• AI-powered daily check-ins</li>
-              <li>• Personalized coaching insights</li>
-              <li>• Streak tracking & motivation</li>
-              <li>• Progress analytics & patterns</li>
-            </ul>
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="stat-card scale-in" style={{ animationDelay: '0.2s' }}>
+            <div className="text-3xl mb-2">📈</div>
+            <div className="text-3xl font-bold text-green-600">{progress}%</div>
+            <div className="text-sm text-gray-600">Overall Progress</div>
+            <div className="text-xs text-gray-500">77% success</div>
           </div>
-        )}
-      </div>
+          
+          <div className="stat-card scale-in" style={{ animationDelay: '0.3s' }}>
+            <div className="text-3xl mb-2">🎯</div>
+            <div className="text-3xl font-bold text-blue-600">{activeGoals}</div>
+            <div className="text-sm text-gray-600">Active Goals</div>
+            <div className="text-xs text-gray-500">Currently tracking</div>
+          </div>
+        </div>
+
+        {/* XP and Level Progress */}
+        <div className="duolingo-card scale-in" style={{ animationDelay: '0.4s' }}>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Your Progress</h3>
+              <p className="text-gray-600">Level {level} • {xp} XP total</p>
             </div>
-  );
-};
+            <div className="xp-badge">
+              +{xp % 500} XP
+            </div>
+          </div>
+          
+          <div className="progress-bar">
+            <div 
+              className="progress-fill" 
+              style={{ width: `${(xp % 500) / 500 * 100}%` }}
+            ></div>
+          </div>
+          
+          <div className="flex justify-between text-sm text-gray-600 mt-2">
+            <span>Level {level}</span>
+            <span>{500 - (xp % 500)} XP to Level {level + 1}</span>
+          </div>
+        </div>
 
-// Simple Dashboard Components
-const DailyCheckInCard = () => (
-  <div className="bg-white rounded-xl shadow-sm border p-6">
-    <h3 className="text-lg font-semibold mb-4">Daily Check-In</h3>
-    <p className="text-gray-600 mb-4">How are you feeling today?</p>
-    <button className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors">
-      Start Check-In
-    </button>
-                  </div>
-);
+        {/* Quick Actions */}
+        <div className="space-y-3">
+          <h3 className="text-lg font-semibold text-gray-900">Quick Actions</h3>
+          
+          <div className="grid grid-cols-2 gap-3">
+            <button 
+              onClick={() => router.push('/goals')}
+              className="duolingo-card text-center hover:shadow-glow-orange transition-all duration-300 hover:scale-105"
+            >
+              <div className="text-3xl mb-2">🏠</div>
+              <div className="font-semibold text-gray-900">Goals</div>
+              <div className="text-sm text-gray-600">Track progress</div>
+            </button>
+            
+            <button 
+              onClick={() => router.push('/coach')}
+              className="duolingo-card text-center hover:shadow-glow-orange transition-all duration-300 hover:scale-105"
+            >
+              <div className="text-3xl mb-2">🎯</div>
+              <div className="font-semibold text-gray-900">AI Coach</div>
+              <div className="text-sm text-gray-600">Get guidance</div>
+            </button>
+            
+            <button 
+              onClick={() => router.push('/analysis')}
+              className="duolingo-card text-center hover:shadow-glow-orange transition-all duration-300 hover:scale-105"
+            >
+              <div className="text-3xl mb-2">🤖</div>
+              <div className="font-semibold text-gray-900">Insights</div>
+              <div className="text-sm text-gray-600">View analytics</div>
+            </button>
+            
+            <button 
+              onClick={() => router.push('/profile')}
+              className="duolingo-card text-center hover:shadow-glow-orange transition-all duration-300 hover:scale-105"
+            >
+              <div className="text-3xl mb-2">📊</div>
+              <div className="font-semibold text-gray-900">Profile</div>
+              <div className="text-sm text-gray-600">Settings & stats</div>
+            </button>
+          </div>
+        </div>
 
-const ProgressDashboard = () => (
-  <div className="bg-white rounded-xl shadow-sm border p-6">
-    <h3 className="text-lg font-semibold mb-4">Progress Dashboard</h3>
-    <p className="text-gray-600 mb-4">Track your journey and celebrate wins</p>
-    <div className="grid grid-cols-3 gap-4">
-      <div className="text-center">
-        <div className="text-2xl font-bold text-blue-600">0</div>
-        <div className="text-sm text-gray-500">Goals</div>
-                  </div>
-      <div className="text-center">
-        <div className="text-2xl font-bold text-green-600">0</div>
-        <div className="text-sm text-gray-500">Streak</div>
-                  </div>
-      <div className="text-center">
-        <div className="text-2xl font-bold text-purple-600">0</div>
-        <div className="text-sm text-gray-500">Check-ins</div>
-                    </div>
-                  </div>
-                </div>
-);
+        {/* Today's Focus */}
+        <div className="duolingo-card scale-in" style={{ animationDelay: '0.5s' }}>
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">🌟 Today's Focus</h3>
+          <div className="space-y-3">
+            <div className="flex items-center space-x-3">
+              <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+              <span className="text-gray-700">Complete daily workout (30 min)</span>
+            </div>
+            <div className="flex items-center space-x-3">
+              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              <span className="text-gray-700">Practice meditation (10 min)</span>
+            </div>
+            <div className="flex items-center space-x-3">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <span className="text-gray-700">Read for 20 minutes</span>
+            </div>
+          </div>
+        </div>
 
-const InsightCards = () => (
-  <div className="bg-white rounded-xl shadow-sm border p-6">
-    <h3 className="text-lg font-semibold mb-4">AI Insights</h3>
-    <p className="text-gray-600 mb-4">Get personalized insights from your AI coach</p>
-    <div className="text-center py-8">
-      <div className="text-4xl mb-4">🌱</div>
-      <p className="text-gray-500">Complete a few check-ins to unlock insights</p>
-    </div>
-  </div>
-);
+        {/* Achievements */}
+        <div className="duolingo-card scale-in" style={{ animationDelay: '0.6s' }}>
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">🏆 Recent Achievements</h3>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="achievement-card earned">
+              <div className="text-2xl mb-1">🥇</div>
+              <div className="text-xs font-medium">First Goal</div>
+            </div>
+            <div className="achievement-card earned">
+              <div className="text-2xl mb-1">🔥</div>
+              <div className="text-xs font-medium">Week Streak</div>
+            </div>
+            <div className="achievement-card earned">
+              <div className="text-2xl mb-1">⭐</div>
+              <div className="text-xs font-medium">Level 5</div>
+            </div>
+          </div>
+        </div>
 
-const StreakCard = () => (
-  <div className="bg-white rounded-xl shadow-sm border p-6">
-    <h3 className="text-lg font-semibold mb-4">Your Streak</h3>
-    <div className="text-center">
-      <div className="text-3xl font-bold text-orange-600 mb-2">0</div>
-      <p className="text-gray-600">Days in a row</p>
-    </div>
-    <button className="w-full mt-4 bg-orange-600 text-white py-2 rounded-lg hover:bg-orange-700 transition-colors">
-      Start Today's Check-In
-    </button>
-  </div>
-);
-
-const GoalCard = () => (
-  <div className="bg-white rounded-xl shadow-sm border p-6">
-    <h3 className="text-lg font-semibold mb-4">Your Goals</h3>
-    <p className="text-gray-600 mb-4">Set and track your objectives</p>
-    <button className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-colors">
-      Add Your First Goal
-    </button>
-  </div>
-);
-
-const AICoachPanel = () => (
-  <div className="bg-white rounded-xl shadow-sm border p-6">
-    <h3 className="text-lg font-semibold mb-4">AI Coach</h3>
-    <div className="space-y-4">
-      <div className="bg-blue-50 p-3 rounded-lg">
-        <p className="text-sm text-blue-800">👋 Hello! I'm your AI coach. How can I help you today?</p>
+        {/* Current Time */}
+        <div className="text-center text-sm text-gray-500 mt-6">
+          {currentTime}
+        </div>
       </div>
-      <div className="flex space-x-2">
-        <input
-          type="text"
-          placeholder="Ask me anything..."
-          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
-        />
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition-colors">
-          Send
-        </button>
-                        </div>
-                      </div>
-                    </div>
-    );
 
-// Main App Component
-const MainApp = ({ user }: { user: any }) => {
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-  };
-
-    return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-gray-900">
-                Momentum AI
-          </h1>
+      {/* Bottom Navigation */}
+      <div className="bottom-nav">
+        <div className="flex">
+          <button className="bottom-nav-item active">
+            <div className="text-2xl mb-1">🏠</div>
+            <div className="text-xs">Home</div>
+          </button>
+          <button 
+            className="bottom-nav-item"
+            onClick={() => router.push('/goals')}
+          >
+            <div className="text-2xl mb-1">🎯</div>
+            <div className="text-xs">Goals</div>
+          </button>
+          <button 
+            className="bottom-nav-item"
+            onClick={() => router.push('/coach')}
+          >
+            <div className="text-2xl mb-1">🤖</div>
+            <div className="text-xs">AI Coach</div>
+          </button>
+          <button 
+            className="bottom-nav-item"
+            onClick={() => router.push('/analysis')}
+          >
+            <div className="text-2xl mb-1">📊</div>
+            <div className="text-xs">Insights</div>
+          </button>
+          <button 
+            className="bottom-nav-item"
+            onClick={() => router.push('/profile')}
+          >
+            <div className="text-2xl mb-1">👤</div>
+            <div className="text-xs">Profile</div>
+          </button>
         </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">
-                Welcome back, {user?.user_metadata?.full_name || user?.email || 'User'}!
-              </span>
-              <button
-                onClick={handleLogout}
-                className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
-              >
-                Logout
-              </button>
-          </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column */}
-          <div className="lg:col-span-2 space-y-8">
-            <DailyCheckInCard />
-            <ProgressDashboard />
-              <InsightCards />
-                    </div>
-
-          {/* Right Column */}
-          <div className="space-y-8">
-            <StreakCard />
-            <GoalCard />
-            <AICoachPanel />
-                  </div>
-                </div>
-      </main>
+      </div>
     </div>
   );
 };
 
-// Root Component with Supabase Authentication
-export default function Home() {
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
-
-  useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading Momentum AI...</p>
-        </div>
-      </div>
-    );
-  }
-
-  return user ? <MainApp user={user} /> : <AuthScreen />;
-}
+export default HomePage;

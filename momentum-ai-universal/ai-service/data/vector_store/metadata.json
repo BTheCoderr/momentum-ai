@@ -1,0 +1,245 @@
+[
+  {
+    "id": 0,
+    "text": "Had a great workout this morning! Feeling energized and ready for the day.",
+    "timestamp": "2025-07-08T18:06:03.871451",
+    "user_id": "demo_user",
+    "data_type": "checkin",
+    "content": "Had a great workout this morning! Feeling energized and ready for the day.",
+    "interaction_type": "checkin"
+  },
+  {
+    "id": 1,
+    "text": "I want to exercise 4 times a week and improve my overall fitness.",
+    "timestamp": "2025-07-08T18:06:04.036366",
+    "user_id": "demo_user",
+    "data_type": "goal",
+    "content": "I want to exercise 4 times a week and improve my overall fitness.",
+    "interaction_type": "goal"
+  },
+  {
+    "id": 2,
+    "text": "I've been struggling with consistency lately, need better motivation.",
+    "timestamp": "2025-07-08T18:06:04.070289",
+    "user_id": "demo_user",
+    "data_type": "reflection",
+    "content": "I've been struggling with consistency lately, need better motivation.",
+    "interaction_type": "reflection"
+  },
+  {
+    "id": 3,
+    "text": "Feeling a bit overwhelmed with work but trying to stay positive.",
+    "timestamp": "2025-07-08T18:06:04.103854",
+    "user_id": "demo_user",
+    "data_type": "mood",
+    "content": "Feeling a bit overwhelmed with work but trying to stay positive.",
+    "interaction_type": "mood"
+  },
+  {
+    "id": 4,
+    "text": "Completed a 30-minute yoga session, very relaxing.",
+    "timestamp": "2025-07-08T18:06:04.121870",
+    "user_id": "demo_user",
+    "data_type": "activity",
+    "content": "Completed a 30-minute yoga session, very relaxing.",
+    "interaction_type": "activity"
+  },
+  {
+    "id": 5,
+    "text": "Skipped gym today, feeling guilty about it.",
+    "timestamp": "2025-07-08T18:06:04.143812",
+    "user_id": "demo_user",
+    "data_type": "checkin",
+    "content": "Skipped gym today, feeling guilty about it.",
+    "interaction_type": "checkin"
+  },
+  {
+    "id": 6,
+    "text": "Reached my weekly exercise goal! Very proud of myself.",
+    "timestamp": "2025-07-08T18:06:04.163076",
+    "user_id": "demo_user",
+    "data_type": "achievement",
+    "content": "Reached my weekly exercise goal! Very proud of myself.",
+    "interaction_type": "achievement"
+  },
+  {
+    "id": 7,
+    "text": "Great workout today! Feeling strong and motivated.",
+    "timestamp": "2025-07-08T18:09:39.033752",
+    "user_id": "test_user",
+    "data_type": "checkin",
+    "content": "Great workout today! Feeling strong and motivated.",
+    "interaction_type": "checkin"
+  },
+  {
+    "id": 8,
+    "text": "Want to run a 5K race in 3 months.",
+    "timestamp": "2025-07-08T18:09:39.285025",
+    "user_id": "test_user",
+    "data_type": "goal",
+    "content": "Want to run a 5K race in 3 months.",
+    "interaction_type": "goal"
+  },
+  {
+    "id": 9,
+    "text": "Need to be more consistent with my morning routine.",
+    "timestamp": "2025-07-08T18:09:39.307824",
+    "user_id": "test_user",
+    "data_type": "reflection",
+    "content": "Need to be more consistent with my morning routine.",
+    "interaction_type": "reflection"
+  },
+  {
+    "id": 10,
+    "text": "Feeling positive and energetic today!",
+    "timestamp": "2025-07-08T18:09:39.339011",
+    "user_id": "test_user",
+    "data_type": "mood",
+    "content": "Feeling positive and energetic today!",
+    "interaction_type": "mood"
+  },
+  {
+    "id": 11,
+    "text": "Monday: Great energy, completed all tasks!",
+    "timestamp": "2025-07-08T18:10:08.590407",
+    "user_id": "pattern_user",
+    "data_type": "checkin",
+    "content": "Monday: Great energy, completed all tasks!",
+    "interaction_type": "checkin"
+  },
+  {
+    "id": 12,
+    "text": "Tuesday: Feeling tired, skipped workout.",
+    "timestamp": "2025-07-08T18:15:25.473217",
+    "user_id": "pattern_user",
+    "data_type": "checkin",
+    "content": "Tuesday: Feeling tired, skipped workout.",
+    "interaction_type": "checkin"
+  },
+  {
+    "id": 13,
+    "text": "Wednesday: Back on track, good mood.",
+    "timestamp": "2025-07-08T18:15:55.773020",
+    "user_id": "pattern_user",
+    "data_type": "checkin",
+    "content": "Wednesday: Back on track, good mood.",
+    "interaction_type": "checkin"
+  },
+  {
+    "id": 14,
+    "text": "Exercise 3x per week consistently.",
+    "timestamp": "2025-07-08T18:16:21.051014",
+    "user_id": "pattern_user",
+    "data_type": "goal",
+    "content": "Exercise 3x per week consistently.",
+    "interaction_type": "goal"
+  },
+  {
+    "id": 15,
+    "text": "I notice I'm more motivated on Mondays.",
+    "timestamp": "2025-07-08T18:16:21.183536",
+    "user_id": "pattern_user",
+    "data_type": "reflection",
+    "content": "I notice I'm more motivated on Mondays.",
+    "interaction_type": "reflection"
+  },
+  {
+    "id": 16,
+    "text": "Feeling optimistic about my progress.",
+    "timestamp": "2025-07-08T18:16:21.288541",
+    "user_id": "pattern_user",
+    "data_type": "mood",
+    "content": "Feeling optimistic about my progress.",
+    "interaction_type": "mood"
+  },
+  {
+    "id": 17,
+    "text": "Great workout today! Feeling strong and motivated.",
+    "timestamp": "2025-07-08T18:16:37.074265",
+    "user_id": "test_user",
+    "data_type": "checkin",
+    "content": "Great workout today! Feeling strong and motivated.",
+    "interaction_type": "checkin"
+  },
+  {
+    "id": 18,
+    "text": "Want to run a 5K race in 3 months.",
+    "timestamp": "2025-07-08T18:16:40.037110",
+    "user_id": "test_user",
+    "data_type": "goal",
+    "content": "Want to run a 5K race in 3 months.",
+    "interaction_type": "goal"
+  },
+  {
+    "id": 19,
+    "text": "Need to be more consistent with my morning routine.",
+    "timestamp": "2025-07-08T18:16:40.190630",
+    "user_id": "test_user",
+    "data_type": "reflection",
+    "content": "Need to be more consistent with my morning routine.",
+    "interaction_type": "reflection"
+  },
+  {
+    "id": 20,
+    "text": "Feeling positive and energetic today!",
+    "timestamp": "2025-07-08T18:16:40.257346",
+    "user_id": "test_user",
+    "data_type": "mood",
+    "content": "Feeling positive and energetic today!",
+    "interaction_type": "mood"
+  },
+  {
+    "id": 21,
+    "text": "Monday: Great energy, completed all tasks!",
+    "timestamp": "2025-07-08T18:17:42.045354",
+    "user_id": "pattern_user",
+    "data_type": "checkin",
+    "content": "Monday: Great energy, completed all tasks!",
+    "interaction_type": "checkin"
+  },
+  {
+    "id": 22,
+    "text": "Tuesday: Feeling tired, skipped workout.",
+    "timestamp": "2025-07-08T18:18:02.440633",
+    "user_id": "pattern_user",
+    "data_type": "checkin",
+    "content": "Tuesday: Feeling tired, skipped workout.",
+    "interaction_type": "checkin"
+  },
+  {
+    "id": 23,
+    "text": "Wednesday: Back on track, good mood.",
+    "timestamp": "2025-07-08T18:18:02.689831",
+    "user_id": "pattern_user",
+    "data_type": "checkin",
+    "content": "Wednesday: Back on track, good mood.",
+    "interaction_type": "checkin"
+  },
+  {
+    "id": 24,
+    "text": "Exercise 3x per week consistently.",
+    "timestamp": "2025-07-08T18:18:02.725156",
+    "user_id": "pattern_user",
+    "data_type": "goal",
+    "content": "Exercise 3x per week consistently.",
+    "interaction_type": "goal"
+  },
+  {
+    "id": 25,
+    "text": "I notice I'm more motivated on Mondays.",
+    "timestamp": "2025-07-08T18:18:02.751067",
+    "user_id": "pattern_user",
+    "data_type": "reflection",
+    "content": "I notice I'm more motivated on Mondays.",
+    "interaction_type": "reflection"
+  },
+  {
+    "id": 26,
+    "text": "Feeling optimistic about my progress.",
+    "timestamp": "2025-07-08T18:18:02.777469",
+    "user_id": "pattern_user",
+    "data_type": "mood",
+    "content": "Feeling optimistic about my progress.",
+    "interaction_type": "mood"
+  }
+]

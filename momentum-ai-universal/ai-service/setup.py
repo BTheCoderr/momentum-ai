@@ -1,0 +1,32 @@
+from setuptools import setup, find_packages
+
+setup(
+    name="ai-service",
+    version="0.1.0",
+    packages=find_packages(),
+    install_requires=[
+        "fastapi",
+        "uvicorn",
+        "pydantic",
+        "python-multipart",
+        "python-dotenv",
+        "supabase",
+        "httpx",
+        "faiss-cpu",
+        "pymilvus",
+        "pgvector",
+        "nomic",
+        "llama-cpp-python",
+        "transformers",
+        "sentence-transformers",
+        "langchain",
+        "langchain-community",
+        "numpy",
+        "scikit-learn",
+        "pandas",
+        "llmware",
+        "streamlit",
+        "aiofiles",
+        "requests"
+    ]
+) 

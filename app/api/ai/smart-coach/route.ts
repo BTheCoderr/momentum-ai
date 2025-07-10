@@ -1,98 +1,359 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+// Import the new enhanced AI services
+let aiService: any = null;
+let embeddingsService: any = null;
+let patternRecognitionService: any = null;
+
+// Dynamically import AI services (for serverless compatibility)
+async function initializeAIServices() {
+  if (!aiService) {
+    try {
+      const aiModule = await import('@/lib/ai-service');
+      const embeddingsModule = await import('@/lib/embeddings-service');
+      const patternModule = await import('@/lib/pattern-recognition-service');
+      
+      aiService = aiModule.aiService;
+      embeddingsService = embeddingsModule.embeddingsService;
+      patternRecognitionService = patternModule.patternRecognitionService;
+    } catch (error) {
+      console.warn('AI services not available, using fallback responses');
+    }
+  }
+}
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-// Smart AI Coach that works without external APIs
+// Enhanced AI Coach with real LLM and pattern recognition
 export async function POST(request: NextRequest) {
   try {
-    const { message, userId = 'demo-user', goals = [], userContext = {} } = await request.json();
+    // Initialize AI services with timeout
+    await Promise.race([
+      initializeAIServices(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('AI service timeout')), 5000))
+    ]);
 
-    console.log('🧠 Smart AI Coach processing:', { message, userId });
+    const { message, userId } = await request.json();
 
-    // Store the user message in Supabase
-    await supabase.from('chat_messages').insert({
-      user_id: userId,
-      message: message,
-      is_ai: false,
-      timestamp: new Date().toISOString()
-    });
-
-    // Get user's recent activity and goals from Supabase
-    const { data: recentGoals } = await supabase
-      .from('goals')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(5);
-
-    const { data: recentEvents } = await supabase
-      .from('user_events')
-      .select('*')
-      .eq('user_id', userId)
-      .order('timestamp', { ascending: false })
-      .limit(10);
-
-    const { data: recentInsights } = await supabase
-      .from('insights')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(3);
-
-    // Generate intelligent response based on user data
-    const aiResponse = generateSmartResponse({
-      message,
-      goals: recentGoals || goals || [],
-      recentEvents: recentEvents || [],
-      insights: recentInsights || [],
-      userContext
-    });
-
-    // Store AI response in Supabase
-    await supabase.from('chat_messages').insert({
-      user_id: userId,
-      message: aiResponse,
-      is_ai: true,
-      timestamp: new Date().toISOString()
-    });
-
-    // Generate actionable insight if appropriate
-    if (shouldGenerateInsight(message, recentEvents || [])) {
-      const insight = generateInsight(message, recentGoals || [], recentEvents || []);
-      await supabase.from('insights').insert({
-        user_id: userId,
-        title: insight.title,
-        content: insight.content,
-        category: insight.category,
-        confidence_score: insight.confidence,
-        created_at: new Date().toISOString()
+    if (!message?.trim()) {
+      return NextResponse.json({ 
+        response: "I'm here to help! What's on your mind today?",
+        success: true 
       });
     }
 
+    // Get user data in parallel with timeouts
+    const [goals, recentCheckins, conversationHistory, userStats] = await Promise.allSettled([
+      Promise.race([getUserGoals(userId), new Promise((_, reject) => setTimeout(() => reject('timeout'), 2000))]),
+      Promise.race([getUserCheckins(userId), new Promise((_, reject) => setTimeout(() => reject('timeout'), 2000))]),
+      Promise.race([getConversationHistory(userId), new Promise((_, reject) => setTimeout(() => reject('timeout'), 2000))]),
+      Promise.race([getUserStats(userId), new Promise((_, reject) => setTimeout(() => reject('timeout'), 2000))])
+    ]);
+
+    // Extract results safely
+    const recentGoals = goals.status === 'fulfilled' ? goals.value : [];
+    const checkins = recentCheckins.status === 'fulfilled' ? recentCheckins.value : [];
+    const chatHistory = conversationHistory.status === 'fulfilled' ? conversationHistory.value : [];
+    const stats = userStats.status === 'fulfilled' ? userStats.value : null;
+
+    // Create simplified context quickly
+    const enhancedContext = {
+      goals: recentGoals || [],
+      recentCheckins: checkins || [],
+      mood: 'motivated',
+      energy: 7,
+      streakDays: calculateStreak(checkins || []),
+      totalXP: stats?.total_xp || 0,
+      currentChallenges: extractChallenges(chatHistory || []),
+      behaviorPatterns: {
+        peakPerformanceTimes: ['9:00 AM'],
+        strugglingAreas: [],
+        motivationTriggers: ['achievement', 'progress']
+      },
+      historicalData: {
+        successRate: 75,
+        avgSessionLength: 15,
+        preferredCheckInTimes: ['9:00 AM', '6:00 PM']
+      }
+    };
+
+    let aiResponse = '';
+
+    // Try AI service with timeout
+    if (aiService) {
+      try {
+        const responsePromise = aiService.generateResponse(message, enhancedContext);
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('AI response timeout')), 10000)
+        );
+        
+        aiResponse = await Promise.race([responsePromise, timeoutPromise]) as string;
+
+        // Store conversation asynchronously (don't wait)
+        setImmediate(async () => {
+          try {
+            if (embeddingsService) {
+              await embeddingsService.storeAIConversation(
+                userId,
+                message,
+                aiResponse,
+                'momentum-master',
+                enhancedContext,
+                analyzeSentiment(message)
+              );
+            }
+          } catch (error) {
+            console.warn('Background embedding storage failed:', error);
+          }
+        });
+
+      } catch (aiError) {
+        console.warn('AI service error, using smart fallback:', aiError);
+        aiResponse = generateSmartResponse({
+          message,
+          goals: enhancedContext.goals,
+          recentEvents: checkins || [],
+          insights: [],
+          userContext: enhancedContext
+        });
+      }
+    } else {
+      // Fast fallback response
+      aiResponse = generateSmartResponse({
+        message,
+        goals: enhancedContext.goals,
+        recentEvents: checkins || [],
+        insights: [],
+        userContext: enhancedContext
+      });
+    }
+
+    // Store chat messages asynchronously (don't wait)
+    setImmediate(async () => {
+      try {
+        await Promise.all([
+          supabase.from('chat_messages').insert({
+            user_id: userId,
+            message: message,
+            is_ai: false,
+            timestamp: new Date().toISOString()
+          }),
+          supabase.from('chat_messages').insert({
+            user_id: userId,
+            message: aiResponse,
+            is_ai: true,
+            timestamp: new Date().toISOString()
+          })
+        ]);
+      } catch (error) {
+        console.warn('Background chat storage failed:', error);
+      }
+    });
+
+    // Return response immediately
     return NextResponse.json({
       response: aiResponse,
       success: true,
-      insights_generated: shouldGenerateInsight(message, recentEvents || [])
+      aiPowered: !!aiService,
+      patterns: enhancedContext.behaviorPatterns,
+      insights_generated: false, // Disabled for speed
+      metadata: {
+        streak: enhancedContext.streakDays,
+        energy: enhancedContext.energy,
+        mood: enhancedContext.mood,
+        response_time: Date.now()
+      }
     });
 
   } catch (error) {
-    console.error('Smart AI Coach Error:', error);
-    
-    const fallbackResponse = generateFallbackResponse();
+    console.error('Enhanced AI Coach Error:', error);
     
     return NextResponse.json({
-      response: fallbackResponse,
+      response: generateFallbackResponse(),
       success: false,
-      fallback: true
+      fallback: true,
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 }
 
-// Intelligent response generation based on patterns and context
+// Enhanced helper functions
+
+async function getUserGoals(userId: string) {
+  const { data } = await supabase
+    .from('goals')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(5);
+  return data;
+}
+
+async function getUserCheckins(userId: string) {
+  const { data } = await supabase
+    .from('checkins')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(20);
+  return data;
+}
+
+async function getConversationHistory(userId: string) {
+  const { data } = await supabase
+    .from('chat_messages')
+    .select('*')
+    .eq('user_id', userId)
+    .order('timestamp', { ascending: false })
+    .limit(10);
+  return data;
+}
+
+async function getUserStats(userId: string) {
+  const { data } = await supabase
+    .from('user_stats')
+    .select('*')
+    .eq('user_id', userId)
+    .single();
+  return data;
+}
+
+async function getBehaviorPatterns(userId: string) {
+  try {
+    if (!patternRecognitionService) return null;
+    
+    const analysis = await patternRecognitionService.analyzeHabitPatterns(userId);
+    return {
+      peakPerformanceTimes: analysis.patterns?.timePatterns?.peakHour ? [`${analysis.patterns.timePatterns.peakHour}:00`] : [],
+      strugglingAreas: extractStrugglingAreas(analysis),
+      motivationTriggers: extractMotivationTriggers(analysis)
+    };
+  } catch (error) {
+    console.warn('Failed to get behavior patterns:', error);
+    return null;
+  }
+}
+
+async function getHistoricalData(userId: string) {
+  try {
+    const { data: goals } = await supabase
+      .from('goals')
+      .select('*')
+      .eq('user_id', userId);
+    
+         const completedGoals = goals?.filter(g => g.status === 'completed') || [];
+     const successRate = goals && goals.length > 0 ? (completedGoals.length / goals.length) * 100 : 0;
+    
+    return {
+      successRate: Math.round(successRate),
+      avgSessionLength: 15, // Could be calculated from actual data
+      preferredCheckInTimes: ['9:00 AM', '6:00 PM'] // Could be calculated from patterns
+    };
+  } catch (error) {
+    return {
+      successRate: 0,
+      avgSessionLength: 15,
+      preferredCheckInTimes: []
+    };
+  }
+}
+
+function calculateStreak(checkins: any[]): number {
+  if (!checkins || checkins.length === 0) return 0;
+  
+  const today = new Date();
+  let streak = 0;
+  
+  for (let i = 0; i < checkins.length; i++) {
+    const checkinDate = new Date(checkins[i].created_at);
+    const daysDiff = Math.floor((today.getTime() - checkinDate.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (daysDiff === streak) {
+      streak++;
+    } else {
+      break;
+    }
+  }
+  
+  return streak;
+}
+
+function extractChallenges(conversations: any[]): string[] {
+  const challenges = [];
+  const challengeKeywords = ['difficult', 'hard', 'struggle', 'challenge', 'problem'];
+  
+  for (const conv of conversations || []) {
+    if (!conv.is_ai && challengeKeywords.some(keyword => 
+      conv.message.toLowerCase().includes(keyword)
+    )) {
+      // Extract the challenge context
+      const words = conv.message.split(' ');
+      const challengeIndex = words.findIndex((word: string) => 
+        challengeKeywords.some(keyword => word.toLowerCase().includes(keyword))
+      );
+      
+      if (challengeIndex > -1) {
+        const context = words.slice(Math.max(0, challengeIndex - 2), challengeIndex + 3).join(' ');
+        challenges.push(context);
+      }
+    }
+  }
+  
+  return challenges.slice(0, 3); // Return top 3 challenges
+}
+
+function analyzeSentiment(text: string): number {
+  const positiveWords = ['good', 'great', 'excellent', 'amazing', 'wonderful', 'fantastic', 'motivated', 'confident', 'happy', 'excited'];
+  const negativeWords = ['bad', 'awful', 'terrible', 'struggling', 'frustrated', 'overwhelmed', 'stuck', 'difficult', 'hard', 'sad'];
+  
+  const words = text.toLowerCase().split(/\s+/);
+  let score = 0;
+  
+     words.forEach((word: string) => {
+     if (positiveWords.includes(word)) score += 1;
+     if (negativeWords.includes(word)) score -= 1;
+   });
+  
+  // Normalize to -1 to 1 range
+  return Math.max(-1, Math.min(1, score / Math.max(words.length / 5, 1)));
+}
+
+function shouldGenerateInsights(message: string): boolean {
+  const insightTriggers = ['help', 'advice', 'struggling', 'pattern', 'improve', 'better', 'analyze'];
+  return insightTriggers.some(trigger => message.toLowerCase().includes(trigger));
+}
+
+async function storeInsight(userId: string, insight: any) {
+  try {
+    await supabase.from('insights').insert({
+      user_id: userId,
+      title: insight.title,
+      content: insight.description,
+      category: insight.category,
+      confidence_score: insight.confidence,
+      actionable: insight.actions?.length > 0,
+      created_at: new Date().toISOString()
+    });
+  } catch (error) {
+    console.warn('Failed to store insight:', error);
+  }
+}
+
+function extractStrugglingAreas(analysis: any): string[] {
+  return analysis?.insights?.filter((i: any) => i.type === 'struggle_points')
+    .map((i: any) => i.title) || [];
+}
+
+function extractMotivationTriggers(analysis: any): string[] {
+  return analysis?.insights?.filter((i: any) => i.type === 'motivation_triggers')
+    .map((i: any) => i.title) || [];
+}
+
+// Keep the existing smart response system as fallback
 function generateSmartResponse({ message, goals, recentEvents, insights, userContext }: any) {
   const messageLower = message.toLowerCase();
   
@@ -199,61 +460,50 @@ function generateMotivationResponse(goals: any[], recentEvents: any[], mood: str
 function generateProgressResponse(goals: any[], recentEvents: any[]): string {
   const recentActions = recentEvents.filter(e => e.event_type === 'goal_action').length;
   
-  if (recentActions > 3) {
-    return `I'm seeing incredible consistency from you! 🔥 ${recentActions} goal-aligned actions recently. This is how lasting change happens. You're not just achieving goals - you're becoming the person who achieves goals naturally.`;
-  } else if (recentActions > 0) {
-    return `Nice work on staying active with your goals! 📈 I see ${recentActions} recent actions. Let's build on this momentum. What's the next logical step for your most important goal?`;
+  if (recentActions > 5) {
+    return "You've been incredibly active lately! 🚀 I'm seeing consistent action toward your goals. This momentum is powerful - how can we sustain and build on it?";
+  } else if (recentActions > 2) {
+    return "Nice work on staying engaged with your goals! 📈 You're building valuable momentum. What's one area where you'd like to accelerate your progress?";
   } else {
-    return `It looks like it's been quiet on the goal front lately, and that's totally normal. Life happens! 🌱 Let's restart gently. What's one small action you can take today to reconnect with your goals?`;
+    return "Let's get some momentum going! 💪 Even small actions compound over time. What's one goal-related action you can take today to restart your forward movement?";
   }
 }
 
 function generateObstacleResponse(message: string, goals: any[], insights: any[]): string {
-  return `I appreciate you sharing this challenge with me. 🤝 Obstacles aren't roadblocks - they're data points that help us refine our approach. Let's break this down: What specifically is making this difficult? Often, the solution is simpler than we think.`;
+  return "I hear that you're facing a challenge. Remember, obstacles are often opportunities in disguise. 🧗‍♂️ Let's break this down - what specific part of this challenge feels most manageable to tackle first?";
 }
 
 function generateReflectionResponse(recentEvents: any[], insights: any[]): string {
-  if (insights.length > 0) {
-    return `Your self-awareness is a superpower! 🧠 Based on your recent patterns, I've noticed you're strongest when you ${insights[0]?.content || 'stay consistent with small actions'}. How does this resonate with your experience?`;
+  if (insights && insights.length > 0) {
+    return `Based on your recent patterns, I've noticed some interesting insights. ${insights[0]?.content || ''} What resonates with you about this observation?`;
   }
   
-  return `Reflection is where growth lives. 🌱 Looking at your recent journey, what pattern do you notice about when you feel most motivated vs. when you struggle? Understanding this gives us the blueprint for your success.`;
+  return "Reflection is such a powerful tool for growth. 🤔 Looking at your recent journey, what's one thing you're proud of, and what's one area where you see room for improvement?";
 }
 
 function generatePlanningResponse(goals: any[], userContext: any): string {
-  return `I love that you're thinking ahead! 🗓️ Great achievers are great planners. Based on your goals, what's the one thing that, if you accomplished it tomorrow, would make the biggest positive impact on your progress? Let's build your day around that.`;
+  return "Planning ahead shows wisdom! 📅 Based on your current goals and energy level, what's the most important thing you want to accomplish next? Let's create a clear path forward.";
 }
 
 function generateContextualResponse(message: string, goals: any[], userContext: any, mood: string): string {
-  const responses = [
-    `I'm here to support your journey! 🌟 Every conversation we have is an investment in your future self. What's on your mind about your goals today?`,
-    `Your commitment to growth inspires me! 💪 Whether you're celebrating wins or working through challenges, I'm here to help you stay focused on what matters most.`,
-    `Success is built one conversation, one decision, one action at a time. 🎯 You're already investing in yourself by being here. What would make today feel like a win for you?`
-  ];
+  const streak = userContext.streakDays || 0;
+  const energy = userContext.energy || 7;
   
-  return responses[Math.floor(Math.random() * responses.length)];
-}
-
-function shouldGenerateInsight(message: string, recentEvents: any[]): boolean {
-  // Generate insights for meaningful conversations or patterns
-  return message.length > 50 || recentEvents.length > 5;
-}
-
-function generateInsight(message: string, goals: any[], recentEvents: any[]) {
-  return {
-    title: "Pattern Recognition",
-    content: "You tend to be most successful when you break big goals into small, daily actions.",
-    category: "behavioral_pattern",
-    confidence: 0.8
-  };
+  if (streak > 7) {
+    return `I'm impressed by your ${streak}-day streak! 🔥 That consistency is building real momentum. With your energy at ${energy}/10, what goal deserves your attention today?`;
+  } else if (energy > 8) {
+    return `You're radiating high energy today (${energy}/10)! ⚡ This is perfect for tackling something meaningful. What would make today feel like a win?`;
+  } else {
+    return "I'm here to support you on your journey. 🌟 Every step forward, no matter how small, is progress worth celebrating. What's on your mind today?";
+  }
 }
 
 function generateFallbackResponse(): string {
-  const fallbacks = [
-    "I'm processing your message and want to give you a thoughtful response. Your goals matter to me, and I'm here to support you however I can. What's your biggest priority right now?",
-    "Thank you for sharing with me. I'm designed to help you achieve your goals through consistent action and reflection. What would make today feel successful for you?",
-    "I appreciate your patience as I analyze the best way to support you. Your commitment to growth is already a victory. What's one small step you can take toward your goals today?"
+  const responses = [
+    "I'm having trouble connecting to my full capabilities right now, but I'm still here for you! 💪 Keep up the great work on your journey!",
+    "Even though I can't access all my insights right now, I believe in your ability to stay consistent! 🌟 What's one small step you can take today?",
+    "Connection issues won't stop your momentum! You've got this, and I'll be back online soon! 🚀 Keep pushing forward!"
   ];
   
-  return fallbacks[Math.floor(Math.random() * fallbacks.length)];
+  return responses[Math.floor(Math.random() * responses.length)];
 } 

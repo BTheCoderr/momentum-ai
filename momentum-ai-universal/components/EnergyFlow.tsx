@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Alert } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { checkinServices } from '../lib/services';
@@ -43,23 +43,9 @@ export const EnergyFlow = ({ onComplete }: Props) => {
       setEnergyHistory(energyData);
     } catch (error) {
       console.error('Error fetching energy history:', error);
-      // Use demo data if API fails
-      setEnergyHistory(generateDemoData());
+      // Handle error gracefully
+      setEnergyHistory([]);
     }
-  };
-
-  const generateDemoData = (): EnergyData[] => {
-    const data: EnergyData[] = [];
-    const now = new Date();
-    for (let i = 29; i >= 0; i--) {
-      const date = new Date(now);
-      date.setDate(date.getDate() - i);
-      data.push({
-        date: date.toISOString().split('T')[0],
-        level: Math.floor(Math.random() * 3) + 1 // Random level 1-3
-      });
-    }
-    return data;
   };
 
   const handleEnergySelect = async (level: string) => {
@@ -83,6 +69,7 @@ export const EnergyFlow = ({ onComplete }: Props) => {
       }, 1500);
     } catch (error) {
       console.error('Error saving energy level:', error);
+      Alert.alert('Error', 'Failed to save energy level. Please try again.');
     }
   };
 

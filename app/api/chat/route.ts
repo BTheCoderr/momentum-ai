@@ -1,14 +1,37 @@
 import Groq from "groq-sdk";
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from '@supabase/supabase-js';
 
 // Initialize Groq client only if API key is available (prevents build errors)
 const groq = process.env.GROQ_API_KEY ? new Groq({
   apiKey: process.env.GROQ_API_KEY,
 }) : null;
 
+// Initialize Supabase client
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
 export async function POST(request: NextRequest) {
   try {
-    const { message, goals, userContext } = await request.json();
+    const { message, goals, userContext, userId = 'demo-user' } = await request.json();
+
+    // Save user message to database
+    const { data: userMessage, error: userMessageError } = await supabase
+      .from('chat_messages')
+      .insert({
+        user_id: userId,
+        message: message,
+        is_ai: false,
+        timestamp: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (userMessageError) {
+      console.error('Error saving user message:', userMessageError);
+    }
 
     // Check if Groq client is available
     if (!groq) {
@@ -50,9 +73,27 @@ Respond as a caring accountability partner who understands the psychology of goa
 
     const aiResponse = chatCompletion.choices[0]?.message?.content || "I'm here to help you stay connected to your goals. What's on your mind?";
 
+    // Save AI response to database
+    const { data: aiMessage, error: aiMessageError } = await supabase
+      .from('chat_messages')
+      .insert({
+        user_id: userId,
+        message: aiResponse,
+        is_ai: true,
+        timestamp: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (aiMessageError) {
+      console.error('Error saving AI message:', aiMessageError);
+    }
+
     return NextResponse.json({ 
       response: aiResponse,
-      success: true 
+      success: true,
+      userMessage: userMessage,
+      aiMessage: aiMessage
     });
 
   } catch (error) {
@@ -65,8 +106,25 @@ Respond as a caring accountability partner who understands the psychology of goa
       "Tell me about what's motivating you today. What's your deeper 'why'?",
     ];
     
+    const fallbackResponse = fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
+    
+    // Still try to save the fallback response
+    try {
+      const { userId = 'demo-user' } = await request.json();
+      await supabase
+        .from('chat_messages')
+        .insert({
+          user_id: userId,
+          message: fallbackResponse,
+          is_ai: true,
+          timestamp: new Date().toISOString(),
+        });
+    } catch (saveError) {
+      console.error('Error saving fallback response:', saveError);
+    }
+    
     return NextResponse.json({ 
-      response: fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)],
+      response: fallbackResponse,
       success: false,
       fallback: true
     });

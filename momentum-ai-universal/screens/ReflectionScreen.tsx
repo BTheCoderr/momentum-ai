@@ -11,7 +11,8 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { reflectionServices, utils, updateUserXP, getXPFromGoal, showToast } from '../lib/services';
+import { reflectionServices, utils, updateUserXP, getXPFromGoal } from '../lib/services';
+import { showToast } from '../lib/utils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const ReflectionScreen = ({ navigation }: any) => {
@@ -306,7 +307,7 @@ const styles = StyleSheet.create({
   },
   skipButtonText: {
     fontSize: 16,
-    color: '#007AFF',
+    color: '#FF6B35',
     fontWeight: '600',
   },
   progressContainer: {
@@ -322,7 +323,7 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#007AFF',
+    backgroundColor: '#FF6B35',
     borderRadius: 2,
   },
   progressText: {
@@ -400,7 +401,7 @@ const styles = StyleSheet.create({
   tipsTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#007AFF',
+    color: '#FF6B35',
     marginBottom: 12,
   },
   tipsText: {
@@ -428,7 +429,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0f0f0',
   },
   nextButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#FF6B35',
   },
   nextButtonDisabled: {
     backgroundColor: '#ccc',
@@ -471,7 +472,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   doneButton: {
-    backgroundColor: '#34C759',
+    backgroundColor: '#FF6B35',
     borderRadius: 16,
     paddingVertical: 16,
     paddingHorizontal: 32,

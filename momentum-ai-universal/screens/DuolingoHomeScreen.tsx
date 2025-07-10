@@ -12,6 +12,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StreakDisplay, DailyChallenges } from '../components/DuolingoStyleFeatures';
+import { AIInsights } from '../components/AIInsights';
 import { useGamification } from '../hooks/useGamification';
 import { userStatsServices, goalServices } from '../lib/services';
 import { useTheme } from '../components/ThemeProvider';
@@ -264,6 +265,15 @@ export default function DuolingoHomeScreen({ navigation }: DuolingoHomeScreenPro
               <Text style={[styles.actionTitle, { color: theme.colors.text }]}>My Goals</Text>
             </TouchableOpacity>
           </View>
+        </View>
+
+        <View style={styles.section}>
+          <AIInsights 
+            checkIns={[]} // TODO: Load actual check-in data
+            goals={goals}
+            showSuggestions={true}
+            compact={false}
+          />
         </View>
 
         <View style={styles.section}>

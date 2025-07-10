@@ -8,6 +8,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useTheme } from './ThemeProvider';
 
 interface SettingsPageLayoutProps {
   title: string;
@@ -16,14 +17,15 @@ interface SettingsPageLayoutProps {
 
 export const SettingsPageLayout: React.FC<SettingsPageLayoutProps> = ({ title, children }) => {
   const navigation = useNavigation();
+  const { theme } = useTheme();
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>← Back</Text>
+          <Text style={[styles.backButtonText, { color: theme.colors.primary }]}>← Back</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>{title}</Text>
+        <Text style={[styles.title, { color: theme.colors.text }]}>{title}</Text>
       </View>
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {children}
@@ -35,12 +37,10 @@ export const SettingsPageLayout: React.FC<SettingsPageLayoutProps> = ({ title, c
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1b1e',
   },
   header: {
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#2a2b2e',
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -48,13 +48,11 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   backButtonText: {
-    color: '#4F46E5',
     fontSize: 16,
   },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#fff',
   },
   content: {
     flex: 1,

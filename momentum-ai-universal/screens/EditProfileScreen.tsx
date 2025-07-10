@@ -8,26 +8,39 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
+  Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { supabase } from '../lib/supabase';
+import { useTheme } from '../components/ThemeProvider';
+import { userProfileServices } from '../lib/services';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export const EditProfileScreen = () => {
+interface UserProfile {
+  id?: string;
+  full_name: string;
+  email: string;
+  avatar_url?: string;
+  bio?: string;
+  location?: string;
+  website?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export default function EditProfileScreen() {
   const navigation = useNavigation();
-  const [loading, setLoading] = useState(false);
-  const [profile, setProfile] = useState({
-    fullName: '',
+  const { theme } = useTheme();
+  const [profile, setProfile] = useState<UserProfile>({
+    full_name: '',
     email: '',
-    primaryGoal: '',
     bio: '',
-    preferredCoachingStyle: 'supportive', // or 'direct', 'analytical'
-    timezone: '',
-    notificationPreferences: {
-      dailyReminders: true,
-      weeklyInsights: true,
-      achievementAlerts: true,
-    },
+    location: '',
+    website: '',
   });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [originalProfile, setOriginalProfile] = useState<UserProfile | null>(null);
 
   useEffect(() => {
     loadProfile();
@@ -35,258 +48,506 @@ export const EditProfileScreen = () => {
 
   const loadProfile = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-
-        if (error) throw error;
-
-        if (data) {
-          setProfile({
-            fullName: data.full_name || '',
-            email: data.email || '',
-            primaryGoal: data.primary_goal || '',
-            bio: data.bio || '',
-            preferredCoachingStyle: data.preferred_coaching_style || 'supportive',
-            timezone: data.timezone || '',
-            notificationPreferences: data.notification_preferences || {
-              dailyReminders: true,
-              weeklyInsights: true,
-              achievementAlerts: true,
-            },
-          });
-        }
+      setLoading(true);
+      
+      // Load profile from Supabase using the new profile services
+      const profileData = await userProfileServices.get();
+      
+      if (profileData) {
+        // Convert to local format if needed
+        const localProfile: UserProfile = {
+          id: profileData.id,
+          full_name: profileData.full_name || 'Friend',
+          email: profileData.email || '',
+          bio: profileData.bio || '',
+          location: profileData.location || '',
+          website: profileData.website || '',
+          avatar_url: profileData.avatar_url,
+          created_at: profileData.created_at,
+          updated_at: profileData.updated_at,
+        };
+        
+        setProfile(localProfile);
+        setOriginalProfile(localProfile);
+      } else {
+        // Set default values
+        const defaultProfile: UserProfile = {
+          full_name: 'Friend',
+          email: 'user@momentum-ai.app',
+          bio: '',
+          location: '',
+          website: '',
+        };
+        setProfile(defaultProfile);
+        setOriginalProfile(defaultProfile);
       }
     } catch (error) {
       console.error('Error loading profile:', error);
-      Alert.alert('Error', 'Failed to load profile data');
-    }
-  };
-
-  const handleSave = async () => {
-    try {
-      setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
       
-      if (!user) throw new Error('No user found');
-
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          full_name: profile.fullName,
-          primary_goal: profile.primaryGoal,
-          bio: profile.bio,
-          preferred_coaching_style: profile.preferredCoachingStyle,
-          timezone: profile.timezone,
-          notification_preferences: profile.notificationPreferences,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', user.id);
-
-      if (error) throw error;
-
-      Alert.alert('Success', 'Profile updated successfully');
-      navigation.goBack();
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      Alert.alert('Error', 'Failed to update profile');
+      // Fallback to default profile
+      const defaultProfile: UserProfile = {
+        full_name: 'Friend',
+        email: 'user@momentum-ai.app',
+        bio: '',
+        location: '',
+        website: '',
+      };
+      setProfile(defaultProfile);
+      setOriginalProfile(defaultProfile);
+      
+      Alert.alert('Error', 'Failed to load profile data. Using default values.');
     } finally {
       setLoading(false);
     }
   };
 
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+
+      // Validate required fields
+      if (!profile.full_name.trim()) {
+        Alert.alert('Error', 'Name is required.');
+        return;
+      }
+
+      if (!profile.email.trim()) {
+        Alert.alert('Error', 'Email is required.');
+        return;
+      }
+
+      // Simple email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(profile.email)) {
+        Alert.alert('Error', 'Please enter a valid email address.');
+        return;
+      }
+
+      // Save to Supabase using the new profile services
+      await userProfileServices.update(profile);
+      
+      Alert.alert(
+        'Success',
+        'Profile updated successfully!',
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.goBack(),
+          },
+        ]
+      );
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      Alert.alert('Error', 'Failed to save profile. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    if (JSON.stringify(profile) !== JSON.stringify(originalProfile)) {
+      Alert.alert(
+        'Discard Changes?',
+        'You have unsaved changes. Are you sure you want to discard them?',
+        [
+          { text: 'Keep Editing', style: 'cancel' },
+          {
+            text: 'Discard',
+            style: 'destructive',
+            onPress: () => navigation.goBack(),
+          },
+        ]
+      );
+    } else {
+      navigation.goBack();
+    }
+  };
+
+  const selectAvatar = () => {
+    // Placeholder for avatar selection
+    // In a real app, this would open image picker
+    Alert.alert(
+      'Avatar Selection',
+      'Avatar selection feature coming soon! This would typically open your photo library or camera.',
+      [{ text: 'OK', style: 'default' }]
+    );
+  };
+
+  const hasChanges = JSON.stringify(profile) !== JSON.stringify(originalProfile);
+
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={[styles.loadingText, { color: theme.colors.text }]}>Loading profile...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text onPress={() => navigation.goBack()} style={styles.backButton}>
-          ← Back
-        </Text>
-        <Text style={styles.title}>Edit Profile</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
+        <TouchableOpacity onPress={handleCancel} style={styles.backButton}>
+          <Text style={[styles.backButtonText, { color: theme.colors.primary }]}>Cancel</Text>
+        </TouchableOpacity>
+        <Text style={[styles.title, { color: theme.colors.text }]}>Edit Profile</Text>
+        <TouchableOpacity 
+          onPress={handleSave} 
+          style={[
+            styles.saveButton,
+            !hasChanges && styles.saveButtonDisabled
+          ]}
+          disabled={!hasChanges || saving}
+        >
+          {saving ? (
+            <ActivityIndicator size="small" color={theme.colors.primary} />
+          ) : (
+            <Text style={[
+              styles.saveButtonText, 
+              { color: hasChanges ? theme.colors.primary : theme.colors.textSecondary }
+            ]}>
+              Save
+            </Text>
+          )}
+        </TouchableOpacity>
       </View>
-      <ScrollView style={styles.content}>
-        <View style={styles.section}>
-          <Text style={styles.label}>Full Name</Text>
-          <TextInput
-            style={styles.input}
-            value={profile.fullName}
-            onChangeText={(text) => setProfile(prev => ({ ...prev, fullName: text }))}
-            placeholder="Your name"
-            placeholderTextColor="#6b7280"
-          />
-        </View>
 
-        <View style={styles.section}>
-          <Text style={styles.label}>Email</Text>
-          <TextInput
-            style={[styles.input, { opacity: 0.7 }]}
-            value={profile.email}
-            editable={false}
-            placeholder="Your email"
-            placeholderTextColor="#6b7280"
-          />
-          <Text style={styles.helperText}>Email cannot be changed</Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.label}>Primary Goal</Text>
-          <TextInput
-            style={styles.input}
-            value={profile.primaryGoal}
-            onChangeText={(text) => setProfile(prev => ({ ...prev, primaryGoal: text }))}
-            placeholder="What's your main goal?"
-            placeholderTextColor="#6b7280"
-          />
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.label}>Bio</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            value={profile.bio}
-            onChangeText={(text) => setProfile(prev => ({ ...prev, bio: text }))}
-            placeholder="Tell us about yourself..."
-            placeholderTextColor="#6b7280"
-            multiline
-            numberOfLines={4}
-          />
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.label}>Preferred Coaching Style</Text>
-          <View style={styles.buttonGroup}>
-            {['supportive', 'direct', 'analytical'].map((style) => (
-              <TouchableOpacity
-                key={style}
-                style={[
-                  styles.styleButton,
-                  profile.preferredCoachingStyle === style && styles.styleButtonActive
-                ]}
-                onPress={() => setProfile(prev => ({ ...prev, preferredCoachingStyle: style }))}
-              >
-                <Text style={[
-                  styles.styleButtonText,
-                  profile.preferredCoachingStyle === style && styles.styleButtonTextActive
-                ]}>
-                  {style.charAt(0).toUpperCase() + style.slice(1)}
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Avatar Section */}
+        <View style={styles.avatarSection}>
+          <TouchableOpacity onPress={selectAvatar} style={styles.avatarContainer}>
+            {profile.avatar_url ? (
+              <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
+            ) : (
+              <View style={[styles.avatarPlaceholder, { backgroundColor: theme.colors.surface }]}>
+                <Text style={[styles.avatarText, { color: theme.colors.text }]}>
+                  {profile.full_name.charAt(0).toUpperCase() || '?'}
                 </Text>
-              </TouchableOpacity>
-            ))}
+              </View>
+            )}
+            <View style={[styles.cameraIcon, { backgroundColor: theme.colors.primary }]}>
+              <Text style={styles.cameraIconText}>📷</Text>
+            </View>
+          </TouchableOpacity>
+          <Text style={[styles.avatarLabel, { color: theme.colors.textSecondary }]}>
+            Tap to change photo
+          </Text>
+        </View>
+
+        {/* Basic Information */}
+        <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Basic Information</Text>
+          
+          <View style={styles.inputGroup}>
+            <Text style={[styles.inputLabel, { color: theme.colors.text }]}>Name *</Text>
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  backgroundColor: theme.colors.surface,
+                  color: theme.colors.text,
+                  borderColor: theme.colors.border,
+                }
+              ]}
+              value={profile.full_name}
+              onChangeText={(text) => setProfile(prev => ({ ...prev, full_name: text }))}
+              placeholder="Enter your name"
+              placeholderTextColor={theme.colors.textSecondary}
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={[styles.inputLabel, { color: theme.colors.text }]}>Email *</Text>
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  backgroundColor: theme.colors.surface,
+                  color: theme.colors.text,
+                  borderColor: theme.colors.border,
+                }
+              ]}
+              value={profile.email}
+              onChangeText={(text) => setProfile(prev => ({ ...prev, email: text }))}
+              placeholder="Enter your email"
+              placeholderTextColor={theme.colors.textSecondary}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
           </View>
         </View>
 
-        <TouchableOpacity
-          style={styles.saveButton}
-          onPress={handleSave}
-          disabled={loading}
-        >
-          <Text style={styles.saveButtonText}>
-            {loading ? 'Saving...' : 'Save Changes'}
-          </Text>
-        </TouchableOpacity>
+        {/* Additional Information */}
+        <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Additional Information</Text>
+          
+          <View style={styles.inputGroup}>
+            <Text style={[styles.inputLabel, { color: theme.colors.text }]}>Bio</Text>
+            <TextInput
+              style={[
+                styles.textArea,
+                {
+                  backgroundColor: theme.colors.surface,
+                  color: theme.colors.text,
+                  borderColor: theme.colors.border,
+                }
+              ]}
+              value={profile.bio}
+              onChangeText={(text) => setProfile(prev => ({ ...prev, bio: text }))}
+              placeholder="Tell us about yourself..."
+              placeholderTextColor={theme.colors.textSecondary}
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={[styles.inputLabel, { color: theme.colors.text }]}>Location</Text>
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  backgroundColor: theme.colors.surface,
+                  color: theme.colors.text,
+                  borderColor: theme.colors.border,
+                }
+              ]}
+              value={profile.location}
+              onChangeText={(text) => setProfile(prev => ({ ...prev, location: text }))}
+              placeholder="City, Country"
+              placeholderTextColor={theme.colors.textSecondary}
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={[styles.inputLabel, { color: theme.colors.text }]}>Website</Text>
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  backgroundColor: theme.colors.surface,
+                  color: theme.colors.text,
+                  borderColor: theme.colors.border,
+                }
+              ]}
+              value={profile.website}
+              onChangeText={(text) => setProfile(prev => ({ ...prev, website: text }))}
+              placeholder="https://yourwebsite.com"
+              placeholderTextColor={theme.colors.textSecondary}
+              keyboardType="url"
+              autoCapitalize="none"
+            />
+          </View>
+        </View>
+
+        {/* Account Actions */}
+        <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Account</Text>
+          
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => {
+              Alert.alert(
+                'Change Password',
+                'Password change feature coming soon! This would typically send you to a secure password change form.',
+                [{ text: 'OK', style: 'default' }]
+              );
+            }}
+          >
+            <Text style={[styles.actionButtonText, { color: theme.colors.text }]}>Change Password</Text>
+            <Text style={[styles.actionButtonArrow, { color: theme.colors.textSecondary }]}>→</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => {
+              Alert.alert(
+                'Privacy Settings',
+                'This would open your privacy settings page.',
+                [{ text: 'OK', style: 'default' }]
+              );
+            }}
+          >
+            <Text style={[styles.actionButtonText, { color: theme.colors.text }]}>Privacy Settings</Text>
+            <Text style={[styles.actionButtonArrow, { color: theme.colors.textSecondary }]}>→</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Danger Zone */}
+        <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.error }]}>Danger Zone</Text>
+          
+          <TouchableOpacity
+            style={styles.dangerButton}
+            onPress={() => {
+              Alert.alert(
+                'Delete Account',
+                'Are you sure you want to permanently delete your account? This action cannot be undone and all your data will be lost.',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Delete Account',
+                    style: 'destructive',
+                    onPress: () => {
+                      Alert.alert(
+                        'Feature Not Available',
+                        'Account deletion is not implemented in this demo version.',
+                        [{ text: 'OK', style: 'default' }]
+                      );
+                    },
+                  },
+                ]
+              );
+            }}
+          >
+            <Text style={[styles.dangerButtonText, { color: theme.colors.error }]}>Delete Account</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1b1e',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
   },
   header: {
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#2a2b2e',
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1a1b1e',
+    justifyContent: 'space-between',
   },
   backButton: {
-    color: '#FF6B35',
+    flex: 1,
+  },
+  backButtonText: {
     fontSize: 16,
-    marginRight: 16,
   },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#fff',
+    flex: 2,
+    textAlign: 'center',
+  },
+  saveButton: {
+    flex: 1,
+    alignItems: 'flex-end',
+  },
+  saveButtonDisabled: {
+    opacity: 0.5,
+  },
+  saveButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
   content: {
     flex: 1,
     padding: 16,
   },
-  section: {
+  avatarSection: {
+    alignItems: 'center',
     marginBottom: 24,
   },
-  label: {
+  avatarContainer: {
+    position: 'relative',
+    marginBottom: 8,
+  },
+  avatar: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+  },
+  avatarPlaceholder: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
+    fontSize: 36,
+    fontWeight: 'bold',
+  },
+  cameraIcon: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cameraIconText: {
     fontSize: 16,
-    color: '#fff',
+  },
+  avatarLabel: {
+    fontSize: 14,
+  },
+  section: {
+    padding: 20,
+    borderRadius: 16,
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  inputGroup: {
+    marginBottom: 16,
+  },
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: '600',
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#2a2b2e',
-    borderRadius: 8,
-    padding: 12,
-    color: '#fff',
-    fontSize: 16,
     borderWidth: 1,
-    borderColor: '#3a3b3e',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
   },
   textArea: {
-    height: 100,
-    textAlignVertical: 'top',
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    minHeight: 100,
   },
-  helperText: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginTop: 4,
-  },
-  buttonGroup: {
+  actionButton: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-  },
-  styleButton: {
-    flex: 1,
-    backgroundColor: '#2a2b2e',
-    padding: 12,
-    borderRadius: 8,
-    marginHorizontal: 4,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#3a3b3e',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.1)',
   },
-  styleButtonActive: {
-    backgroundColor: '#FF6B35',
-    borderColor: '#FF6B35',
-  },
-  styleButtonText: {
-    color: '#fff',
-    fontSize: 14,
-  },
-  styleButtonTextActive: {
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  saveButton: {
-    backgroundColor: '#FF6B35',
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 24,
-    marginBottom: 32,
-    shadowColor: '#FF6B35',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  saveButtonText: {
-    color: '#fff',
+  actionButtonText: {
     fontSize: 16,
-    fontWeight: 'bold',
+  },
+  actionButtonArrow: {
+    fontSize: 16,
+  },
+  dangerButton: {
+    paddingVertical: 16,
+  },
+  dangerButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 }); 

@@ -1,0 +1,15 @@
+README.md
+setup.py
+ai_service.egg-info/PKG-INFO
+ai_service.egg-info/SOURCES.txt
+ai_service.egg-info/dependency_links.txt
+ai_service.egg-info/requires.txt
+ai_service.egg-info/top_level.txt
+config/__init__.py
+config/ai_config.py
+examples/__init__.py
+examples/test_rag.py
+services/__init__.py
+services/ollama_service.py
+services/rag_service.py
+services/vector_store.py

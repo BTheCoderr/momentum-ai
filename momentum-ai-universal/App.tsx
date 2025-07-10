@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, View, Text, SafeAreaView, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
+import { StyleSheet, View, Text, SafeAreaView, TouchableOpacity, ActivityIndicator, Platform, Alert } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import universalStorage from './lib/storage';
 import Navigation from './navigation/Navigation';
@@ -10,7 +10,8 @@ import analytics, { setUserId } from './lib/analytics';
 // import { notificationService } from './lib/notifications'; // Disabled for web compatibility
 import { SlideNotification } from './components/AnimatedComponents';
 import AppFallback from './components/AppFallback';
-import { supabase } from './lib/supabase';
+import { supabase, getSupabase } from './lib/supabase';
+import { AuthChangeEvent, Session } from '@supabase/supabase-js';
 
 // Development mode warning
 if (__DEV__) {
@@ -38,27 +39,77 @@ function AppContent() {
     }, 3000);
   };
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session?.user) {
-        setUserId(session.user.id);
-      }
-      setLoading(false);
-    });
+  const handleSignOut = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      setSession(null);
+      setNotification({
+        visible: true,
+        message: 'Successfully signed out!',
+        type: 'info'
+      });
+      setTimeout(() => {
+        setNotification(prev => ({ ...prev, visible: false }));
+      }, 3000);
+    } catch (error) {
+      console.error('Sign out error:', error);
+      Alert.alert('Error', 'Failed to sign out. Please try again.');
+    }
+  };
 
-    supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      if (session?.user) {
-        setUserId(session.user.id);
+  useEffect(() => {
+    const initializeAuth = async () => {
+      try {
+        // Get initial session
+        const supabaseClient = getSupabase();
+        if (!supabaseClient) {
+          throw new Error('Failed to initialize Supabase client');
+        }
+
+        const { data: { session }, error } = await supabaseClient.auth.getSession();
+        if (error) throw error;
+        
+        setSession(session?.user || null);
+        
+        // Set up auth state change listener
+        const { data: { subscription } } = supabaseClient.auth.onAuthStateChange(
+          (_event: AuthChangeEvent, session: Session | null) => {
+            setSession(session?.user || null);
+          }
+        );
+
+        return () => {
+          subscription.unsubscribe();
+        };
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+        setSession(null);
+      } finally {
+        setLoading(false);
       }
-    });
+    };
+
+    initializeAuth();
+  }, []);
+
+  // Expose sign out function globally for other components
+  useEffect(() => {
+    // @ts-ignore
+    global.handleSignOut = handleSignOut;
+    
+    return () => {
+      // @ts-ignore
+      delete global.handleSignOut;
+    };
   }, []);
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#6c47ff" />
+        <ActivityIndicator size="large" color="#FF6B35" />
+        <Text style={styles.loadingText}>Loading...</Text>
       </View>
     );
   }
@@ -98,5 +149,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#ffffff',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
   },
 });

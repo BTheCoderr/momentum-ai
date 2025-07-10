@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,16 +6,16 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
-  ScrollView,
-  ActivityIndicator,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
+  ActivityIndicator,
+  StatusBar,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { supabase } from '../lib/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { MomentumLogo } from '../components/MomentumLogo';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { supabase } from '../lib/supabase';
 
 interface AuthScreenProps {
   onAuthSuccess: (user: any) => void;
@@ -31,116 +31,6 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
     primaryGoal: '',
   });
 
-  const handleSubmit = async () => {
-    if (!formData.email || !formData.password) {
-      Alert.alert('Error', 'Please fill in email and password');
-      return;
-    }
-
-    if (!isLogin && (!formData.name || !formData.primaryGoal)) {
-      Alert.alert('Error', 'Please fill in your name and primary goal');
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      if (isLogin) {
-        // Login with Supabase
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: formData.email,
-          password: formData.password,
-        });
-
-        if (error) throw error;
-        
-        console.log('✅ Login successful:', data);
-        onAuthSuccess(data.user);
-      } else {
-        // Check if user already exists
-        const { data: existingUser } = await supabase
-          .from('profiles')
-          .select('id, email')
-          .eq('email', formData.email)
-          .single();
-
-        if (existingUser) {
-          Alert.alert(
-            'Account Exists',
-            'An account with this email already exists. Please log in instead.',
-            [
-              { text: 'OK', onPress: () => setIsLogin(true) }
-            ]
-          );
-          setLoading(false);
-          return;
-        }
-
-        // Sign up with Supabase
-        const { data, error } = await supabase.auth.signUp({
-          email: formData.email,
-          password: formData.password,
-          options: {
-            data: {
-              full_name: formData.name,
-              primary_goal: formData.primaryGoal,
-            }
-          }
-        });
-
-        if (error) throw error;
-
-        console.log('✅ Signup successful:', data);
-        
-        // Create user profile
-        if (data.user) {
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .insert([
-              {
-                id: data.user.id,
-                full_name: formData.name,
-                email: formData.email,
-                primary_goal: formData.primaryGoal,
-                created_at: new Date().toISOString()
-              }
-            ]);
-          
-          if (profileError) {
-            console.error('Profile creation error:', profileError);
-            throw profileError;
-          }
-
-          // Create user stats entry
-          const { error: statsError } = await supabase
-            .from('user_stats')
-            .insert([
-              {
-                user_id: data.user.id,
-                total_xp: 0,
-                current_level: 1,
-                streak_count: 0,
-                goals_completed: 0,
-                checkins_completed: 0,
-                achievements: []
-              }
-            ]);
-          
-          if (statsError) {
-            console.error('Stats creation error:', statsError);
-          }
-        }
-
-        onAuthSuccess(data.user);
-      }
-    } catch (error: any) {
-      console.error('Auth error:', error);
-      Alert.alert('Error', error.message || 'Authentication failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleSignUp = async () => {
     if (!formData.email || !formData.password) {
       Alert.alert('Error', 'Please fill in all fields');
@@ -154,25 +44,27 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
 
     setLoading(true);
     try {
-      // For demo purposes, we'll simulate a successful signup
-      // In production, you'd integrate with your actual auth service
-      
-      // Generate a unique user ID
-      const userId = `user_${Math.random().toString(36).substr(2, 16)}`;
-      
-      // Store user data
-      const userData = {
-        id: userId,
+      // Sign up with Supabase
+      const { data: { user }, error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
-        name: formData.name || formData.email.split('@')[0],
-        primaryGoal: formData.primaryGoal || 'General wellness',
-        createdAt: new Date().toISOString(),
-        emailConfirmed: true, // Skip email confirmation for demo
-      };
-      
-      await AsyncStorage.setItem('user', JSON.stringify(userData));
-      await AsyncStorage.setItem('isAuthenticated', 'true');
-      
+        password: formData.password,
+      });
+
+      if (signUpError) throw signUpError;
+      if (!user) throw new Error('No user data returned');
+
+      // Create user profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: user.id,
+          email: formData.email,
+          full_name: formData.name || formData.email.split('@')[0],
+          primary_goal: formData.primaryGoal || 'General wellness',
+        });
+
+      if (profileError) throw profileError;
+
       // Show success message
       Alert.alert(
         'Welcome! 🎉',
@@ -182,13 +74,12 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
             text: 'Get Started',
             onPress: () => {
               if (onAuthSuccess) {
-                onAuthSuccess(userData);
+                onAuthSuccess(user);
               }
             }
           }
         ]
       );
-      
     } catch (error) {
       console.error('Sign up error:', error);
       Alert.alert('Error', 'Failed to create account. Please try again.');
@@ -205,189 +96,187 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
 
     setLoading(true);
     try {
-      // For demo purposes, we'll check if user exists in AsyncStorage
-      const existingUser = await AsyncStorage.getItem('user');
-      
-      if (existingUser) {
-        const userData = JSON.parse(existingUser);
-        if (userData.email === formData.email) {
-          await AsyncStorage.setItem('isAuthenticated', 'true');
-          
-          Alert.alert(
-            'Welcome back! 👋',
-            'Successfully signed in. Ready to continue your momentum?',
-            [
-              {
-                text: 'Continue',
-                onPress: () => {
-                  if (onAuthSuccess) {
-                    onAuthSuccess(userData);
-                  }
-                }
-              }
-            ]
-          );
-          return;
-        }
+      // Sign in with Supabase
+      const { data: { user }, error: signInError } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
+      });
+
+      if (signInError) throw signInError;
+      if (!user) throw new Error('No user data returned');
+
+      // Get user profile
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError && profileError.code !== 'PGRST116') {
+        throw profileError;
       }
-      
-      // If no user found, suggest signup
+
+      // Create profile if it doesn't exist
+      if (!profile) {
+        const { error: createProfileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: user.id,
+            email: user.email,
+            full_name: user.email?.split('@')[0] || 'User',
+            primary_goal: 'General wellness',
+          });
+
+        if (createProfileError) throw createProfileError;
+      }
+
       Alert.alert(
-        'Account not found',
-        'No account found with this email. Would you like to create a new account?',
+        'Welcome back! 👋',
+        'Successfully signed in. Ready to continue your momentum?',
         [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Sign Up', onPress: () => setIsLogin(false) }
+          {
+            text: 'Continue',
+            onPress: () => {
+              if (onAuthSuccess) {
+                onAuthSuccess(user);
+              }
+            }
+          }
         ]
       );
-      
     } catch (error) {
       console.error('Sign in error:', error);
-      Alert.alert('Error', 'Failed to sign in. Please try again.');
+      Alert.alert('Error', 'Failed to sign in. Please check your credentials and try again.');
     } finally {
       setLoading(false);
     }
   };
 
+  const renderForm = () => (
+    <View style={styles.formContainer}>
+      {!isLogin && (
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>What's your name? ✨</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter your name"
+            placeholderTextColor="rgba(255, 255, 255, 0.6)"
+            value={formData.name}
+            onChangeText={(text) => setFormData({ ...formData, name: text })}
+          />
+        </View>
+      )}
+
+      <View style={styles.inputGroup}>
+        <Text style={styles.label}>Email 📧</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="your@email.com"
+          placeholderTextColor="rgba(255, 255, 255, 0.6)"
+          value={formData.email}
+          onChangeText={(text) => setFormData({ ...formData, email: text })}
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
+      </View>
+
+      <View style={styles.inputGroup}>
+        <Text style={styles.label}>Password 🔒</Text>
+        <TextInput
+          style={styles.input}
+          placeholder={isLogin ? "Enter your password" : "Create a secure password"}
+          placeholderTextColor="rgba(255, 255, 255, 0.6)"
+          value={formData.password}
+          onChangeText={(text) => setFormData({ ...formData, password: text })}
+          secureTextEntry
+        />
+      </View>
+
+      {!isLogin && (
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>What's your main goal? 🎯</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="e.g., Get fit, Learn Spanish, Save money"
+            placeholderTextColor="rgba(255, 255, 255, 0.6)"
+            value={formData.primaryGoal}
+            onChangeText={(text) => setFormData({ ...formData, primaryGoal: text })}
+          />
+        </View>
+      )}
+
+      <TouchableOpacity
+        style={[styles.submitButton, loading && styles.disabledButton]}
+        onPress={isLogin ? handleSignIn : handleSignUp}
+        disabled={loading}
+      >
+        {loading ? (
+          <ActivityIndicator color="#FF6B35" />
+        ) : (
+          <Text style={styles.submitButtonText}>
+            {isLogin ? 'Welcome Back! 👋' : 'Start My Journey! 🚀'}
+          </Text>
+        )}
+      </TouchableOpacity>
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" />
       <LinearGradient
-        colors={['#FF6B35', '#F7931E', '#FF8C42']}
+        colors={['#FF6B35', '#F7931E', '#FF6B35']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
         style={styles.gradient}
       >
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        <KeyboardAvoidingView
           style={styles.keyboardView}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
-          <ScrollView contentContainerStyle={styles.scrollContainer}>
-            
-            {/* Header */}
-            <View style={styles.header}>
-              <MomentumLogo size="large" color="white" showText={true} />
-              <Text style={styles.title}>Welcome to Momentum AI</Text>
-              <Text style={styles.subtitle}>Your personal AI-powered goal achievement companion</Text>
+          <ScrollView
+            contentContainerStyle={styles.scrollContainer}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* Logo */}
+            <View style={styles.logoContainer}>
+              <View style={styles.logoCircle}>
+                <Text style={styles.logoText}>M</Text>
+                <Text style={styles.logoSubtext}>AI</Text>
+              </View>
             </View>
 
-            {/* Toggle */}
+            {/* Header */}
+            <View style={styles.headerContainer}>
+              <Text style={styles.title}>Momentum AI</Text>
+              <Text style={styles.subtitle}>Welcome to Momentum AI</Text>
+              <Text style={styles.description}>
+                Your personal AI-powered goal achievement companion
+              </Text>
+            </View>
+
+            {/* Auth Toggle */}
             <View style={styles.toggleContainer}>
               <TouchableOpacity
-                style={[styles.toggleButton, !isLogin && styles.toggleButtonActive]}
+                style={[styles.toggleButton, !isLogin && styles.activeToggle]}
                 onPress={() => setIsLogin(false)}
               >
-                <Text style={[styles.toggleText, !isLogin && styles.toggleTextActive]}>
+                <Text style={[styles.toggleText, !isLogin && styles.activeToggleText]}>
                   Sign Up
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.toggleButton, isLogin && styles.toggleButtonActive]}
+                style={[styles.toggleButton, isLogin && styles.activeToggle]}
                 onPress={() => setIsLogin(true)}
               >
-                <Text style={[styles.toggleText, isLogin && styles.toggleTextActive]}>
+                <Text style={[styles.toggleText, isLogin && styles.activeToggleText]}>
                   Login
                 </Text>
               </TouchableOpacity>
             </View>
 
-            {/* Form */}
-            <View style={styles.form}>
-              {!isLogin && (
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>What's your name? ✨</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={formData.name}
-                    onChangeText={(text) => setFormData({...formData, name: text})}
-                    placeholder="Enter your name"
-                    placeholderTextColor="rgba(255, 255, 255, 0.7)"
-                    autoCapitalize="words"
-                  />
-                </View>
-              )}
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Email 📧</Text>
-                <TextInput
-                  style={styles.input}
-                  value={formData.email}
-                  onChangeText={(text) => setFormData({...formData, email: text})}
-                  placeholder="your@email.com"
-                  placeholderTextColor="rgba(255, 255, 255, 0.7)"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Password 🔒</Text>
-                <TextInput
-                  style={styles.input}
-                  value={formData.password}
-                  onChangeText={(text) => setFormData({...formData, password: text})}
-                  placeholder="Create a secure password"
-                  placeholderTextColor="rgba(255, 255, 255, 0.7)"
-                  secureTextEntry
-                />
-              </View>
-
-              {!isLogin && (
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>What's your main goal? 🎯</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={formData.primaryGoal}
-                    onChangeText={(text) => setFormData({...formData, primaryGoal: text})}
-                    placeholder="e.g., Get fit, Learn Spanish, Save money"
-                    placeholderTextColor="rgba(255, 255, 255, 0.7)"
-                  />
-                </View>
-              )}
-
-              <TouchableOpacity 
-                style={[styles.submitButton, loading && styles.submitButtonDisabled]}
-                onPress={handleSubmit}
-                disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator color="white" />
-                ) : (
-                  <Text style={styles.submitButtonText}>
-                    {isLogin ? 'Welcome Back! 🎉' : 'Start My Journey! 🚀'}
-                  </Text>
-                )}
-              </TouchableOpacity>
-
-              {!isLogin && (
-                <Text style={styles.disclaimer}>
-                  By signing up, you agree to our Terms of Service and Privacy Policy
-                </Text>
-              )}
-            </View>
-
-            {/* Features Preview */}
-            {!isLogin && (
-              <View style={styles.featuresContainer}>
-                <Text style={styles.featuresTitle}>What you'll get:</Text>
-                <View style={styles.featuresList}>
-                  <View style={styles.feature}>
-                    <Text style={styles.featureIcon}>🤖</Text>
-                    <Text style={styles.featureText}>AI-powered coaching</Text>
-                  </View>
-                  <View style={styles.feature}>
-                    <Text style={styles.featureIcon}>📊</Text>
-                    <Text style={styles.featureText}>Progress tracking</Text>
-                  </View>
-                  <View style={styles.feature}>
-                    <Text style={styles.featureIcon}>🔥</Text>
-                    <Text style={styles.featureText}>Streak motivation</Text>
-                  </View>
-                  <View style={styles.feature}>
-                    <Text style={styles.featureIcon}>💡</Text>
-                    <Text style={styles.featureText}>Smart insights</Text>
-                  </View>
-                </View>
-              </View>
-            )}
-
+            {renderForm()}
           </ScrollView>
         </KeyboardAvoidingView>
       </LinearGradient>
@@ -407,36 +296,67 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flexGrow: 1,
-    justifyContent: 'center',
     padding: 20,
   },
-  header: {
+  logoContainer: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginTop: 20,
+    marginBottom: 20,
   },
-  emoji: {
-    fontSize: 64,
-    marginBottom: 16,
+  logoCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  logoText: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    textAlign: 'center',
+  },
+  logoSubtext: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    marginTop: -4,
+  },
+  headerContainer: {
+    alignItems: 'center',
+    marginBottom: 30,
   },
   title: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: 'bold',
-    color: 'white',
+    color: '#FFFFFF',
     textAlign: 'center',
     marginBottom: 8,
   },
   subtitle: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  description: {
     fontSize: 16,
     color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 24,
+    paddingHorizontal: 20,
   },
   toggleContainer: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 25,
-    padding: 4,
     marginBottom: 30,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    padding: 4,
   },
   toggleButton: {
     flex: 1,
@@ -444,97 +364,53 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 21,
   },
-  toggleButtonActive: {
-    backgroundColor: 'white',
+  activeToggle: {
+    backgroundColor: '#FFFFFF',
   },
   toggleText: {
-    color: 'white',
-    fontWeight: '600',
     fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
-  toggleTextActive: {
+  activeToggleText: {
     color: '#FF6B35',
   },
-  form: {
-    marginBottom: 30,
+  formContainer: {
+    flex: 1,
   },
   inputGroup: {
     marginBottom: 20,
   },
   label: {
-    color: 'white',
     fontSize: 16,
     fontWeight: '600',
+    color: '#FFFFFF',
     marginBottom: 8,
   },
   input: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 12,
     padding: 16,
-    color: 'white',
     fontSize: 16,
+    color: '#FFFFFF',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   submitButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    padding: 18,
+    padding: 16,
     alignItems: 'center',
     marginTop: 10,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    marginBottom: 15,
   },
-  submitButtonDisabled: {
-    opacity: 0.7,
+  disabledButton: {
+    opacity: 0.6,
   },
   submitButtonText: {
+    fontSize: 18,
+    fontWeight: '700',
     color: '#FF6B35',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  disclaimer: {
-    color: 'rgba(255, 255, 255, 0.7)',
-    fontSize: 12,
-    textAlign: 'center',
-    marginTop: 16,
-    lineHeight: 16,
-  },
-  featuresContainer: {
-    marginTop: 20,
-  },
-  featuresTitle: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  featuresList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  feature: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '48%',
-    marginBottom: 12,
-  },
-  featureIcon: {
-    fontSize: 20,
-    marginRight: 8,
-  },
-  featureText: {
-    color: 'rgba(255, 255, 255, 0.9)',
-    fontSize: 14,
-    fontWeight: '500',
   },
 });
 

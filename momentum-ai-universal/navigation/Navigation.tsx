@@ -7,18 +7,20 @@ import { useTheme } from '../components/ThemeProvider';
 
 // Import screens
 import DuolingoHomeScreen from '../screens/DuolingoHomeScreen';
-import CheckInScreen from '../screens/CheckInScreen';
-import AICoachScreen from '../screens/AICoachScreen';
+import { CheckInScreen } from '../screens/CheckInScreen';
+import { AICoachScreen } from '../screens/AICoachScreen';
 import InsightsScreen from '../screens/InsightsScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import ReflectionScreen from '../screens/ReflectionScreen';
 import GoalsScreen from '../screens/GoalsScreen';
 import XPProgressScreen from '../screens/XPProgressScreen';
+import EditProfileScreen from '../screens/EditProfileScreen';
+import CoachPersonalityScreen from '../screens/CoachPersonalityScreen';
+import TestCoachScreen from '../screens/TestCoachScreen';
+import MemorySettingsScreen from '../screens/MemorySettingsScreen';
 import LeaderboardScreen from '../screens/LeaderboardScreen';
 import { PrivacyPolicyScreen } from '../screens/PrivacyPolicyScreen';
 import { DataUsageScreen } from '../screens/DataUsageScreen';
-import { MemorySettingsScreen } from '../screens/MemorySettingsScreen';
-import { EditProfileScreen } from '../screens/EditProfileScreen';
 import { PlanCreatorScreen } from '../screens/PlanCreatorScreen';
 import { DailyCoachingScreen } from '../screens/DailyCoachingScreen';
 import { ProgressAnalyticsScreen } from '../screens/ProgressAnalyticsScreen';
@@ -139,10 +141,15 @@ function MainStack() {
       }}
     >
       <Stack.Screen name="MainTabs" component={MainTabs} />
+      <Stack.Screen name="Goals" component={GoalsScreen} />
+      <Stack.Screen name="XPProgress" component={XPProgressScreen} />
+      <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+      <Stack.Screen name="CoachPersonality" component={CoachPersonalityScreen} />
+      <Stack.Screen name="TestCoach" component={TestCoachScreen} />
+      <Stack.Screen name="MemorySettings" component={MemorySettingsScreen} />
       <Stack.Screen name="PlanCreator" component={PlanCreatorScreen} />
       <Stack.Screen name="DailyCoaching" component={DailyCoachingScreen} />
       <Stack.Screen name="ProgressAnalytics" component={ProgressAnalyticsScreen} />
-      <Stack.Screen name="MemorySettings" component={MemorySettingsScreen} />
       <Stack.Screen name="MemoryUsage" component={MemoryUsageScreen} />
       <Stack.Screen name="PrivacySettings" component={PrivacySettingsScreen} />
       <Stack.Screen name="TermsOfService" component={TermsOfServiceScreen} />

@@ -1,0 +1,34 @@
+[
+  {
+    "id": 0,
+    "text": "I had a great workout today, feeling energized and motivated!",
+    "timestamp": "2025-07-08T18:04:48.830159",
+    "user_id": "user1",
+    "data_type": "checkin",
+    "mood": "positive"
+  },
+  {
+    "id": 1,
+    "text": "Struggling with motivation lately, need to get back on track",
+    "timestamp": "2025-07-08T18:04:48.902262",
+    "user_id": "user1",
+    "data_type": "reflection",
+    "mood": "low"
+  },
+  {
+    "id": 2,
+    "text": "My goal is to exercise 5 times a week and eat healthier",
+    "timestamp": "2025-07-08T18:04:48.963549",
+    "user_id": "user1",
+    "data_type": "goal",
+    "category": "fitness"
+  },
+  {
+    "id": 3,
+    "text": "Completed my morning meditation, feeling calm and focused",
+    "timestamp": "2025-07-08T18:04:48.997005",
+    "user_id": "user1",
+    "data_type": "activity",
+    "category": "wellness"
+  }
+]

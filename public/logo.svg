@@ -1,0 +1,28 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF8A00;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FF4757;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="arrowGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FFFFFF;stop-opacity:0.9" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Rounded rectangle background -->
+  <rect width="512" height="512" rx="120" ry="120" fill="url(#bgGradient)" />
+  
+  <!-- Letter M -->
+  <path d="M 120 160 L 120 400 L 170 400 L 170 260 L 230 360 L 282 360 L 342 260 L 342 400 L 392 400 L 392 160 L 320 160 L 256 280 L 192 160 Z" 
+        fill="white" />
+  
+  <!-- Arrow element -->
+  <path d="M 340 280 L 380 240 L 340 200 L 350 190 L 400 240 L 350 290 Z" 
+        fill="url(#arrowGradient)" />
+  <rect x="300" y="235" width="80" height="10" fill="url(#arrowGradient)" />
+  
+  <!-- Momentum line -->
+  <path d="M 340 320 L 370 290 L 340 260" 
+        stroke="url(#arrowGradient)" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+</svg> 

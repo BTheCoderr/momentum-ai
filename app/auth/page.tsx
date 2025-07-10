@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -31,168 +32,221 @@ export default function AuthPage() {
     try {
       setLoading(true);
       
-      // Generate a unique user ID
-      const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
-      const userData = {
-        id: userId,
-        name: formData.name || formData.email.split('@')[0],
-        email: formData.email,
-        phone: formData.phone,
-        primaryGoal: formData.primaryGoal,
-        createdAt: new Date().toISOString(),
-        streak: 0,
-        totalCheckins: 0,
-        goalsCompleted: 0,
-      };
+      if (isLogin) {
+        // Sign in with Supabase
+        const { data, error } = await supabase.auth.signInWithOtp({
+          email: formData.email,
+          options: {
+            emailRedirectTo: `${window.location.origin}/dashboard`
+          }
+        });
 
-      // Store user data locally
-      localStorage.setItem('userData', JSON.stringify(userData));
-      localStorage.setItem('isAuthenticated', 'true');
+        if (error) {
+          throw error;
+        }
+
+        alert('Check your email for the login link!');
+      } else {
+        // Sign up with Supabase
+        const { data, error } = await supabase.auth.signUp({
+          email: formData.email,
+          password: 'temporary-password-' + Math.random().toString(36),
+          options: {
+            emailRedirectTo: `${window.location.origin}/dashboard`,
+            data: {
+              name: formData.name,
+              phone: formData.phone,
+              primaryGoal: formData.primaryGoal,
+            }
+          }
+        });
+
+        if (error) {
+          throw error;
+        }
+
+        alert('Check your email to verify your account!');
+      }
       
-      // Redirect to main app
-      router.push('/');
-      
-    } catch (error) {
+    } catch (error: any) {
       console.error('Auth error:', error);
-      alert('Something went wrong. Please try again.');
+      alert(error.message || 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md"
-      >
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="text-6xl mb-4">🎯</div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Momentum AI</h1>
-          <p className="text-gray-600">
-            {isLogin ? 'Welcome back!' : 'Start your accountability journey'}
-          </p>
-        </div>
-
-        {/* Form */}
-        <motion.form
-          onSubmit={handleAuth}
-          className="bg-white rounded-2xl shadow-xl p-8 space-y-6"
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.1 }}
-        >
-          {!isLogin && (
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Name
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
-                placeholder="Enter your name"
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-100">
+      {/* Mobile-style Header with Consistent Logo */}
+      <div className="bg-gradient-to-br from-orange-500 via-orange-600 to-red-500 px-6 pt-16 pb-12 rounded-b-3xl shadow-xl">
+        <div className="text-center">
+          <div className="flex items-center justify-center mb-6">
+            <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-lg overflow-hidden">
+              <img 
+                src="/images/icon.png"
+                alt="Momentum AI"
+                className="w-12 h-12 rounded-full"
               />
             </div>
-          )}
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Email
-            </label>
-            <input
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({...formData, email: e.target.value})}
-              placeholder="Enter your email"
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-              required
-            />
           </div>
+          <h1 className="text-white text-3xl font-bold mb-2">Momentum AI</h1>
+          <span className="bg-white/20 text-white text-sm px-3 py-1 rounded-full font-medium backdrop-blur">
+            BETA
+          </span>
+          <p className="text-white/90 text-lg mt-4">
+            {isLogin ? 'Welcome back!' : 'Start your journey to greatness'}
+          </p>
+        </div>
+      </div>
 
-          {!isLogin && (
-            <>
+      {/* Main Content */}
+      <div className="px-6 -mt-8 relative z-10">
+        {/* Auth Form Card */}
+        <div className="bg-white rounded-3xl shadow-2xl p-8 mb-6 border border-orange-100">
+          <form onSubmit={handleAuth} className="space-y-6">
+            {!isLogin && (
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Phone (Optional)
+                <label className="block text-sm font-bold text-gray-800 mb-2">
+                  What's your name?
                 </label>
                 <input
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                  placeholder="Enter your phone number"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  placeholder="Enter your name"
+                  className="w-full px-6 py-4 border-2 border-gray-200 rounded-2xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all text-lg font-medium bg-gray-50 focus:bg-white"
                 />
               </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Primary Goal
-                </label>
-                <textarea
-                  value={formData.primaryGoal}
-                  onChange={(e) => setFormData({...formData, primaryGoal: e.target.value})}
-                  placeholder="What's your main goal?"
-                  rows={3}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
-                />
-              </div>
-            </>
-          )}
-
-          <motion.button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-gradient-to-r from-blue-500 to-purple-500 text-white font-semibold py-3 px-6 rounded-xl hover:from-blue-600 hover:to-purple-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            whileTap={{ scale: 0.98 }}
-          >
-            {loading ? (
-              <div className="flex items-center justify-center">
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                Processing...
-              </div>
-            ) : (
-              isLogin ? 'Sign In' : 'Create Account'
             )}
-          </motion.button>
 
-          <button
-            type="button"
-            onClick={() => setIsLogin(!isLogin)}
-            className="w-full text-blue-500 hover:text-blue-600 font-medium transition-colors"
-          >
-            {isLogin 
-              ? "Don't have an account? Sign up" 
-              : "Already have an account? Sign in"
-            }
-          </button>
-        </motion.form>
+            <div>
+              <label className="block text-sm font-bold text-gray-800 mb-2">
+                Email Address
+              </label>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({...formData, email: e.target.value})}
+                placeholder="Enter your email"
+                className="w-full px-6 py-4 border-2 border-gray-200 rounded-2xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all text-lg font-medium bg-gray-50 focus:bg-white"
+                required
+              />
+            </div>
 
-        {/* Features */}
-        <motion.div
-          className="flex justify-around mt-8 text-center"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-        >
-          <div>
-            <div className="text-2xl mb-2">🤖</div>
-            <div className="text-sm text-gray-600">AI-Powered<br/>Coaching</div>
+            {!isLogin && (
+              <>
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-2">
+                    Phone Number (Optional)
+                  </label>
+                  <input
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                    placeholder="Enter your phone number"
+                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-2xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all text-lg font-medium bg-gray-50 focus:bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-2">
+                    What's your main goal? 🎯
+                  </label>
+                  <textarea
+                    value={formData.primaryGoal}
+                    onChange={(e) => setFormData({...formData, primaryGoal: e.target.value})}
+                    placeholder="I want to..."
+                    rows={3}
+                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-2xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all text-lg font-medium bg-gray-50 focus:bg-white resize-none"
+                  />
+                </div>
+              </>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold py-5 px-8 rounded-2xl hover:from-orange-600 hover:to-red-600 transition-all duration-200 shadow-lg hover:shadow-xl text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? (
+                <div className="flex items-center justify-center">
+                  <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin mr-3"></div>
+                  {isLogin ? 'Sending magic link...' : 'Creating your account...'}
+                </div>
+              ) : (
+                <div className="flex items-center justify-center">
+                  <span className="mr-2">{isLogin ? '🚀' : '✨'}</span>
+                  {isLogin ? 'Sign In & Start Building Momentum' : 'Create Account & Get Started'}
+                </div>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsLogin(!isLogin)}
+              className="w-full text-orange-600 hover:text-orange-700 font-bold text-lg transition-colors py-2"
+            >
+              {isLogin 
+                ? "New here? Create your account" 
+                : "Already have an account? Sign in"
+              }
+            </button>
+          </form>
+        </div>
+
+        {/* Features Preview - Duolingo Style */}
+        <div className="grid grid-cols-3 gap-4 mb-8">
+          <div className="bg-white rounded-2xl p-6 shadow-lg border border-orange-100 text-center">
+            <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <span className="text-2xl">🤖</span>
+            </div>
+            <div className="text-sm font-bold text-gray-800">AI Coach</div>
+            <div className="text-xs text-gray-600 mt-1">Personal guidance</div>
           </div>
-          <div>
-            <div className="text-2xl mb-2">📊</div>
-            <div className="text-sm text-gray-600">Progress<br/>Tracking</div>
+          
+          <div className="bg-white rounded-2xl p-6 shadow-lg border border-orange-100 text-center">
+            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <span className="text-2xl">📊</span>
+            </div>
+            <div className="text-sm font-bold text-gray-800">Progress</div>
+            <div className="text-xs text-gray-600 mt-1">Track everything</div>
           </div>
-          <div>
-            <div className="text-2xl mb-2">🎯</div>
-            <div className="text-sm text-gray-600">Goal<br/>Management</div>
+          
+          <div className="bg-white rounded-2xl p-6 shadow-lg border border-orange-100 text-center">
+            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <span className="text-2xl">🔥</span>
+            </div>
+            <div className="text-sm font-bold text-gray-800">Streaks</div>
+            <div className="text-xs text-gray-600 mt-1">Stay motivated</div>
           </div>
-        </motion.div>
-      </motion.div>
+        </div>
+
+        {/* Social Proof */}
+        <div className="bg-white rounded-3xl shadow-lg p-8 mb-6 border border-orange-100">
+          <div className="text-center">
+            <div className="flex justify-center mb-4">
+              <div className="flex -space-x-2">
+                <div className="w-12 h-12 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">
+                  A
+                </div>
+                <div className="w-12 h-12 bg-gradient-to-r from-green-400 to-blue-500 rounded-full flex items-center justify-center text-white font-bold">
+                  M
+                </div>
+                <div className="w-12 h-12 bg-gradient-to-r from-pink-400 to-red-500 rounded-full flex items-center justify-center text-white font-bold">
+                  S
+                </div>
+              </div>
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">
+              Join thousands building momentum
+            </h3>
+            <p className="text-gray-600 text-sm">
+              Over 10k+ users have achieved their goals with AI-powered coaching
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 } 

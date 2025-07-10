@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
-import { Defs, LinearGradient, Stop } from 'react-native-svg';
 
 interface MomentumLogoProps {
   size?: 'small' | 'medium' | 'large';
@@ -11,7 +10,7 @@ interface MomentumLogoProps {
 export const MomentumLogo: React.FC<MomentumLogoProps> = ({ 
   size = 'medium', 
   showText = true, 
-  color = '#007AFF' 
+  color = '#FF6B35' 
 }) => {
   const sizeConfig = {
     small: { logoSize: 32, textSize: 16 },
@@ -27,18 +26,23 @@ export const MomentumLogo: React.FC<MomentumLogoProps> = ({
         { 
           width: sizeConfig.logoSize, 
           height: sizeConfig.logoSize,
-          backgroundColor: color,
+          backgroundColor: '#FF6B35',
         }
       ]}>
-        <Image 
-          source={require('../assets/icon.png')} 
-          style={{
-            width: sizeConfig.logoSize * 0.8,
-            height: sizeConfig.logoSize * 0.8,
-            borderRadius: 6
-          }}
-          resizeMode="contain"
-        />
+        <View style={styles.logoContent}>
+          <Text style={[
+            styles.logoText,
+            { fontSize: sizeConfig.logoSize * 0.3 }
+          ]}>
+            M
+          </Text>
+          <Text style={[
+            styles.logoSubText,
+            { fontSize: sizeConfig.logoSize * 0.15 }
+          ]}>
+            AI
+          </Text>
+        </View>
       </View>
       
       {/* App Name */}
@@ -76,8 +80,20 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  logoContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   logoText: {
     fontWeight: 'bold',
+    color: 'white',
+    textAlign: 'center',
+  },
+  logoSubText: {
+    fontWeight: '600',
+    color: 'white',
+    textAlign: 'center',
+    marginTop: -2,
   },
   appName: {
     fontWeight: '600',

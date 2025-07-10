@@ -1,362 +1,160 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  StyleSheet,
-  SafeAreaView,
-  StatusBar,
-  Alert,
-  ActivityIndicator,
-  Vibration,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { checkinServices, userStatsServices, getXPFromCheckIn, updateUserXP, showToast } from '../lib/services';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useTheme } from '../components/ThemeProvider';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity } from 'react-native';
+import { checkinServices } from '../lib/services';
+import { LoadingState } from '../components/LoadingState';
+import { showToast } from '../lib/utils';
+import { useAuth } from '../hooks/useAuth';
+import { MoodPicker } from '../components/MoodPicker';
+import { EnergyPicker } from '../components/EnergyPicker';
+import { StressPicker } from '../components/StressPicker';
 
-const CheckInScreen = ({ navigation }: any) => {
-  const { theme } = useTheme();
-  const [mood, setMood] = useState(3);
-  const [energy, setEnergy] = useState(3);
-  const [stress, setStress] = useState(3);
-  const [wins, setWins] = useState('');
-  const [challenges, setChallenges] = useState('');
-  const [reflection, setReflection] = useState('');
-  const [priorities, setPriorities] = useState('');
+interface CheckInScreenProps {
+  navigation: any;
+}
+
+export const CheckInScreen: React.FC<CheckInScreenProps> = ({ navigation }) => {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-
-  const moodEmojis = ['😔', '😕', '😐', '🙂', '😊'];
-  const energyEmojis = ['🔋', '🪫', '⚡', '🔥', '⭐'];
-  const stressEmojis = ['😌', '😐', '😰', '😫', '🤯'];
+  const [checkinData, setCheckinData] = useState({
+    mood: 3,
+    energy: 3,
+    stress: 3,
+    wins: '',
+    challenges: '',
+    reflection: '',
+    priorities: []
+  });
 
   const handleSubmit = async () => {
-    if (!wins.trim() || !priorities.trim()) {
-      Alert.alert('Missing Information', 'Please share at least your wins and priorities for tomorrow.');
+    if (!user) {
+      showToast('Please sign in to submit a check-in');
       return;
     }
 
+    setLoading(true);
     try {
-      setLoading(true);
-      
-      // Get current user
-      const userId = await AsyncStorage.getItem('userId') || 'demo-user';
-      
-      const checkInData = {
-        user_id: userId,
-        date: new Date().toISOString(),
-        mood,
-        energy,
-        stress,
-        wins: wins.trim(),
-        challenges: challenges.trim(),
-        reflection: reflection.trim(),
-        priorities: priorities.trim(),
+      const data = {
+        ...checkinData,
+        date: new Date().toISOString()
       };
-      
-      // Submit check-in
-      const result = await checkinServices.create(checkInData);
-      
-      if (!result) {
-        throw new Error('Failed to create check-in');
-      }
-      
-      // Update user stats
-      const stats = await userStatsServices.update(userId);
-      
-      // Calculate XP reward based on current streak
-      const currentStreak = stats?.current_streak || 0;
-      const xpGained = getXPFromCheckIn(currentStreak);
-      
-      // Update XP
-      const xpResult = await updateUserXP(userId, xpGained, 'Daily Check-in');
-      
-      // Haptic feedback
-      Vibration.vibrate(100);
-      
-      // Show success with XP
-      Alert.alert(
-        'Check-in Complete! 🎉',
-        `Great job! You earned ${xpGained} XP${xpResult.leveledUp ? ' and leveled up! 🆙' : ''}`,
-        [
-          {
-            text: 'Awesome!',
-            onPress: () => navigation.goBack()
-          }
-        ]
-      );
-      
+
+      await checkinServices.create(user.id, data);
+      showToast('Check-in submitted successfully!');
+      navigation.goBack(); // Go back to the previous screen instead of navigating to 'Home'
     } catch (error) {
-      console.error('Check-in submission error:', error);
-      Alert.alert(
-        'Error',
-        'Unable to submit check-in right now. Your progress has been saved locally.',
-        [
-          {
-            text: 'Try Again',
-            onPress: handleSubmit
-          },
-          {
-            text: 'Save & Exit',
-            onPress: () => {
-              // Save to AsyncStorage for later sync
-              AsyncStorage.setItem('pendingCheckIn', JSON.stringify({
-                date: new Date().toISOString(),
-                data: { mood, energy, stress, wins, challenges, reflection, priorities }
-              }));
-              navigation.goBack();
-            }
-          }
-        ]
-      );
+      console.error('Error submitting check-in:', error);
+      showToast('Error submitting check-in');
     } finally {
       setLoading(false);
     }
   };
 
-  const ScaleSelector = ({ 
-    title, 
-    value, 
-    onChange, 
-    emojis, 
-    labels 
-  }: {
-    title: string;
-    value: number;
-    onChange: (val: number) => void;
-    emojis: string[];
-    labels: string[];
-  }) => (
-    <View style={styles.scaleContainer}>
-      <Text style={[styles.scaleTitle, { color: theme.colors.text }]}>{title}</Text>
-      <View style={styles.scaleOptions}>
-        {[1, 2, 3, 4, 5].map((num) => (
-          <TouchableOpacity
-            key={num}
-            style={[
-              styles.scaleOption,
-              { backgroundColor: theme.colors.surface },
-              value === num && { backgroundColor: theme.colors.primary },
-            ]}
-            onPress={() => onChange(num)}
-          >
-            <Text style={styles.scaleEmoji}>{emojis[num - 1]}</Text>
-            <Text style={[
-              styles.scaleLabel,
-              { color: theme.colors.text },
-              value === num && { color: theme.colors.background },
-            ]}>
-              {labels[num - 1]}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </View>
-  );
+  if (loading) {
+    return <LoadingState />;
+  }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <StatusBar barStyle={theme.dark ? "light-content" : "dark-content"} />
-      
-      <LinearGradient
-        colors={[theme.colors.primary, theme.colors.secondary]}
-        style={styles.header}
+    <ScrollView style={styles.container}>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>How are you feeling?</Text>
+        <MoodPicker
+          value={checkinData.mood}
+          onChange={(value) => setCheckinData(prev => ({ ...prev, mood: value }))}
+        />
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Energy Level</Text>
+        <EnergyPicker
+          value={checkinData.energy}
+          onChange={(value) => setCheckinData(prev => ({ ...prev, energy: value }))}
+        />
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Stress Level</Text>
+        <StressPicker
+          value={checkinData.stress}
+          onChange={(value) => setCheckinData(prev => ({ ...prev, stress: value }))}
+        />
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Today's Wins</Text>
+        <TextInput
+          style={styles.textInput}
+          multiline
+          value={checkinData.wins}
+          onChangeText={(text) => setCheckinData(prev => ({ ...prev, wins: text }))}
+          placeholder="What went well today?"
+        />
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Challenges</Text>
+        <TextInput
+          style={styles.textInput}
+          multiline
+          value={checkinData.challenges}
+          onChangeText={(text) => setCheckinData(prev => ({ ...prev, challenges: text }))}
+          placeholder="What challenges did you face?"
+        />
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Reflection</Text>
+        <TextInput
+          style={styles.textInput}
+          multiline
+          value={checkinData.reflection}
+          onChangeText={(text) => setCheckinData(prev => ({ ...prev, reflection: text }))}
+          placeholder="Any thoughts or reflections?"
+        />
+      </View>
+
+      <TouchableOpacity
+        style={styles.submitButton}
+        onPress={handleSubmit}
+        disabled={loading}
       >
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={[styles.backButtonText, { color: theme.colors.text }]}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Daily Check-In</Text>
-        <View style={styles.placeholder} />
-      </LinearGradient>
-
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <ScaleSelector
-          title="How are you feeling today?"
-          value={mood}
-          onChange={setMood}
-          emojis={moodEmojis}
-          labels={['Terrible', 'Bad', 'Okay', 'Good', 'Amazing']}
-        />
-
-        <ScaleSelector
-          title="What's your energy level?"
-          value={energy}
-          onChange={setEnergy}
-          emojis={energyEmojis}
-          labels={['Drained', 'Low', 'Moderate', 'High', 'Energized']}
-        />
-
-        <ScaleSelector
-          title="How stressed do you feel?"
-          value={stress}
-          onChange={setStress}
-          emojis={stressEmojis}
-          labels={['Relaxed', 'Calm', 'Tense', 'Stressed', 'Overwhelmed']}
-        />
-
-        <View style={styles.textSection}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>🏆 Today's Wins</Text>
-          <Text style={[styles.sectionSubtitle, { color: theme.colors.textSecondary }]}>What went well today?</Text>
-          <TextInput
-            style={[styles.textInput, { 
-              backgroundColor: theme.colors.surface,
-              color: theme.colors.text,
-              borderColor: theme.colors.border
-            }]}
-            value={wins}
-            onChangeText={setWins}
-            placeholder="• Completed morning workout&#10;• Had a great meeting&#10;• Tried something new"
-            placeholderTextColor={theme.colors.textSecondary}
-            multiline
-            textAlignVertical="top"
-          />
-        </View>
-
-        <View style={styles.textSection}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>🤔 Challenges</Text>
-          <Text style={[styles.sectionSubtitle, { color: theme.colors.textSecondary }]}>What was difficult today?</Text>
-          <TextInput
-            style={[styles.textInput, { 
-              backgroundColor: theme.colors.surface,
-              color: theme.colors.text,
-              borderColor: theme.colors.border
-            }]}
-            value={challenges}
-            onChangeText={setChallenges}
-            placeholder="• Felt distracted during work&#10;• Skipped lunch again&#10;• Procrastinated on important task"
-            placeholderTextColor={theme.colors.textSecondary}
-            multiline
-            textAlignVertical="top"
-          />
-        </View>
-
-        <View style={styles.textSection}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>📝 Tomorrow's Priorities</Text>
-          <Text style={[styles.sectionSubtitle, { color: theme.colors.textSecondary }]}>What do you want to focus on?</Text>
-          <TextInput
-            style={[styles.textInput, { 
-              backgroundColor: theme.colors.surface,
-              color: theme.colors.text,
-              borderColor: theme.colors.border
-            }]}
-            value={priorities}
-            onChangeText={setPriorities}
-            placeholder="• Complete project presentation&#10;• Exercise for 30 minutes&#10;• Call mom"
-            placeholderTextColor={theme.colors.textSecondary}
-            multiline
-            textAlignVertical="top"
-          />
-        </View>
-
-        <TouchableOpacity
-          style={[
-            styles.submitButton,
-            { backgroundColor: theme.colors.primary },
-            loading && { opacity: 0.7 }
-          ]}
-          onPress={handleSubmit}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <Text style={styles.submitButtonText}>Complete Check-In</Text>
-          )}
-        </TouchableOpacity>
-      </ScrollView>
-    </SafeAreaView>
+        <Text style={styles.submitButtonText}>Submit Check-in</Text>
+      </TouchableOpacity>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#fff',
+    padding: 15,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-  },
-  backButton: {
-    padding: 8,
-  },
-  backButtonText: {
-    fontSize: 16,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  placeholder: {
-    width: 50,
-  },
-  scrollView: {
-    flex: 1,
-    padding: 16,
-  },
-  scaleContainer: {
-    marginBottom: 24,
-  },
-  scaleTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 12,
-  },
-  scaleOptions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  scaleOption: {
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 12,
-    flex: 1,
-    marginHorizontal: 4,
-  },
-  scaleEmoji: {
-    fontSize: 24,
-    marginBottom: 4,
-  },
-  scaleLabel: {
-    fontSize: 12,
-    textAlign: 'center',
-  },
-  textSection: {
-    marginBottom: 24,
+  section: {
+    marginBottom: 20,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  sectionSubtitle: {
-    fontSize: 14,
-    marginBottom: 8,
+    fontWeight: 'bold',
+    marginBottom: 10,
   },
   textInput: {
-    height: 100,
-    padding: 12,
-    borderRadius: 12,
     borderWidth: 1,
-    fontSize: 16,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 10,
+    minHeight: 100,
+    textAlignVertical: 'top',
   },
   submitButton: {
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: '#007AFF',
+    padding: 15,
+    borderRadius: 8,
     alignItems: 'center',
-    marginVertical: 24,
+    marginVertical: 20,
   },
   submitButtonText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '600',
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
-});
-
-export default CheckInScreen; 
+}); 

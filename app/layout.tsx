@@ -14,49 +14,49 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'),
-  title: "Momentum AI - Your AI Accountability Agent",
-  description: "Stay emotionally connected to your goals with AI-powered accountability. Momentum AI predicts when you'll drift and intervenes proactively.",
-  keywords: "AI, accountability, goals, productivity, habits, coaching, motivation",
-  authors: [{ name: "Momentum AI Team" }],
-  creator: "Momentum AI",
-  publisher: "Momentum AI",
-  formatDetection: {
-    email: false,
-    address: false,
-    telephone: false,
+  title: 'Momentum AI - AI-Powered Habit & Goal Coaching',
+  description: 'Transform your life with AI-powered coaching, habit tracking, and personalized insights. Build lasting momentum towards your goals.',
+  keywords: ['AI coaching', 'habit tracking', 'goal setting', 'personal development', 'productivity'],
+  authors: [{ name: 'Momentum AI Team' }],
+  creator: 'Momentum AI',
+  publisher: 'Momentum AI',
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://momentum-ai.vercel.app'),
+  alternates: {
+    canonical: '/',
+    languages: {
+      'en-US': '/en-US',
+    },
   },
   icons: {
     icon: [
-      { url: '/images/momentum-logo.svg', type: 'image/svg+xml' },
-      { url: '/favicon.ico', sizes: '32x32' }
+      { url: '/images/favicon.png', type: 'image/png' },
+      { url: '/images/icon.png', type: 'image/png', sizes: '512x512' },
     ],
     apple: [
-      { url: '/images/momentum-logo.svg', sizes: '180x180', type: 'image/svg+xml' }
+      { url: '/images/icon.png', sizes: '180x180', type: 'image/png' }
+    ],
+    other: [
+      {
+        rel: 'apple-touch-icon-precomposed',
+        url: '/images/icon.png',
+      },
     ],
   },
   openGraph: {
-    title: "Momentum AI - Your AI Accountability Agent",
-    description: "Stay emotionally connected to your goals with AI-powered accountability.",
-    url: "https://momentum-ai.com",
-    siteName: "Momentum AI",
-    images: [
-      {
-        url: "/images/momentum-logo.svg",
-        width: 1200,
-        height: 630,
-        alt: "Momentum AI Logo",
-      },
-    ],
-    locale: "en_US",
-    type: "website",
+    type: 'website',
+    locale: 'en_US',
+    url: '/',
+    title: 'Momentum AI - AI-Powered Habit & Goal Coaching',
+    description: 'Transform your life with AI-powered coaching, habit tracking, and personalized insights.',
+    siteName: 'Momentum AI',
+    images: ["/images/icons/icon.png"],
   },
   twitter: {
-    card: "summary_large_image",
-    title: "Momentum AI - Your AI Accountability Agent",
-    description: "Stay emotionally connected to your goals with AI-powered accountability.",
-    images: ["/images/momentum-logo.svg"],
-    creator: "@momentum_ai",
+    card: 'summary_large_image',
+    title: 'Momentum AI - AI-Powered Habit & Goal Coaching',
+    description: 'Transform your life with AI-powered coaching, habit tracking, and personalized insights.',
+    images: ["/images/icons/icon.png"],
+    creator: '@momentum_ai',
   },
   robots: {
     index: true,
@@ -69,6 +69,9 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
+  verification: {
+    google: 'your-google-verification-code',
+  },
 };
 
 export default function RootLayout({
@@ -79,11 +82,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link rel="icon" href="/images/momentum-logo.svg" type="image/svg+xml" />
-        <link rel="alternate icon" href="/favicon.ico" />
-        <link rel="apple-touch-icon" href="/images/momentum-logo.svg" />
+        <link rel="icon" href="/images/favicon.png" type="image/png" />
+        <link rel="alternate icon" href="/images/icon.png" />
+        <link rel="apple-touch-icon" href="/images/icon.png" />
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#4F46E5" />
+        <meta name="theme-color" content="#ff6b35" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Momentum AI" />

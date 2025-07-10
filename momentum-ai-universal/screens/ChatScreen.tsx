@@ -13,6 +13,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { messageServices } from '../lib/services';
+import { getContextualReply, trackUserInteraction } from '../lib/rag-client';
+import universalStorage from '../lib/storage';
 import type { Message as DBMessage } from '../lib/supabase';
 
 interface Message {
@@ -21,6 +23,8 @@ interface Message {
   sender: 'user' | 'coach';
   timestamp: string;
   coachType?: CoachType;
+  context_used?: string[];
+  confidence?: number;
 }
 
 type CoachType = 'motivational' | 'analytical' | 'supportive';
@@ -63,12 +67,39 @@ export default function ChatScreen({ navigation }: any) {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedCoach, setSelectedCoach] = useState<Coach>(COACHES[0]);
   const [showCoachSelect, setShowCoachSelect] = useState(false);
+  const [userId, setUserId] = useState<string>('');
+  const [ragEnabled, setRagEnabled] = useState(true);
   
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
-    loadMessages();
+    initializeChat();
   }, []);
+
+  const initializeChat = async () => {
+    try {
+      // Get user ID
+      const storedUserId = await universalStorage.getItem('userId') || 'demo-user';
+      setUserId(storedUserId);
+      
+      // Load existing messages
+      await loadMessages();
+      
+      // Add welcome message if no messages exist
+      if (messages.length === 0) {
+        const welcomeMessage: Message = {
+          id: 'welcome',
+          text: "Hi! I'm your AI coach with memory. I remember your goals, check-ins, and progress. How can I help you today? 🚀",
+          sender: 'coach',
+          timestamp: new Date().toISOString(),
+          coachType: selectedCoach.type,
+        };
+        setMessages([welcomeMessage]);
+      }
+    } catch (error) {
+      console.error('Error initializing chat:', error);
+    }
+  };
 
   const loadMessages = async () => {
     try {
@@ -102,7 +133,57 @@ export default function ChatScreen({ navigation }: any) {
 
     try {
       setIsLoading(true);
-      const response = await messageServices.sendMessage(inputText);
+      
+      let response: string;
+      let contextUsed: string[] = [];
+      let confidence: number = 0.8;
+
+      if (ragEnabled) {
+        try {
+          // 🚀 RAG-POWERED RESPONSE with user context!
+          console.log('🧠 Getting RAG response for user:', userId);
+          
+          const ragResponse = await fetch('http://localhost:8000/chat', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              message: inputText,
+              userId: userId,
+              coachingType: selectedCoach.type,
+            }),
+          });
+
+          if (ragResponse.ok) {
+            const ragData = await ragResponse.json();
+            response = ragData.response;
+            contextUsed = ragData.context_used || [];
+            confidence = ragData.confidence || 0.8;
+            
+            console.log('✅ RAG Response received:', {
+              response_length: response.length,
+              context_types: contextUsed,
+              confidence: confidence
+            });
+            
+            // Track this interaction for future context
+            await trackUserInteraction(userId, 'checkin', inputText);
+            
+          } else {
+            throw new Error('RAG service unavailable');
+          }
+        } catch (ragError) {
+          console.log('⚠️ RAG failed, falling back to regular service:', ragError);
+          // Fallback to existing service
+          response = await messageServices.sendMessage(inputText);
+          contextUsed = [];
+          confidence = 0.6;
+        }
+      } else {
+        // Use existing service
+        response = await messageServices.sendMessage(inputText);
+      }
       
       const coachMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -110,12 +191,25 @@ export default function ChatScreen({ navigation }: any) {
         sender: 'coach',
         timestamp: new Date().toISOString(),
         coachType: selectedCoach.type,
+        context_used: contextUsed,
+        confidence: confidence,
       };
 
       setMessages(prev => [...prev, coachMessage]);
       flatListRef.current?.scrollToEnd();
     } catch (error) {
       console.error('Error sending message:', error);
+      
+      // Ultimate fallback
+      const fallbackMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: "I'm here to support you! Tell me more about what's on your mind today. 💪",
+        sender: 'coach',
+        timestamp: new Date().toISOString(),
+        coachType: selectedCoach.type,
+      };
+      
+      setMessages(prev => [...prev, fallbackMessage]);
     } finally {
       setIsLoading(false);
     }
@@ -131,6 +225,20 @@ export default function ChatScreen({ navigation }: any) {
       )}
       <View style={styles.messageContent}>
         <Text style={styles.messageText}>{item.text}</Text>
+        
+        {/* Show RAG context info for coach messages */}
+        {item.sender === 'coach' && item.context_used && item.context_used.length > 0 && (
+          <Text style={styles.contextInfo}>
+            📊 Context: {item.context_used.join(', ')}
+          </Text>
+        )}
+        
+        {item.sender === 'coach' && item.confidence && (
+          <Text style={styles.confidenceInfo}>
+            🎯 Confidence: {(item.confidence * 100).toFixed(0)}%
+          </Text>
+        )}
+        
         <Text style={styles.timestamp}>
           {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </Text>
@@ -141,12 +249,12 @@ export default function ChatScreen({ navigation }: any) {
   const renderCoachSelect = () => (
     <View style={styles.coachSelectContainer}>
       <Text style={styles.coachSelectTitle}>Choose Your Coach</Text>
-      {COACHES.map(coach => (
+      {COACHES.map((coach) => (
         <TouchableOpacity
           key={coach.type}
           style={[
             styles.coachOption,
-            selectedCoach.type === coach.type && styles.selectedCoach
+            selectedCoach.type === coach.type && styles.selectedCoachOption
           ]}
           onPress={() => {
             setSelectedCoach(coach);
@@ -155,12 +263,24 @@ export default function ChatScreen({ navigation }: any) {
         >
           <Text style={styles.coachOptionAvatar}>{coach.avatar}</Text>
           <View style={styles.coachOptionInfo}>
-            <Text style={styles.coachName}>{coach.name}</Text>
-            <Text style={styles.coachDescription}>{coach.description}</Text>
-            <Text style={styles.coachStyle}>Style: {coach.style}</Text>
+            <Text style={styles.coachOptionName}>{coach.name}</Text>
+            <Text style={styles.coachOptionDescription}>{coach.description}</Text>
           </View>
         </TouchableOpacity>
       ))}
+      
+      {/* RAG Toggle */}
+      <TouchableOpacity
+        style={[styles.ragToggle, ragEnabled && styles.ragToggleEnabled]}
+        onPress={() => setRagEnabled(!ragEnabled)}
+      >
+        <Text style={styles.ragToggleText}>
+          🧠 Smart Memory: {ragEnabled ? 'ON' : 'OFF'}
+        </Text>
+        <Text style={styles.ragToggleSubtext}>
+          {ragEnabled ? 'I remember your goals and progress' : 'Basic responses only'}
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 
@@ -179,6 +299,7 @@ export default function ChatScreen({ navigation }: any) {
         >
           <Text style={styles.coachButtonAvatar}>{selectedCoach.avatar}</Text>
           <Text style={styles.coachButtonText}>{selectedCoach.name}</Text>
+          {ragEnabled && <Text style={styles.ragIndicator}>🧠</Text>}
         </TouchableOpacity>
       </View>
 
@@ -202,7 +323,7 @@ export default function ChatScreen({ navigation }: any) {
           >
             <TextInput
               style={styles.input}
-              placeholder="Type your message..."
+              placeholder={ragEnabled ? "I remember your goals and progress..." : "Type your message..."}
               value={inputText}
               onChangeText={setInputText}
               multiline
@@ -248,7 +369,7 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 16,
-    color: '#007AFF',
+    color: '#FF6B35',
   },
   coachButton: {
     flexDirection: 'row',
@@ -264,6 +385,71 @@ const styles = StyleSheet.create({
   coachButtonText: {
     fontSize: 14,
     fontWeight: '500',
+  },
+  ragIndicator: {
+    fontSize: 16,
+    marginLeft: 6,
+  },
+  coachSelectContainer: {
+    padding: 16,
+    backgroundColor: '#fff',
+    flex: 1,
+  },
+  coachSelectTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    color: '#333',
+  },
+  coachOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: '#f9f9f9',
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  selectedCoachOption: {
+    backgroundColor: '#FF6B35',
+  },
+  coachOptionAvatar: {
+    fontSize: 24,
+    marginRight: 16,
+  },
+  coachOptionInfo: {
+    flex: 1,
+  },
+  coachOptionName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  coachOptionDescription: {
+    fontSize: 14,
+    color: '#666',
+  },
+  ragToggle: {
+    padding: 16,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 12,
+    marginTop: 20,
+    borderWidth: 2,
+    borderColor: '#ddd',
+  },
+  ragToggleEnabled: {
+    backgroundColor: '#e8f5e8',
+    borderColor: '#4CAF50',
+  },
+  ragToggleText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  ragToggleSubtext: {
+    fontSize: 14,
+    color: '#666',
   },
   messagesList: {
     padding: 16,
@@ -297,6 +483,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333',
   },
+  contextInfo: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 6,
+    fontStyle: 'italic',
+  },
+  confidenceInfo: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
+  },
   timestamp: {
     fontSize: 12,
     color: '#666',
@@ -321,7 +518,7 @@ const styles = StyleSheet.create({
     maxHeight: 100,
   },
   sendButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#FF6B35',
     borderRadius: 20,
     width: 60,
     alignItems: 'center',
@@ -334,50 +531,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   disabledButton: {
-    opacity: 0.5,
-  },
-  coachSelectContainer: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: '#fff',
-  },
-  coachSelectTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 16,
-  },
-  coachOption: {
-    flexDirection: 'row',
-    padding: 16,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 12,
-    marginBottom: 12,
-  },
-  selectedCoach: {
-    backgroundColor: '#e3f2fd',
-    borderColor: '#007AFF',
-    borderWidth: 2,
-  },
-  coachOptionAvatar: {
-    fontSize: 32,
-    marginRight: 16,
-  },
-  coachOptionInfo: {
-    flex: 1,
-  },
-  coachName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  coachDescription: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 4,
-  },
-  coachStyle: {
-    fontSize: 12,
-    color: '#666',
-    fontStyle: 'italic',
+    backgroundColor: '#ccc',
   },
 }); 

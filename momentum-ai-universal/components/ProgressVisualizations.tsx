@@ -11,13 +11,9 @@ interface Goal {
 }
 
 interface Stats {
-  current_streak: number;
-  best_streak: number;
-  total_checkins: number;
-  total_goals: number;
   completed_goals: number;
+  current_streak: number;
   totalXP: number;
-  level: number;
   motivationScore: number;
 }
 
@@ -29,21 +25,22 @@ interface Props {
 
 export const ProgressVisualizations = ({ goals, stats, timeframe = 'week' }: Props) => {
   const screenWidth = Dimensions.get('window').width;
+  const chartWidth = screenWidth - 24; // More width utilization
 
   const chartConfig = {
     backgroundColor: '#ffffff',
     backgroundGradientFrom: '#ffffff',
     backgroundGradientTo: '#ffffff',
     decimalPlaces: 0,
-    color: (opacity = 1) => `rgba(0, 122, 255, ${opacity})`,
+    color: (opacity = 1) => `rgba(255, 107, 53, ${opacity})`, // Orange theme
     labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
     style: {
       borderRadius: 16,
     },
     propsForDots: {
-      r: '6',
+      r: '4',
       strokeWidth: '2',
-      stroke: '#007AFF',
+      stroke: '#FF6B35',
     },
   };
 
@@ -57,15 +54,15 @@ export const ProgressVisualizations = ({ goals, stats, timeframe = 'week' }: Pro
     name,
     count,
     color: [
-      '#FF6B6B',
+      '#FF6B35',
+      '#FF8C42', 
+      '#FFB347',
       '#4ECDC4',
       '#45B7D1',
       '#96CEB4',
-      '#FFEEAD',
-      '#D4A5A5',
     ][index % 6],
     legendFontColor: '#7F7F7F',
-    legendFontSize: 12,
+    legendFontSize: 11,
   }));
 
   // Calculate progress over time
@@ -78,28 +75,29 @@ export const ProgressVisualizations = ({ goals, stats, timeframe = 'week' }: Pro
 
   // Calculate completion rate by category
   const completionData = {
-    labels: Object.keys(categoryData),
+    labels: Object.keys(categoryData).slice(0, 5), // Limit for better display
     datasets: [{
-      data: Object.values(categoryData),
+      data: Object.values(categoryData).slice(0, 5),
     }],
   };
 
   return (
     <View style={styles.container}>
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Overall Progress</Text>
+      {/* Compact Stats Grid - Full Width */}
+      <View style={styles.statsSection}>
+        <Text style={styles.sectionTitle}>Progress Overview</Text>
         <View style={styles.statsGrid}>
           <View style={styles.statCard}>
             <Text style={styles.statValue}>{stats.completed_goals}</Text>
-            <Text style={styles.statLabel}>Completed Goals</Text>
+            <Text style={styles.statLabel}>Goals</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statValue}>{stats.current_streak}</Text>
-            <Text style={styles.statLabel}>Day Streak</Text>
+            <Text style={styles.statLabel}>Streak</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statValue}>{stats.totalXP}</Text>
-            <Text style={styles.statLabel}>Total XP</Text>
+            <Text style={styles.statLabel}>XP</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statValue}>{stats.motivationScore}%</Text>
@@ -108,61 +106,57 @@ export const ProgressVisualizations = ({ goals, stats, timeframe = 'week' }: Pro
         </View>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Progress Over Time</Text>
+      {/* Compact Progress Chart - Full Width */}
+      <View style={styles.chartSection}>
+        <Text style={styles.sectionTitle}>Weekly Progress</Text>
         <LineChart
           data={progressData}
-          width={screenWidth - 32}
-          height={220}
+          width={chartWidth}
+          height={180} // Reduced height
           chartConfig={chartConfig}
           bezier
           style={styles.chart}
+          withShadow={false}
+          withInnerLines={false}
         />
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Goals by Category</Text>
-        <PieChart
-          data={pieChartData}
-          width={screenWidth - 32}
-          height={220}
-          chartConfig={chartConfig}
-          accessor="count"
-          backgroundColor="transparent"
-          paddingLeft="15"
-          style={styles.chart}
-        />
-      </View>
+      {/* Horizontal Layout for Charts */}
+      <View style={styles.horizontalChartsContainer}>
+        {/* Left: Category Distribution */}
+        <View style={styles.halfChart}>
+          <Text style={styles.smallSectionTitle}>Categories</Text>
+          <PieChart
+            data={pieChartData}
+            width={chartWidth / 2 - 8}
+            height={160}
+            chartConfig={chartConfig}
+            accessor="count"
+            backgroundColor="transparent"
+            paddingLeft="0"
+            style={styles.smallChart}
+            hasLegend={false}
+          />
+        </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Completion Rate by Category</Text>
-        <BarChart
-          data={completionData}
-          width={screenWidth - 40}
-          height={220}
-          yAxisLabel=""
-          yAxisSuffix="%"
-          chartConfig={{
-            backgroundColor: '#ffffff',
-            backgroundGradientFrom: '#ffffff',
-            backgroundGradientTo: '#ffffff',
-            decimalPlaces: 0,
-            color: (opacity = 1) => `rgba(37, 99, 235, ${opacity})`,
-            labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-            style: {
-              borderRadius: 16,
-            },
-            propsForDots: {
-              r: '6',
-              strokeWidth: '2',
-              stroke: '#FF6B35',
-            },
-          }}
-          style={{
-            marginVertical: 8,
-            borderRadius: 16,
-          }}
-        />
+        {/* Right: Completion Rate */}
+        <View style={styles.halfChart}>
+          <Text style={styles.smallSectionTitle}>Completion</Text>
+          <BarChart
+            data={completionData}
+            width={chartWidth / 2 - 8}
+            height={160}
+            yAxisLabel=""
+            yAxisSuffix=""
+            chartConfig={{
+              ...chartConfig,
+              barPercentage: 0.7,
+            }}
+            style={styles.smallChart}
+            showValuesOnTopOfBars={true}
+            withInnerLines={false}
+          />
+        </View>
       </View>
     </View>
   );
@@ -171,53 +165,86 @@ export const ProgressVisualizations = ({ goals, stats, timeframe = 'week' }: Pro
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
-    backgroundColor: '#f5f5f5',
+    padding: 12, // Reduced padding
+    backgroundColor: '#f8f9fa',
   },
-  section: {
-    marginBottom: 24,
+  statsSection: {
+    marginBottom: 16,
     backgroundColor: '#fff',
     borderRadius: 12,
-    padding: 16,
+    padding: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  chartSection: {
+    marginBottom: 16,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  horizontalChartsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  halfChart: {
+    width: '48%',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
-    marginBottom: 16,
+    marginBottom: 12,
+    color: '#1a1a1a',
+  },
+  smallSectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 8,
+    color: '#1a1a1a',
   },
   statsGrid: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     justifyContent: 'space-between',
-    marginHorizontal: -8,
   },
   statCard: {
-    width: '45%',
-    backgroundColor: '#f0f0f0',
+    flex: 1,
+    backgroundColor: '#f8f9fa',
     borderRadius: 8,
-    padding: 16,
-    marginHorizontal: 8,
-    marginBottom: 16,
+    padding: 12,
+    marginHorizontal: 2,
     alignItems: 'center',
   },
   statValue: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: 'bold',
-    color: '#007AFF',
-    marginBottom: 4,
+    color: '#FF6B35',
+    marginBottom: 2,
   },
   statLabel: {
-    fontSize: 14,
+    fontSize: 11,
     color: '#666',
     textAlign: 'center',
   },
   chart: {
-    marginVertical: 8,
-    borderRadius: 16,
+    borderRadius: 12,
+  },
+  smallChart: {
+    borderRadius: 8,
   },
 }); 

@@ -119,7 +119,6 @@ const styles = StyleSheet.create({
   },
   dataValue: {
     fontSize: 16,
-    color: '#4F46E5',
     fontWeight: '500',
   },
   infoBox: {

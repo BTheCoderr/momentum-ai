@@ -74,12 +74,8 @@ class AnalyticsService {
 
   async setUserId(userId: string) {
     this.userId = userId;
+    // Store user ID for analytics
     await universalStorage.setItem('userId', userId);
-    
-    // Update user properties
-    await this.updateUserProperties({ userId });
-    
-    this.track('user_identified', { userId });
   }
 
   async updateUserProperties(properties: Partial<UserProperties>) {
@@ -319,11 +315,6 @@ class AnalyticsService {
   logEvent(eventName: string, params?: Record<string, any>) {
     // Implementation
     console.log('Analytics event:', eventName, params);
-  }
-
-  setUserId(userId: string) {
-    // Implementation
-    console.log('Set user ID:', userId);
   }
 }
 

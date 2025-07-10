@@ -20,6 +20,7 @@ import { ThemeToggle } from '../components/ThemeToggle';
 import { notificationService, getNotificationPreferences, updateNotificationPreferences } from '../lib/notifications';
 import { setUserId } from '../lib/analytics';
 import { Ionicons } from '@expo/vector-icons';
+import universalStorage from '../lib/storage';
 
 const SettingsScreen = ({ navigation }: any) => {
   const { theme } = useTheme();
@@ -88,56 +89,32 @@ const SettingsScreen = ({ navigation }: any) => {
   );
 
   const handleSignOut = async () => {
-    let isMounted = true; // Track if component is still mounted
+    setShowSignOutModal(false);
     
     try {
       console.log('🚪 Signing out user...');
-      
-      // Close modal immediately to prevent multiple calls
-      if (isMounted) setShowSignOutModal(false);
-      
-      // Clear analytics user ID first
       setUserId('');
       
-      // Sign out from Supabase (this will trigger the auth state change)
-      const { error } = await supabase.auth.signOut();
-      
-      if (error) {
-        console.warn('Supabase sign out error (continuing anyway):', error);
-      }
-      
-      // Clear all user data from AsyncStorage
-      await AsyncStorage.multiRemove([
-        'userData',
-        'userStats',
-        'userGoals',
-        'userCheckins',
-        'userMessages',
-        'userReflections',
-        'hasSeenTutorial',
-        'isAuthenticated',
-        'user'
+      // Clear all user data from storage
+      await Promise.all([
+        AsyncStorage.clear(),
+        universalStorage.removeItem('userId'),
+        universalStorage.removeItem('isAuthenticated'),
+        universalStorage.removeItem('user')
       ]);
       
       console.log('✅ User data cleared successfully');
       
-      // Use setTimeout to ensure all state updates complete before navigation
-      setTimeout(() => {
-        if (isMounted) {
-          try {
-            // Force navigation reset to Auth screen
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'Auth' }],
-            });
+      // Use the global sign out function from App.tsx
+      // @ts-ignore
+      if (global.handleSignOut) {
+        // @ts-ignore
+        global.handleSignOut();
             console.log('✅ User signed out successfully');
-          } catch (navError) {
-            console.error('Navigation error during sign out:', navError);
-            // Fallback: try direct navigation
-            navigation.navigate('Auth');
-          }
-        }
-      }, 100);
+      } else {
+        console.error('Global sign out function not available');
+        Alert.alert('Error', 'Sign out failed. Please restart the app.');
+      }
       
     } catch (error) {
       console.error('❌ Error signing out:', error);
@@ -146,20 +123,13 @@ const SettingsScreen = ({ navigation }: any) => {
       setUserId('');
       await AsyncStorage.clear();
       
-      if (isMounted) {
-        setTimeout(() => {
-          navigation.reset({
-            index: 0,
-            routes: [{ name: 'Auth' }],
-          });
-        }, 100);
+      // Try global sign out as fallback
+      // @ts-ignore
+      if (global.handleSignOut) {
+        // @ts-ignore
+        global.handleSignOut();
       }
     }
-    
-    // Cleanup function to prevent state updates if component unmounts
-    return () => {
-      isMounted = false;
-    };
   };
 
   const confirmSignOut = () => {
@@ -370,24 +340,19 @@ const SettingsScreen = ({ navigation }: any) => {
 
         {/* AI Coach Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>AI Coach</Text>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>AI Coach</Text>
           <SettingsItem
             icon="🤖"
             title="Coach Personality"
             subtitle="Choose your preferred coaching style"
-            onPress={() => navigation.navigate('Coach')}
+            onPress={() => navigation.navigate('CoachPersonality')}
           />
           <SettingsItem
-            icon="🧠"
-            title="Memory & Context"
-            subtitle="How much the AI remembers about you"
-            onPress={() => Alert.alert('Memory Settings', 'Memory settings coming soon!')}
+            icon="💬"
+            title="Test Coach"
+            subtitle="Preview how your AI coach responds"
+            onPress={() => navigation.navigate('TestCoach')}
           />
-        </View>
-
-        {/* Memory & Context Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Memory & Context</Text>
           <SettingsItem
             icon="🧠"
             title="Memory Settings"
@@ -400,45 +365,11 @@ const SettingsScreen = ({ navigation }: any) => {
             subtitle="View memory storage details"
             onPress={() => navigation.navigate('MemoryUsage')}
           />
-          <SettingsItem
-            icon="🔄"
-            title="Reset Memory"
-            subtitle="Clear AI's memory of your data"
-            onPress={() => {
-              Alert.alert(
-                'Reset Memory',
-                'Are you sure you want to clear all AI memory? This cannot be undone.',
-                [
-                  { text: 'Cancel', style: 'cancel' },
-                  {
-                    text: 'Reset',
-                    style: 'destructive',
-                    onPress: async () => {
-                      try {
-                        const { data: { user } } = await supabase.auth.getUser();
-                        if (!user) throw new Error('No user found');
-
-                        await supabase
-                          .from('ai_memory')
-                          .delete()
-                          .eq('user_id', user.id);
-
-                        Alert.alert('Success', 'AI memory has been reset successfully!');
-                      } catch (error) {
-                        console.error('Error resetting memory:', error);
-                        Alert.alert('Error', 'Failed to reset memory. Please try again.');
-                      }
-                    },
-                  },
-                ]
-              );
-            }}
-          />
         </View>
 
-        {/* Data Export Section */}
+        {/* Data & Privacy Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Data & Privacy</Text>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Data & Privacy</Text>
           <SettingsItem
             icon="📤"
             title="Export Data"
@@ -484,7 +415,7 @@ const SettingsScreen = ({ navigation }: any) => {
 
         {/* About Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>About</Text>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>About</Text>
           <SettingsItem
             icon="ℹ️"
             title="App Version"
@@ -574,7 +505,7 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 16,
-    color: '#007AFF',
+    color: '#FF6B35',
     fontWeight: '600',
   },
   headerTitle: {
@@ -640,7 +571,7 @@ const styles = StyleSheet.create({
     fontWeight: '300',
   },
   logoutButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#FF6B35',
     borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 24,
@@ -714,7 +645,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   signOutButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#FF6B35',
   },
   signOutButtonText: {
     color: '#fff',
