@@ -1,13 +1,13 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
-import { HomeScreen } from '../screens/HomeScreen';
+import HomeScreen from '../screens/HomeScreen';
 import { CheckInScreen } from '../screens/CheckInScreen';
 import { AICoachScreen } from '../screens/AICoachScreen';
-import { InsightsScreen } from '../screens/InsightsScreen';
-import { LeaderboardScreen } from '../screens/LeaderboardScreen';
-import { SettingsScreen } from '../screens/SettingsScreen';
-import { Icon } from '../components/Icon';
+import InsightsScreen from '../screens/InsightsScreen';
+import LeaderboardScreen from '../screens/LeaderboardScreen';
+import SettingsScreen from '../screens/SettingsScreen';
+import { Text } from 'react-native';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -21,33 +21,33 @@ const TabNavigator = () => {
 
           switch (route.name) {
             case 'Home':
-              iconName = 'home';
+              iconName = '🏠';
               break;
-            case 'Check-In':
-              iconName = 'edit';
+            case 'CheckIn':
+              iconName = '📝';
               break;
             case 'Coach':
-              iconName = 'message-circle';
+              iconName = '🤖';
               break;
             case 'Insights':
-              iconName = 'bar-chart-2';
+              iconName = '💡';
               break;
             case 'Leaderboard':
-              iconName = 'award';
+              iconName = '🏆';
               break;
             case 'Settings':
-              iconName = 'settings';
+              iconName = '⚙️';
               break;
             default:
-              iconName = 'circle';
+              iconName = '•';
           }
 
-          return <Icon name={iconName} size={size} color={color} />;
+          return <Text style={{ fontSize: size, color }}>{iconName}</Text>;
         },
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Check-In" component={CheckInScreen} />
+      <Tab.Screen name="CheckIn" component={CheckInScreen} />
       <Tab.Screen name="Coach" component={AICoachScreen} />
       <Tab.Screen name="Insights" component={InsightsScreen} />
       <Tab.Screen name="Leaderboard" component={LeaderboardScreen} />

@@ -85,15 +85,12 @@ export default function DuolingoHomeScreen({ navigation }: DuolingoHomeScreenPro
 
     const generateContributionData = (): ContributionDay[] => {
       const data: ContributionDay[] = [];
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - 84); // 12 weeks * 7 days
+      const today = new Date();
+      const yesterday = new Date(today.getTime() - (24 * 60 * 60 * 1000));
 
-      for (let i = 0; i < 84; i++) {
-        const currentDate = new Date(startDate);
-        currentDate.setDate(startDate.getDate() + i);
-        
-        // Simulate activity levels (0-4)
-        const dayOfWeek = currentDate.getDay();
+      // Add yesterday and today
+      [yesterday, today].forEach((date, index) => {
+        const dayOfWeek = date.getDay();
         const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
         
         let activityLevel = 0;
@@ -106,23 +103,18 @@ export default function DuolingoHomeScreen({ navigation }: DuolingoHomeScreenPro
         }
 
         data.push({
-          date: currentDate.toISOString().split('T')[0],
+          date: date.toISOString().split('T')[0],
           level: activityLevel,
           day: dayOfWeek,
-          week: Math.floor(i / 7),
+          week: index,
         });
-      }
+      });
+
       return data;
     };
 
     const contributionData = generateContributionData();
     
-    // Group data into weeks for display
-    const weeks: ContributionDay[][] = [];
-    for (let i = 0; i < 12; i++) {
-      weeks.push(contributionData.slice(i * 7, (i + 1) * 7));
-    }
-
     const getBoxColor = (level: number): string => {
       const colors = [
         '#F0F0F0', // No activity (light gray)
@@ -135,48 +127,42 @@ export default function DuolingoHomeScreen({ navigation }: DuolingoHomeScreenPro
     };
 
     const totalContributions = contributionData.filter(d => d.level > 0).length;
-    const weeklyAverage = Math.round(totalContributions / 12);
 
     return (
       <View style={styles.contributionContainer}>
-        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Your 12-Week Progress Journey</Text>
+        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Your Progress</Text>
         
         <View style={styles.contributionGraph}>
           {/* Horizontal grid layout - more compact */}
           <View style={styles.horizontalGrid}>
-            {/* Month labels at top */}
-            <View style={styles.monthLabels}>
-              <Text style={[styles.monthLabel, { color: theme.colors.textSecondary }]}>3 months ago</Text>
-              <Text style={[styles.monthLabel, { color: theme.colors.textSecondary }]}>2 months ago</Text>
-              <Text style={[styles.monthLabel, { color: theme.colors.textSecondary }]}>1 month ago</Text>
-              <Text style={[styles.monthLabel, { color: theme.colors.textSecondary }]}>Today</Text>
+            {/* Day labels at top */}
+            <View style={styles.dayLabels}>
+              <Text style={[styles.dayLabel, { color: theme.colors.textSecondary }]}>Yesterday</Text>
+              <Text style={[styles.dayLabel, { color: theme.colors.textSecondary }]}>Today</Text>
             </View>
 
-            {/* Grid rows by day of week */}
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((dayName, dayIndex) => (
-              <View key={dayIndex} style={styles.gridRow}>
-                <Text style={[styles.dayLabelHorizontal, { color: theme.colors.textSecondary }]}>
-                  {dayName}
-                </Text>
-                <View style={styles.dayRow}>
-                  {weeks.map((week, weekIndex) => {
-                    const dayData = week.find(d => d.day === dayIndex);
-                    return (
-                      <TouchableOpacity
-                        key={weekIndex}
-                        style={[
-                          styles.contributionBoxHorizontal,
-                          {
-                            backgroundColor: dayData ? getBoxColor(dayData.level) : '#F3F4F6',
-                          },
-                        ]}
-                        activeOpacity={0.7}
-                      />
-                    );
-                  })}
-                </View>
-              </View>
-            ))}
+            {/* Activity boxes */}
+            <View style={styles.dayRow}>
+              {contributionData.map((day, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.contributionBoxHorizontal,
+                    {
+                      backgroundColor: getBoxColor(day.level),
+                      width: 100, // Make boxes larger
+                      height: 100,
+                      margin: 8,
+                    },
+                  ]}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.activityLabel, { color: theme.colors.textSecondary }]}>
+                    {day.level > 0 ? `${day.level * 25}% Active` : 'No Activity'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
           
           <View style={styles.contributionLegend}>
@@ -194,23 +180,12 @@ export default function DuolingoHomeScreen({ navigation }: DuolingoHomeScreenPro
           </View>
           
           <Text style={[styles.contributionStats, { color: theme.colors.textSecondary }]}>
-            {totalContributions} active days • {weeklyAverage} per week average
+            {totalContributions} active days in the last 2 days
           </Text>
         </View>
       </View>
     );
   };
-
-  if (loading || xpLoading) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-        <StatusBar style={theme.dark ? "light" : "dark"} />
-        <LinearGradient colors={[theme.colors.primary, theme.colors.secondary]} style={styles.loadingContainer}>
-          <Text style={[styles.loadingText, { color: theme.colors.text }]}>Loading your progress...</Text>
-        </LinearGradient>
-      </SafeAreaView>
-    );
-  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -269,7 +244,6 @@ export default function DuolingoHomeScreen({ navigation }: DuolingoHomeScreenPro
 
         <View style={styles.section}>
           <AIInsights 
-            checkIns={[]} // TODO: Load actual check-in data
             goals={goals}
             showSuggestions={true}
             compact={false}
@@ -451,5 +425,21 @@ const styles = StyleSheet.create({
     width: 35,
     textAlign: 'right',
     marginRight: 8,
+  },
+  dayLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 8,
+  },
+  dayLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    width: 100,
+    textAlign: 'center',
+  },
+  activityLabel: {
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 8,
   },
 });

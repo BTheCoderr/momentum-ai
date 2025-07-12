@@ -6,116 +6,162 @@ import {
   FlatList,
   TouchableOpacity,
   Alert,
+  Share,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Sharing from 'expo-sharing';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../hooks/useAuth';
 
-interface LeaderboardUser {
+interface LeaderboardItem {
   id: string;
   name: string;
-  level: number;
   xp: number;
-  streak: number;
+  level: number;
   rank: number;
   isCurrentUser?: boolean;
 }
 
 interface LeaderboardComponentProps {
-  currentUserXP: number;
-  currentUserLevel: number;
-  currentUserStreak: number;
+  timeFrame?: 'weekly' | 'monthly' | 'allTime';
 }
 
 export const LeaderboardComponent: React.FC<LeaderboardComponentProps> = ({
-  currentUserXP,
-  currentUserLevel,
-  currentUserStreak,
+  timeFrame = 'weekly',
 }) => {
-  const [leaderboard, setLeaderboard] = useState<LeaderboardUser[]>([]);
-  const [timeFrame, setTimeFrame] = useState<'weekly' | 'monthly' | 'allTime'>('weekly');
+  const { user } = useAuth();
+  const [leaderboard, setLeaderboard] = useState<LeaderboardItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [currentUserStats, setCurrentUserStats] = useState<any>(null);
 
   useEffect(() => {
-    generateMockLeaderboard();
-  }, [timeFrame, currentUserXP]);
+    loadLeaderboard();
+    loadCurrentUserStats();
+  }, [timeFrame]);
 
-  const generateMockLeaderboard = () => {
-    // Generate mock leaderboard data
-    const mockUsers: LeaderboardUser[] = [
-      { id: '1', name: 'Sarah M.', level: 15, xp: 1450, streak: 28, rank: 1 },
-      { id: '2', name: 'Mike R.', level: 12, xp: 1200, streak: 15, rank: 2 },
-      { id: '3', name: 'Alex K.', level: 11, xp: 1100, streak: 22, rank: 3 },
-      { id: '4', name: 'Emma L.', level: 10, xp: 950, streak: 12, rank: 4 },
-      { id: '5', name: 'David W.', level: 9, xp: 890, streak: 18, rank: 5 },
-      { id: '6', name: 'Lisa P.', level: 8, xp: 820, streak: 9, rank: 6 },
-      { id: '7', name: 'Tom H.', level: 7, xp: 750, streak: 14, rank: 7 },
+  const loadCurrentUserStats = async () => {
+    try {
+      if (!user?.id) return;
+
+      const { data: stats } = await supabase
+        .from('user_stats')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      const { data: goals } = await supabase
+        .from('goals')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'completed');
+
+      const { data: checkins } = await supabase
+        .from('checkins')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('date', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+
+      setCurrentUserStats({
+        ...stats,
+        completedGoals: goals?.length || 0,
+        recentCheckins: checkins?.length || 0,
+      });
+    } catch (error) {
+      console.error('Error loading user stats:', error);
+    }
+  };
+
+  const loadLeaderboard = async () => {
+    try {
+      setLoading(true);
+      
+      // Mock leaderboard data for now
+      const mockData: LeaderboardItem[] = [
+        { id: '1', name: 'Alex Chen', xp: 2450, level: 12, rank: 1 },
+        { id: '2', name: 'Sarah Johnson', xp: 2180, level: 11, rank: 2 },
+        { id: '3', name: 'Mike Rodriguez', xp: 1950, level: 10, rank: 3 },
+        { id: '4', name: 'Emma Wilson', xp: 1720, level: 9, rank: 4 },
+        { id: '5', name: 'David Kim', xp: 1500, level: 8, rank: 5 },
     ];
 
-    // Add current user to leaderboard
-    const currentUser: LeaderboardUser = {
-      id: 'current',
+      // Add current user to leaderboard if they have stats
+      if (currentUserStats) {
+        const userRank = mockData.length + 1;
+        mockData.push({
+          id: user?.id || 'current',
       name: 'You',
-      level: currentUserLevel,
-      xp: currentUserXP,
-      streak: currentUserStreak,
-      rank: 0,
+          xp: currentUserStats.total_xp || 0,
+          level: currentUserStats.current_level || 1,
+          rank: userRank,
       isCurrentUser: true,
-    };
+        });
+      }
 
-    // Sort all users by XP and assign ranks
-    const allUsers = [...mockUsers, currentUser].sort((a, b) => b.xp - a.xp);
-    const rankedUsers = allUsers.map((user, index) => ({ ...user, rank: index + 1 }));
-
-    setLeaderboard(rankedUsers);
-  };
-
-  const getRankColor = (rank: number) => {
-    switch (rank) {
-      case 1: return '#FFD700'; // Gold
-      case 2: return '#C0C0C0'; // Silver
-      case 3: return '#CD7F32'; // Bronze
-      default: return '#FF6B35'; // Orange
+      setLeaderboard(mockData);
+    } catch (error) {
+      console.error('Error loading leaderboard:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const getRankEmoji = (rank: number) => {
-    switch (rank) {
-      case 1: return '👑';
-      case 2: return '🥈';
-      case 3: return '🥉';
-      default: return '🏆';
+  const handleShareProgress = async () => {
+    try {
+      if (!currentUserStats) {
+        Alert.alert('No Data', 'Complete some activities to share your progress!');
+        return;
+      }
+
+      const shareMessage = `🚀 My Momentum AI Progress Update!\n\n` +
+        `📊 Level: ${currentUserStats.current_level || 1}\n` +
+        `⭐ XP: ${currentUserStats.total_xp || 0}\n` +
+        `🎯 Goals Completed: ${currentUserStats.completedGoals}\n` +
+        `📝 Recent Check-ins: ${currentUserStats.recentCheckins}\n` +
+        `🔥 Current Streak: ${currentUserStats.streak_count || 0} days\n\n` +
+        `Join me on my journey to build better habits and achieve my goals! 💪\n\n` +
+        `#MomentumAI #PersonalGrowth #GoalAchievement`;
+
+      const result = await Share.share({
+        message: shareMessage,
+        title: 'My Momentum AI Progress',
+      });
+
+      if (result.action === Share.sharedAction) {
+        Alert.alert('Success! 🎉', 'Your progress has been shared! Keep up the great work!');
+      }
+    } catch (error) {
+      console.error('Error sharing progress:', error);
+      Alert.alert('Error', 'Failed to share progress. Please try again.');
     }
   };
 
-  const renderLeaderboardItem = ({ item }: { item: LeaderboardUser }) => (
-    <View style={[
-      styles.leaderboardItem,
-      item.isCurrentUser && styles.currentUserItem,
-    ]}>
+  const renderLeaderboardItem = ({ item }: { item: LeaderboardItem }) => (
+    <View style={[styles.leaderboardItem, item.isCurrentUser && styles.currentUserItem]}>
       <View style={styles.rankContainer}>
-        <Text style={[styles.rankEmoji, { color: getRankColor(item.rank) }]}>
-          {getRankEmoji(item.rank)}
-        </Text>
-        <Text style={[styles.rankNumber, { color: getRankColor(item.rank) }]}>
+        <Text style={[styles.rank, item.isCurrentUser && styles.currentUserText]}>
           #{item.rank}
         </Text>
       </View>
       
       <View style={styles.userInfo}>
-        <Text style={[styles.userName, item.isCurrentUser && styles.currentUserName]}>
+        <Text style={[styles.userName, item.isCurrentUser && styles.currentUserText]}>
           {item.name}
         </Text>
-        <View style={styles.userStats}>
-          <Text style={styles.userLevel}>Level {item.level}</Text>
-          <Text style={styles.userXP}>{item.xp} XP</Text>
-          <Text style={styles.userStreak}>🔥 {item.streak}</Text>
-        </View>
+        <Text style={[styles.userLevel, item.isCurrentUser && styles.currentUserText]}>
+          Level {item.level}
+        </Text>
       </View>
       
+      <View style={styles.xpContainer}>
+        <Text style={[styles.xp, item.isCurrentUser && styles.currentUserText]}>
+          {item.xp.toLocaleString()} XP
+        </Text>
       {item.isCurrentUser && (
         <View style={styles.currentUserBadge}>
-          <Text style={styles.currentUserText}>YOU</Text>
+            <Text style={styles.currentUserBadgeText}>YOU</Text>
         </View>
       )}
+      </View>
     </View>
   );
 
@@ -124,23 +170,9 @@ export const LeaderboardComponent: React.FC<LeaderboardComponentProps> = ({
       <View style={styles.header}>
         <Text style={styles.title}>Leaderboard</Text>
         <View style={styles.timeFrameSelector}>
-          {(['weekly', 'monthly', 'allTime'] as const).map((period) => (
-            <TouchableOpacity
-              key={period}
-              style={[
-                styles.timeFrameButton,
-                timeFrame === period && styles.activeTimeFrame,
-              ]}
-              onPress={() => setTimeFrame(period)}
-            >
-              <Text style={[
-                styles.timeFrameText,
-                timeFrame === period && styles.activeTimeFrameText,
-              ]}>
-                {period === 'allTime' ? 'All Time' : period.charAt(0).toUpperCase() + period.slice(1)}
+          <Text style={styles.timeFrameText}>
+            {timeFrame === 'allTime' ? 'All Time' : timeFrame.charAt(0).toUpperCase() + timeFrame.slice(1)}
               </Text>
-            </TouchableOpacity>
-          ))}
         </View>
       </View>
 
@@ -154,7 +186,7 @@ export const LeaderboardComponent: React.FC<LeaderboardComponentProps> = ({
 
       <TouchableOpacity
         style={styles.shareButton}
-        onPress={() => Alert.alert('Share', 'Share your progress with friends!')}
+        onPress={handleShareProgress}
       >
         <LinearGradient
           colors={['#FF6B35', '#F7931E']}
@@ -170,13 +202,13 @@ export const LeaderboardComponent: React.FC<LeaderboardComponentProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#FFF',
   },
   header: {
     padding: 20,
     backgroundColor: '#FFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E5',
+    borderBottomColor: '#E0E0E0',
   },
   title: {
     fontSize: 24,
@@ -187,62 +219,47 @@ const styles = StyleSheet.create({
   },
   timeFrameSelector: {
     flexDirection: 'row',
-    backgroundColor: '#F0F0F0',
+    backgroundColor: '#F5F5F5',
     borderRadius: 8,
     padding: 4,
-  },
-  timeFrameButton: {
-    flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-    alignItems: 'center',
-  },
-  activeTimeFrame: {
-    backgroundColor: '#FF6B35',
   },
   timeFrameText: {
     fontSize: 14,
     fontWeight: '600',
     color: '#666',
   },
-  activeTimeFrameText: {
-    color: '#FFF',
-  },
   list: {
     flex: 1,
-    padding: 20,
+    paddingHorizontal: 20,
   },
   leaderboardItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
     backgroundColor: '#FFF',
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    marginVertical: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 2,
   },
   currentUserItem: {
+    backgroundColor: '#FFF5F0',
     borderWidth: 2,
     borderColor: '#FF6B35',
-    backgroundColor: '#FFF5F0',
   },
   rankContainer: {
     alignItems: 'center',
     marginRight: 16,
     minWidth: 50,
   },
-  rankEmoji: {
-    fontSize: 24,
-    marginBottom: 4,
-  },
-  rankNumber: {
+  rank: {
     fontSize: 14,
     fontWeight: 'bold',
+    color: '#FF6B35',
   },
   userInfo: {
     flex: 1,
@@ -253,35 +270,30 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 4,
   },
-  currentUserName: {
-    color: '#FF6B35',
-  },
-  userStats: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
   userLevel: {
     fontSize: 14,
     color: '#666',
-    marginRight: 12,
   },
-  userXP: {
+  xpContainer: {
+    alignItems: 'flex-end',
+  },
+  xp: {
     fontSize: 14,
     color: '#FF6B35',
     fontWeight: '600',
-    marginRight: 12,
   },
-  userStreak: {
-    fontSize: 14,
+  currentUserText: {
     color: '#FF6B35',
+    fontWeight: 'bold',
   },
   currentUserBadge: {
     backgroundColor: '#FF6B35',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
+    marginTop: 4,
   },
-  currentUserText: {
+  currentUserBadgeText: {
     color: '#FFF',
     fontSize: 12,
     fontWeight: 'bold',

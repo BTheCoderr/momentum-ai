@@ -86,14 +86,7 @@ export default function XPProgressScreen() {
   const progressToNextLevel = (currentXP % 100) / 100;
 
   if (loading || xpLoading) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={[styles.loadingText, { color: theme.colors.text }]}>Loading your progress...</Text>
-        </View>
-      </SafeAreaView>
-    );
+    return null;
   }
 
   return (

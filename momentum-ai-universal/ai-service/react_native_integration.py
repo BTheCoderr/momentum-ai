@@ -11,6 +11,7 @@ import uvicorn
 import json
 from datetime import datetime, timedelta
 import random
+import requests
 
 from rag_system import RAGSystem
 from vector_store_faiss import FAISSVectorStore
@@ -108,6 +109,57 @@ async def root():
             "Coach nudges"
         ]
     }
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    health_status = {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "services": {}
+    }
+    
+    # Check RAG system
+    if rag_system:
+        try:
+            # Test a simple query
+            test_response = rag_system.generate_response("test")
+            health_status["services"]["rag"] = "operational"
+        except Exception as e:
+            health_status["services"]["rag"] = f"error: {str(e)}"
+            health_status["status"] = "degraded"
+    else:
+        health_status["services"]["rag"] = "not initialized"
+        health_status["status"] = "degraded"
+    
+    # Check Ollama
+    try:
+        response = requests.get("http://localhost:11434/api/version")
+        if response.status_code == 200:
+            health_status["services"]["ollama"] = "operational"
+        else:
+            health_status["services"]["ollama"] = "error: non-200 status code"
+            health_status["status"] = "degraded"
+    except Exception as e:
+        health_status["services"]["ollama"] = f"error: {str(e)}"
+        health_status["status"] = "degraded"
+    
+    # Check vector store
+    try:
+        if rag_system and rag_system.vector_store:
+            stats = rag_system.vector_store.get_stats()
+            health_status["services"]["vector_store"] = {
+                "status": "operational",
+                "documents": stats.get("total_documents", 0)
+            }
+        else:
+            health_status["services"]["vector_store"] = "not initialized"
+            health_status["status"] = "degraded"
+    except Exception as e:
+        health_status["services"]["vector_store"] = f"error: {str(e)}"
+        health_status["status"] = "degraded"
+    
+    return health_status
 
 @app.post("/chat", response_model=ChatResponse)
 async def get_contextual_reply(request: ChatMessage):
@@ -548,7 +600,6 @@ if __name__ == "__main__":
     print("🚀 Starting Momentum AI RAG Service")
     print("=" * 50)
     if rag_system:
-        print(f"📊 Vector Store: {len(rag_system.vector_store.docstore._dict)} documents")
         print("🤖 Model: phi3:mini")
     print("🔗 Server: http://localhost:8000")
     print("📖 Docs: http://localhost:8000/docs")

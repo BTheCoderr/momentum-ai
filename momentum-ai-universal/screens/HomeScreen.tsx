@@ -21,6 +21,7 @@ import { StreakDisplay } from '../components/DuolingoStyleFeatures';
 import { useGamification } from '../hooks/useGamification';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { supabase } from '../lib/supabase';
+import { styles } from '../styles/HomeScreen.styles';
 
 type RootStackParamList = {
   Auth: undefined;
@@ -28,14 +29,30 @@ type RootStackParamList = {
   Goals: undefined;
 };
 
-const HomeScreen = () => {
+interface UserStats {
+  totalCheckins: number;
+  totalGoals: number;
+  currentStreak: number;
+}
+
+declare global {
+  interface Window {
+    handleSignOut?: () => void;
+  }
+}
+
+export default function HomeScreen() {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const [userName, setUserName] = useState('Friend');
   const [currentStreak, setCurrentStreak] = useState(0);
   const [todayMood, setTodayMood] = useState(3);
   const [weeklyGoals, setWeeklyGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
-  const [userStats, setUserStats] = useState<UserStats | null>(null);
+  const [userStats, setUserStats] = useState<UserStats>({
+    totalCheckins: 0,
+    totalGoals: 0,
+    currentStreak: 0
+  });
   const [recentCheckin, setRecentCheckin] = useState<CheckIn | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [showAnalysis, setShowAnalysis] = useState(false);
@@ -107,7 +124,11 @@ const HomeScreen = () => {
         .single();
 
       if (stats) {
-        setUserStats(stats);
+        setUserStats({
+          totalCheckins: stats.total_checkins || 0,
+          totalGoals: stats.total_goals || 0,
+          currentStreak: stats.streak_count || 0,
+        });
         setCurrentStreak(stats.streak_count || 0);
       }
 
@@ -194,9 +215,9 @@ const HomeScreen = () => {
       return "Start your journey by setting your first goal and completing a daily check-in!";
     }
 
-    const overallProgress = userStats.overallProgress || 0;
-    const activeGoals = userStats.activeGoals || 0;
-    const motivationScore = userStats.motivationScore || 70;
+    const overallProgress = userStats.totalCheckins || 0;
+    const activeGoals = userStats.totalGoals || 0;
+    const motivationScore = userStats.currentStreak || 70;
     const totalGoals = userStats.totalGoals || 0;
     
     // AI-powered recommendation logic based on user data
@@ -252,14 +273,7 @@ const HomeScreen = () => {
   }
 
   if (loading) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF6B35" />
-          <Text style={styles.loadingText}>Loading your dashboard...</Text>
-        </View>
-      </SafeAreaView>
-    );
+    return null;
   }
 
   return (
@@ -350,8 +364,8 @@ const HomeScreen = () => {
               activeOpacity={0.8}
             >
               <View style={styles.levelInfo}>
-                <Text style={styles.levelTitle}>Level {userStats?.level || 1}</Text>
-                <Text style={styles.xpText}>{userStats?.totalXP || 0} XP</Text>
+                <Text style={styles.levelTitle}>Level {userStats?.currentStreak || 1}</Text>
+                <Text style={styles.xpText}>{userStats?.totalCheckins || 0} XP</Text>
               </View>
               <Text style={styles.levelEmoji}>⚡️</Text>
             </TouchableOpacity>
@@ -397,227 +411,4 @@ const HomeScreen = () => {
       </ScrollView>
     </SafeAreaView>
   );
-};
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  header: {
-    padding: 20,
-    backgroundColor: '#fff',
-  },
-  headerTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  logo: {
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  greeting: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-  },
-  section: {
-    marginTop: 20,
-    padding: 20,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  streakCard: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  streakTitle: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 5,
-  },
-  streakCount: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#FF6B35',
-  },
-  streakEmoji: {
-    fontSize: 24,
-    marginTop: 5,
-  },
-  moodCard: {
-    alignItems: 'center',
-  },
-  moodTitle: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 5,
-  },
-  moodEmoji: {
-    fontSize: 32,
-    marginBottom: 5,
-  },
-  moodLevel: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1a1a1a',
-  },
-  levelCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 20,
-    marginTop: 20,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  levelInfo: {
-    flex: 1,
-  },
-  levelTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-    marginBottom: 5,
-  },
-  xpText: {
-    fontSize: 16,
-    color: '#666',
-  },
-  levelEmoji: {
-    fontSize: 24,
-  },
-  aiCard: {
-    backgroundColor: '#fff',
-    padding: 20,
-    marginTop: 20,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  aiTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-    marginBottom: 10,
-  },
-  aiText: {
-    fontSize: 16,
-    color: '#666',
-    lineHeight: 24,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-  },
-  seeAllText: {
-    fontSize: 16,
-    color: '#FF6B35',
-  },
-  emptyGoals: {
-    alignItems: 'center',
-    padding: 30,
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e9ecef',
-    borderStyle: 'dashed',
-  },
-  emptyGoalsEmoji: {
-    fontSize: 32,
-    marginBottom: 10,
-  },
-  emptyGoalsText: {
-    fontSize: 16,
-    color: '#666',
-  },
-  goalCard: {
-    backgroundColor: '#f8f9fa',
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 10,
-  },
-  goalInfo: {
-    flex: 1,
-  },
-  goalTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1a1a1a',
-    marginBottom: 10,
-  },
-  goalProgress: {
-    height: 6,
-    backgroundColor: '#e9ecef',
-    borderRadius: 3,
-    overflow: 'hidden',
-    marginBottom: 5,
-  },
-  progressBar: {
-    height: '100%',
-    backgroundColor: '#FF6B35',
-    borderRadius: 3,
-  },
-  progressText: {
-    fontSize: 14,
-    color: '#666',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: '#666',
-  },
-  errorContainer: {
-    padding: 20,
-    alignItems: 'center',
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 15,
-  },
-  retryButton: {
-    backgroundColor: '#FF6B35',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});
-
-export default HomeScreen; 
+}; 

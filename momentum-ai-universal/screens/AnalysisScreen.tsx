@@ -47,13 +47,7 @@ export default function AnalysisScreen() {
   };
 
   if (loading) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading analysis...</Text>
-        </View>
-      </SafeAreaView>
-    );
+    return null;
   }
 
   return (

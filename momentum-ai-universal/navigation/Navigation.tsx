@@ -69,7 +69,7 @@ function MainTabs() {
         }}
       />
       <Tab.Screen 
-        name="Check-In" 
+        name="CheckIn" 
         component={CheckInScreen}
         options={{
           tabBarIcon: ({ focused }) => (

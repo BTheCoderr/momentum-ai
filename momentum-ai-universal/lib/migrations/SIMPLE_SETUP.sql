@@ -66,3 +66,57 @@ CREATE TRIGGER create_user_stats_trigger
   AFTER INSERT ON profiles
   FOR EACH ROW
   EXECUTE FUNCTION create_user_stats(); 
+
+-- Create coach_settings table
+CREATE TABLE IF NOT EXISTS public.coach_settings (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    name TEXT DEFAULT 'Alex',
+    personality TEXT DEFAULT 'Empathetic AI coach focused on emotional support',
+    style TEXT DEFAULT 'supportive',
+    primary_style TEXT DEFAULT 'encouraging',
+    communication_preferences JSONB DEFAULT '{"formality": 40, "directness": 50, "enthusiasm": 70, "supportiveness": 80}'::jsonb,
+    response_length TEXT DEFAULT 'balanced',
+    use_emojis BOOLEAN DEFAULT true,
+    use_humor BOOLEAN DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
+);
+
+-- Create trigger for updating timestamps
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = TIMEZONE('utc'::text, NOW());
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+CREATE TRIGGER update_coach_settings_updated_at
+    BEFORE UPDATE ON public.coach_settings
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Grant access to authenticated users
+GRANT ALL ON public.coach_settings TO authenticated;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO authenticated;
+
+-- Enable RLS
+ALTER TABLE public.coach_settings ENABLE ROW LEVEL SECURITY;
+
+-- Create RLS policies
+CREATE POLICY "Users can view their own coach settings"
+    ON public.coach_settings FOR SELECT
+    TO authenticated
+    USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own coach settings"
+    ON public.coach_settings FOR INSERT
+    TO authenticated
+    WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own coach settings"
+    ON public.coach_settings FOR UPDATE
+    TO authenticated
+    USING (auth.uid() = user_id)
+    WITH CHECK (auth.uid() = user_id); 

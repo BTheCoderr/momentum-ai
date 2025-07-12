@@ -15,7 +15,7 @@ async function testRAGService() {
   try {
     // Test 1: Health Check
     console.log('🔍 Step 1: Health Check...');
-    const healthResponse = await fetch(`${baseUrl}/`);
+    const healthResponse = await fetch(`${baseUrl}/health`);
     
     if (healthResponse.ok) {
       const healthData = await healthResponse.json();

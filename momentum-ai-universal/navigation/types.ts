@@ -1,36 +1,59 @@
 import { NavigatorScreenParams } from '@react-navigation/native';
 
 export type RootStackParamList = {
-  MainTabs: NavigatorScreenParams<TabParamList>;
-  Goals: undefined;
-  XPProgress: undefined;
-  EditProfile: undefined;
+  Auth: undefined;
+  MainTabs: NavigatorScreenParams<MainTabParamList>;
+  OnboardingFlow: undefined;
   CoachPersonality: undefined;
   TestCoach: undefined;
   MemorySettings: undefined;
-  PlanCreator: undefined;
-  DailyCoaching: undefined;
-  ProgressAnalytics: undefined;
   MemoryUsage: undefined;
   PrivacySettings: undefined;
+  PrivacyPolicy: undefined;
   TermsOfService: undefined;
-  OnboardingFlow: undefined;
-  ReflectionTimeline: undefined;
-  RitualBuilder: undefined;
-  MomentumVault: undefined;
-  PublicPods: undefined;
-  PodVoting: { podId: string };
-  HeatmapView: undefined;
-  AICoach: undefined;
-  CheckIn: undefined;
-  Pod: undefined;
+  DataUsage: undefined;
+  EditProfile: undefined;
 };
 
-export type TabParamList = {
+export type MainTabParamList = {
   Home: undefined;
-  'Check-In': undefined;
-  Coach: { initialPrompt?: string; sessionId?: string; xpReward?: number } | undefined;
+  Goals: undefined;
+  Chat: undefined;
+  Profile: undefined;
+  Settings: undefined;
+  AICoach: undefined;
+  DailyCoaching: {
+    coachingType?: string;
+    initialMessage?: string;
+  };
+  CheckIn: undefined;
   Insights: undefined;
   Leaderboard: undefined;
-  Settings: undefined;
+  MomentumVault: undefined;
+  PlanCreator: undefined;
+  Reflection: undefined;
+  ReflectionTimeline: undefined;
+  RitualBuilder: undefined;
+  XPProgress: undefined;
+  WeeklyCoaching: undefined;
+  Analysis: undefined;
+};
+
+// Screen prop types
+export type MainTabScreenProps<T extends keyof MainTabParamList> = {
+  navigation: any;
+  route: {
+    key: string;
+    name: T;
+    params: MainTabParamList[T];
+  };
+};
+
+export type RootStackScreenProps<T extends keyof RootStackParamList> = {
+  navigation: any;
+  route: {
+    key: string;
+    name: T;
+    params: RootStackParamList[T];
+  };
 };

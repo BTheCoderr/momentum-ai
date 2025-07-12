@@ -121,13 +121,7 @@ export const ProgressAnalyticsScreen = () => {
   );
 
   if (loading) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-        </View>
-      </SafeAreaView>
-    );
+    return null;
   }
 
   return (

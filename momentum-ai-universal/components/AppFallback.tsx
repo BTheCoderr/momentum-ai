@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, ActivityIndicator, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { ErrorBoundary } from 'react-error-boundary';
 
 type Props = {
   children: React.ReactNode;
@@ -14,72 +15,31 @@ export default function AppFallback({ children }: Props) {
     setRetryKey((prev) => prev + 1);
   };
 
+  const ErrorFallback = () => (
+    <View style={styles.centered}>
+      <Text style={styles.title}>Oops! Something went wrong</Text>
+      <Text style={styles.subtitle}>We're having trouble loading Momentum AI</Text>
+      <TouchableOpacity style={styles.retryButton} onPress={retry}>
+        <Text style={styles.retryButtonText}>Try Again</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   if (hasError) {
-    return (
-      <View style={styles.centered}>
-        <Text style={styles.title}>Oops! Something went wrong</Text>
-        <Text style={styles.subtitle}>We're having trouble loading Momentum AI</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={retry}>
-          <Text style={styles.retryButtonText}>Try Again</Text>
-        </TouchableOpacity>
-      </View>
-    );
+    return <ErrorFallback />;
   }
 
   return (
-    <React.Suspense fallback={<LoadingScreen />}>
-      <ErrorBoundary onError={() => setHasError(true)} key={retryKey}>
+    <React.Suspense fallback={null}>
+      <ErrorBoundary 
+        fallbackRender={ErrorFallback}
+        onError={() => setHasError(true)} 
+        key={retryKey}
+      >
         {children}
       </ErrorBoundary>
     </React.Suspense>
   );
-}
-
-function LoadingScreen() {
-  return (
-    <View style={styles.centered}>
-      <ActivityIndicator size="large" color="#FF6B35" />
-      <Text style={styles.loadingText}>Loading Momentum AI...</Text>
-      <Text style={styles.subtitle}>Getting your goals ready</Text>
-    </View>
-  );
-}
-
-interface ErrorBoundaryState {
-  hasError: boolean;
-}
-
-class ErrorBoundary extends React.Component<{ 
-  children: React.ReactNode; 
-  onError: () => void;
-}, ErrorBoundaryState> {
-  constructor(props: { children: React.ReactNode; onError: () => void }) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    console.warn('ErrorBoundary caught an error:', error);
-    return { hasError: true };
-  }
-
-  componentDidCatch(error: Error, errorInfo: any) {
-    console.error('ErrorBoundary componentDidCatch:', error, errorInfo);
-    this.props.onError();
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <View style={styles.centered}>
-          <Text style={styles.errorText}>Something unexpected happened</Text>
-          <Text style={styles.subtitle}>Please restart the app</Text>
-        </View>
-      );
-    }
-
-    return this.props.children;
-  }
 }
 
 const styles = StyleSheet.create({
@@ -88,44 +48,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
-    backgroundColor: '#FF6B35',
   },
   title: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#1f2937',
-    marginBottom: 8,
+    marginBottom: 10,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
-    color: '#6b7280',
-    marginBottom: 24,
-    textAlign: 'center',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 18,
-    fontWeight: '600',
-    textAlign: 'center',
-    color: '#1f2937',
-  },
-  errorText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#dc2626',
-    marginBottom: 8,
+    color: '#666',
+    marginBottom: 20,
     textAlign: 'center',
   },
   retryButton: {
     backgroundColor: '#FF6B35',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
     borderRadius: 8,
-    marginTop: 16,
   },
   retryButtonText: {
-    color: '#ffffff',
+    color: '#FFF',
     fontSize: 16,
     fontWeight: '600',
   },

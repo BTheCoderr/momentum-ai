@@ -27,21 +27,33 @@ async function setupDatabase() {
       console.log('🚨 The anon key cannot create tables. You need to run this SQL manually in Supabase Dashboard:');
       console.log('\n📋 Copy this SQL to Supabase Dashboard > SQL Editor:\n');
       
-      const migrationPath = path.join(__dirname, '../lib/migrations/COMPLETE_SETUP.sql');
-      const migrationSQL = fs.readFileSync(migrationPath, 'utf8');
+      // Read both migration files
+      const setupPath = path.join(__dirname, '../lib/migrations/COMPLETE_SETUP.sql');
+      const fixRlsPath = path.join(__dirname, '../lib/migrations/017_fix_daily_checkin_rls.sql');
+      
+      const setupSQL = fs.readFileSync(setupPath, 'utf8');
+      const fixRlsSQL = fs.readFileSync(fixRlsPath, 'utf8');
+      
       console.log('─'.repeat(50));
-      console.log(migrationSQL);
+      console.log('-- Complete Setup');
+      console.log(setupSQL);
+      console.log('\n-- Fix DailyCheckIn RLS');
+      console.log(fixRlsSQL);
       console.log('─'.repeat(50));
       console.log('\n✅ Then paste and click RUN in Supabase Dashboard');
       return;
     }
     
     // For service key, try to run directly
-    const migrationPath = path.join(__dirname, '../lib/migrations/COMPLETE_SETUP.sql');
-    const migrationSQL = fs.readFileSync(migrationPath, 'utf8');
+    const setupPath = path.join(__dirname, '../lib/migrations/COMPLETE_SETUP.sql');
+    const fixRlsPath = path.join(__dirname, '../lib/migrations/017_fix_daily_checkin_rls.sql');
+    
+    const setupSQL = fs.readFileSync(setupPath, 'utf8');
+    const fixRlsSQL = fs.readFileSync(fixRlsPath, 'utf8');
     
     // Split SQL into individual statements and execute them
-    const statements = migrationSQL.split(';').filter(stmt => stmt.trim());
+    const allSQL = setupSQL + '\n' + fixRlsSQL;
+    const statements = allSQL.split(';').filter(stmt => stmt.trim());
     
     for (const statement of statements) {
       if (statement.trim()) {

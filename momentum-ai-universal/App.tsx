@@ -1,98 +1,125 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, View, Text, SafeAreaView, TouchableOpacity, ActivityIndicator, Platform, Alert } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import universalStorage from './lib/storage';
 import Navigation from './navigation/Navigation';
 import AuthScreen from './screens/AuthScreen';
 import { ThemeProvider } from './components/ThemeProvider';
-import analytics, { setUserId } from './lib/analytics';
-// import { notificationService } from './lib/notifications'; // Disabled for web compatibility
+import analytics, { setUserId, track } from './lib/analytics';
 import { SlideNotification } from './components/AnimatedComponents';
 import AppFallback from './components/AppFallback';
 import { supabase, getSupabase } from './lib/supabase';
 import { AuthChangeEvent, Session } from '@supabase/supabase-js';
+import * as SplashScreen from 'expo-splash-screen';
 
-// Development mode warning
-if (__DEV__) {
-  console.warn("Running development mode build.");
-}
+// Keep the splash screen visible while we fetch resources
+SplashScreen.preventAutoHideAsync();
 
 function AppContent() {
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [notification, setNotification] = useState({
+  const [appReady, setAppReady] = useState(false);
+  const [notification, setNotification] = useState<{
+    visible: boolean;
+    message: string;
+    type: 'success' | 'error' | 'info' | 'warning';
+  }>({
     visible: false,
     message: '',
-    type: 'info' as 'info' | 'success'
+    type: 'success'
   });
 
-  const handleAuthSuccess = (user: any) => {
+  const handleAuthSuccess = async (user: any) => {
     setSession(user);
-    setNotification({
-      visible: true,
-      message: 'Successfully logged in!',
-      type: 'success'
-    });
-    setTimeout(() => {
-      setNotification(prev => ({ ...prev, visible: false }));
-    }, 3000);
+    if (user?.id) {
+      await setUserId(user.id);
+      await track('user_signed_in', { userId: user.id });
+    }
   };
 
   const handleSignOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      
+      const supabaseClient = getSupabase();
+      if (!supabaseClient) {
+        throw new Error('Failed to initialize Supabase client');
+      }
+
+      await supabaseClient.auth.signOut();
+      await universalStorage.clear();
       setSession(null);
-      setNotification({
-        visible: true,
-        message: 'Successfully signed out!',
-        type: 'info'
-      });
-      setTimeout(() => {
-        setNotification(prev => ({ ...prev, visible: false }));
-      }, 3000);
     } catch (error) {
       console.error('Sign out error:', error);
-      Alert.alert('Error', 'Failed to sign out. Please try again.');
     }
   };
 
-  useEffect(() => {
-    const initializeAuth = async () => {
-      try {
-        // Get initial session
-        const supabaseClient = getSupabase();
-        if (!supabaseClient) {
-          throw new Error('Failed to initialize Supabase client');
-        }
-
-        const { data: { session }, error } = await supabaseClient.auth.getSession();
-        if (error) throw error;
-        
-        setSession(session?.user || null);
-        
-        // Set up auth state change listener
-        const { data: { subscription } } = supabaseClient.auth.onAuthStateChange(
-          (_event: AuthChangeEvent, session: Session | null) => {
-            setSession(session?.user || null);
-          }
-        );
-
-        return () => {
-          subscription.unsubscribe();
-        };
-      } catch (error) {
-        console.error('Auth initialization error:', error);
-        setSession(null);
-      } finally {
-        setLoading(false);
+  const initializeApp = useCallback(async () => {
+    try {
+      console.log('🚀 Initializing app...');
+      
+      // Initialize analytics first
+      await analytics.initialize();
+      
+      // Track app launch
+      await track('app_launched', {
+        platform: 'ios',
+        version: '1.0.0',
+        sessionId: analytics.getSessionId()
+      });
+      
+      // Get initial session
+      const supabaseClient = getSupabase();
+      if (!supabaseClient) {
+        throw new Error('Failed to initialize Supabase client');
       }
-    };
 
-    initializeAuth();
+      const { data: { session }, error } = await supabaseClient.auth.getSession();
+      if (error) throw error;
+      
+      if (session?.user) {
+        setSession(session.user);
+        await setUserId(session.user.id);
+      } else {
+        setSession(null);
+      }
+      
+      // Set up auth state change listener
+      const { data: { subscription } } = supabaseClient.auth.onAuthStateChange(
+        async (_event: AuthChangeEvent, session: Session | null) => {
+          if (session?.user) {
+            setSession(session.user);
+            await setUserId(session.user.id);
+          } else {
+            setSession(null);
+          }
+        }
+      );
+
+      setAppReady(true);
+      console.log('✅ App initialized successfully');
+      
+      return () => {
+        subscription.unsubscribe();
+      };
+    } catch (error) {
+      console.error('❌ App initialization error:', error);
+      setSession(null);
+      setAppReady(true);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    initializeApp();
+  }, [initializeApp]);
+
+  // Hide splash screen when app is ready
+  useEffect(() => {
+    if (appReady) {
+      SplashScreen.hideAsync();
+    }
+  }, [appReady]);
 
   // Expose sign out function globally for other components
   useEffect(() => {
@@ -105,55 +132,45 @@ function AppContent() {
     };
   }, []);
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF6B35" />
-        <Text style={styles.loadingText}>Loading...</Text>
-      </View>
-    );
+  // Don't render anything until app is ready
+  if (!appReady) {
+    return null;
   }
 
   return (
-    <NavigationContainer>
-      {!session ? (
-        <AuthScreen onAuthSuccess={handleAuthSuccess} />
-      ) : (
-        <Navigation />
-      )}
-      <SlideNotification
-        visible={notification.visible}
-        message={notification.message}
-        type={notification.type}
-        onHide={() => setNotification(prev => ({ ...prev, visible: false }))}
-        duration={3000}
-      />
-    </NavigationContainer>
+    <ThemeProvider>
+      <View style={styles.container}>
+        <StatusBar style="auto" />
+        
+        {session ? (
+          <NavigationContainer>
+            <Navigation />
+          </NavigationContainer>
+        ) : (
+          <AuthScreen onAuthSuccess={handleAuthSuccess} />
+        )}
+        
+        <SlideNotification
+          visible={notification.visible}
+          message={notification.message}
+          type={notification.type}
+          onHide={() => setNotification(prev => ({ ...prev, visible: false }))}
+        />
+      </View>
+    </ThemeProvider>
   );
 }
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <StatusBar style="auto" />
-      <AppFallback>
-        <AppContent />
-      </AppFallback>
-    </ThemeProvider>
+    <AppFallback>
+      <AppContent />
+    </AppFallback>
   );
 }
 
 const styles = StyleSheet.create({
-  loadingContainer: {
+  container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
   },
 });

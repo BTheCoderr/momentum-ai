@@ -293,16 +293,34 @@ export const enhancedInsightsServices = {
       }
       
       // Get enhanced pattern analysis (this should work offline)
-      const patternInsights = await PatternRecognitionEngine.analyzeUserPatterns(actualUserId);
+      let patternInsights: PatternInsight[] = [];
+      try {
+        patternInsights = await PatternRecognitionEngine.analyzeUserPatterns(actualUserId);
+      } catch (error) {
+        console.log('Pattern analysis unavailable, using fallback');
+        patternInsights = [];
+      }
       
       if (!insights) {
         // Return enhanced fallback with local pattern analysis
         return {
-          key_insights: patternInsights.slice(0, 3).map(p => p.description),
-          personalized_recommendations: patternInsights
-            .filter(p => p.actionable)
-            .slice(0, 3)
-            .flatMap(p => p.recommendations),
+          key_insights: patternInsights.length > 0 
+            ? patternInsights.slice(0, 3).map(p => p.description || 'Building your pattern profile')
+            : [
+                "Start tracking your check-ins and goals to get personalized insights!",
+                "Your first week of check-ins will reveal your patterns",
+                "Add some goals to see how they align with your daily energy"
+              ],
+          personalized_recommendations: patternInsights.length > 0
+            ? patternInsights
+                .filter(p => p.actionable)
+                .slice(0, 3)
+                .flatMap(p => p.recommendations || [])
+            : [
+                "Complete your first check-in",
+                "Set a meaningful goal", 
+                "Track your progress daily"
+              ],
           pattern_analysis: {
             mood_trends: "Building baseline - continue daily check-ins",
             energy_patterns: "Establishing routine - more data needed",
@@ -316,10 +334,10 @@ export const enhancedInsightsServices = {
       
       // Convert PatternAnalysis to InsightResponse for coaching message
       const insightResponse: InsightResponse = {
-        total_data_points: insights.total_data_points,
-        patterns: Object.values(insights.patterns).map(p => p.toString()),
-        insights: insights.insights,
-        recommendations: insights.recommendations
+        total_data_points: insights.total_data_points || 0,
+        patterns: insights.patterns ? Object.values(insights.patterns).map(p => p?.toString() || '') : [],
+        insights: insights.insights || [],
+        recommendations: insights.recommendations || []
       };
       
       // Get next week's predictions
@@ -331,15 +349,15 @@ export const enhancedInsightsServices = {
         };
 
       return {
-        key_insights: insights.insights,
-        personalized_recommendations: insights.recommendations,
-        pattern_analysis: insights.patterns,
+        key_insights: insights.insights || [],
+        personalized_recommendations: insights.recommendations || [],
+        pattern_analysis: insights.patterns || {},
         coaching_message: this.generateCoachingMessage(insightResponse),
-        total_data_points: insights.total_data_points,
+        total_data_points: insights.total_data_points || 0,
         behavioral_insights: patternInsights,
         predictions: {
-          nextWeek: predictions.summary,
-          confidence: predictions.confidence
+          nextWeek: predictions.summary || 'Need more data for predictions',
+          confidence: predictions.confidence || 0.5
         }
       };
       

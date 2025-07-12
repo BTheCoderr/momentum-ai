@@ -313,15 +313,7 @@ const InsightsScreen = ({ navigation }: any) => {
   );
 
   if (loading) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor="#fff" />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF6B35" />
-          <Text style={styles.loadingText}>Checking your progress...</Text>
-        </View>
-      </SafeAreaView>
-    );
+    return null;
   }
 
   if (!hasEnoughData) {
@@ -387,7 +379,7 @@ const InsightsScreen = ({ navigation }: any) => {
           </Text>
           <TouchableOpacity 
             style={styles.actionButton}
-            onPress={() => navigation.navigate('Check-In')}
+            onPress={() => navigation.navigate('CheckIn')}
           >
             <Text style={styles.actionButtonText}>Start Check-in</Text>
           </TouchableOpacity>
@@ -499,7 +491,7 @@ const InsightsScreen = ({ navigation }: any) => {
       <View style={styles.quickActions}>
         <TouchableOpacity 
           style={styles.quickAction}
-          onPress={() => navigation.navigate('Check-In')}
+          onPress={() => navigation.navigate('CheckIn')}
         >
           <Text style={styles.quickActionEmoji}>📝</Text>
           <Text style={styles.quickActionText}>Check-in</Text>

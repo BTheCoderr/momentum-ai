@@ -260,11 +260,7 @@ export function RitualBuilderScreen() {
   };
 
   if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Loading your rituals...</Text>
-      </View>
-    );
+    return null;
   }
 
   return (

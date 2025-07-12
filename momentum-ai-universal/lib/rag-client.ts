@@ -15,7 +15,7 @@ interface RAGChatResponse {
 
 interface UserInteraction {
   userId: string;
-  interactionType: string;
+  type: string;
   content: string;
   metadata?: Record<string, any>;
 }
@@ -32,25 +32,48 @@ class RAGClient {
   private baseUrl: string;
   private fallbackEnabled: boolean;
   private networkEnabled: boolean;
+  private healthCheckInterval: number;
+  private lastHealthCheck: Date;
+  private isHealthy: boolean;
 
-  constructor(baseUrl: string = 'http://localhost:8000', fallbackEnabled: boolean = true, networkEnabled: boolean = false) {
+  constructor(
+    baseUrl: string = 'http://localhost:8000',
+    fallbackEnabled: boolean = true,
+    networkEnabled: boolean = true,
+    healthCheckInterval: number = 60000
+  ) {
     this.baseUrl = baseUrl;
     this.fallbackEnabled = fallbackEnabled;
-    this.networkEnabled = networkEnabled; // Disable network calls by default
+    this.networkEnabled = networkEnabled;
+    this.healthCheckInterval = healthCheckInterval;
+    this.lastHealthCheck = new Date(0);
+    this.isHealthy = false;
+    this.startHealthCheck();
   }
 
-  /**
-   * Enable network calls to AI service
-   */
-  enableNetwork() {
-    this.networkEnabled = true;
-  }
+  private async startHealthCheck() {
+    const checkHealth = async () => {
+      try {
+        const now = new Date();
+        if (now.getTime() - this.lastHealthCheck.getTime() > this.healthCheckInterval) {
+          const response = await fetch(`${this.baseUrl}/health`);
+          this.isHealthy = response.ok;
+          this.lastHealthCheck = now;
+          if (!this.isHealthy) {
+            console.warn('RAG service is unhealthy, will use fallbacks');
+          }
+        }
+      } catch (error) {
+        this.isHealthy = false;
+        console.warn('RAG health check failed:', error);
+      }
+    };
 
-  /**
-   * Disable network calls to AI service
-   */
-  disableNetwork() {
-    this.networkEnabled = false;
+    // Initial check
+    await checkHealth();
+    
+    // Regular interval check
+    setInterval(checkHealth, this.healthCheckInterval);
   }
 
   /**
@@ -63,8 +86,8 @@ class RAGClient {
     coachingType: string = 'general'
   ): Promise<RAGChatResponse> {
     try {
-      // If network is disabled, return fallback response immediately
-      if (!this.networkEnabled) {
+      // Check if service is available
+      if (!this.networkEnabled || !this.isHealthy) {
         return this.getFallbackResponse(message, coachingType);
       }
 
@@ -90,7 +113,6 @@ class RAGClient {
     } catch (error) {
       console.error('❌ Failed to get contextual reply:', error);
       
-      // Return fallback response
       if (this.fallbackEnabled) {
         return this.getFallbackResponse(message, coachingType);
       }
@@ -105,6 +127,11 @@ class RAGClient {
    */
   async addUserInteraction(interaction: UserInteraction): Promise<boolean> {
     try {
+      if (!this.networkEnabled || !this.isHealthy) {
+        console.log('RAG service disabled/unhealthy, skipping interaction tracking');
+        return false;
+      }
+
       const response = await fetch(`${this.baseUrl}/user-interaction`, {
         method: 'POST',
         headers: {
@@ -235,7 +262,7 @@ class RAGClient {
    */
   async healthCheck(): Promise<boolean> {
     try {
-      const response = await fetch(`${this.baseUrl}/`);
+      const response = await fetch(`${this.baseUrl}/health`);
       return response.ok;
     } catch (error) {
       return false;
@@ -265,8 +292,13 @@ class RAGClient {
   }
 }
 
-// Create singleton instance
-export const ragClient = new RAGClient();
+// Create singleton instance with network enabled by default
+export const ragClient = new RAGClient(
+  'http://localhost:8000',
+  true, // fallback enabled
+  true, // network enabled
+  60000 // health check every minute
+);
 
 // Export types for use in components
 export type { RAGChatResponse, UserInteraction, PatternAnalysis };
@@ -292,21 +324,15 @@ export async function getContextualReply(
 }
 
 /**
- * 📝 Quick function to track user interactions
- * Use this for check-ins, goals, reflections
+ * 📝 Track user interaction
  */
 export async function trackUserInteraction(
   userId: string,
-  type: 'checkin' | 'goal' | 'reflection' | 'mood' | 'activity' | 'achievement',
+  type: string,
   content: string,
   metadata?: Record<string, any>
 ): Promise<boolean> {
-  return await ragClient.addUserInteraction({
-    userId,
-    interactionType: type,
-    content,
-    metadata
-  });
+  return ragClient.addUserInteraction({ userId, type, content, metadata });
 }
 
 /**

@@ -25,6 +25,7 @@
     },
     "production": {
       "distribution": "store",
+      "node": "20.11.0",
       "env": {
         "APP_ENV": "production",
         "OFFLINE_MODE": "true"
@@ -40,10 +41,12 @@
     },
     "production-ios": {
       "extends": "production",
+      "node": "20.11.0",
       "ios": {
         "resourceClass": "m-medium",
         "autoIncrement": true,
-        "simulator": false
+        "simulator": false,
+        "buildConfiguration": "Release"
       }
     },
     "production-android": {
@@ -54,15 +57,42 @@
     },
     "appstore": {
       "distribution": "store",
+      "node": "20.11.0",
       "env": {
         "APP_ENV": "appstore",
         "OFFLINE_MODE": "true",
         "DEMO_MODE": "true"
+      },
+      "ios": {
+        "resourceClass": "large",
+        "autoIncrement": true,
+        "simulator": false,
+        "buildConfiguration": "Release"
+      }
+    },
+    "production-ios-stable": {
+      "distribution": "store",
+      "node": "20.11.0",
+      "env": {
+        "APP_ENV": "production",
+        "OFFLINE_MODE": "true"
+      },
+      "ios": {
+        "resourceClass": "large",
+        "autoIncrement": true,
+        "simulator": false,
+        "buildConfiguration": "Release"
       }
     }
   },
   "submit": {
     "production": {
+      "ios": {
+        "ascAppId": "6747629250",
+        "appleTeamId": "2PF2FNX9X6"
+      }
+    },
+    "production-ios-stable": {
       "ios": {
         "ascAppId": "6747629250",
         "appleTeamId": "2PF2FNX9X6"

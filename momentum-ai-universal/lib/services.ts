@@ -120,6 +120,30 @@ export const goalServices = {
       console.error('Error fetching goals:', error);
       return [];
     }
+  },
+
+  async create(goalData: any) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No authenticated user');
+
+      const { data, error } = await supabase
+        .from('goals')
+        .insert([{
+          ...goalData,
+          user_id: user.id,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error creating goal:', error);
+      throw error;
+    }
   }
 };
 
@@ -224,7 +248,7 @@ export const messageServices = {
           content: message,
           sender: 'user',
           user_id: user.id,
-          created_at: new Date().toISOString(),
+          timestamp: new Date().toISOString(),
         }])
         .select()
         .single();
@@ -242,7 +266,7 @@ export const messageServices = {
           content: aiResponse,
           sender: 'coach',
           user_id: user.id,
-          created_at: new Date().toISOString(),
+          timestamp: new Date().toISOString(),
         }])
         .select()
         .single();

@@ -1,2 +1,11 @@
-process.env.EXPO_PUBLIC_SUPABASE_URL = 'https://test.supabase.co';
-process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY = 'test-key';
+// Supabase configuration
+process.env.SUPABASE_URL = 'https://nsgqhhbqpyvonirlfluv.supabase.co';
+process.env.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZ3FoaGJxcHl2b25pcmxmbHV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk3NTY1NTgsImV4cCI6MjA2NTMzMjU1OH0.twGF9Y6clrRtJg_4S1OWHA1vhhYpKzn3ZpFJPGJbmEo';
+process.env.SUPABASE_SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zZ3FoaGJxcHl2b25pcmxmbHV2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTcwOTc1NjE2MCwiZXhwIjoyMDI1MzMyMTYwfQ.ms5JrkNikk5-cFSJkJuZzL30IHTg00WsCQ13tu0pEGM';
+
+// Also set the service key for backward compatibility
+process.env.SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+// Add NEXT_PUBLIC_ prefixed variables for mobile app testing
+process.env.NEXT_PUBLIC_SUPABASE_URL = process.env.SUPABASE_URL;
+process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;

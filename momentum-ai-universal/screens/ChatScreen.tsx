@@ -23,7 +23,7 @@ interface Message {
   sender: 'user' | 'coach';
   timestamp: string;
   coachType?: CoachType;
-  context_used?: string[];
+  contextUsed?: string[];
   confidence?: number;
 }
 
@@ -65,6 +65,7 @@ export default function ChatScreen({ navigation }: any) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [selectedCoach, setSelectedCoach] = useState<Coach>(COACHES[0]);
   const [showCoachSelect, setShowCoachSelect] = useState(false);
   const [userId, setUserId] = useState<string>('');
@@ -78,6 +79,8 @@ export default function ChatScreen({ navigation }: any) {
 
   const initializeChat = async () => {
     try {
+      setInitialLoading(true);
+      
       // Get user ID
       const storedUserId = await universalStorage.getItem('userId') || 'demo-user';
       setUserId(storedUserId);
@@ -85,8 +88,28 @@ export default function ChatScreen({ navigation }: any) {
       // Load existing messages
       await loadMessages();
       
+    } catch (error) {
+      console.error('Error initializing chat:', error);
+    } finally {
+      setInitialLoading(false);
+    }
+  };
+
+  const loadMessages = async () => {
+    try {
+      const savedMessages = await messageServices.getAll();
+      
+      if (savedMessages && savedMessages.length > 0) {
+        const formattedMessages: Message[] = savedMessages.map((msg: DBMessage) => ({
+          id: msg.id,
+          text: msg.content,
+          sender: msg.sender as 'user' | 'coach',
+          timestamp: msg.timestamp || new Date().toISOString(),
+          coachType: msg.type as CoachType,
+        }));
+        setMessages(formattedMessages);
+      } else {
       // Add welcome message if no messages exist
-      if (messages.length === 0) {
         const welcomeMessage: Message = {
           id: 'welcome',
           text: "Hi! I'm your AI coach with memory. I remember your goals, check-ins, and progress. How can I help you today? 🚀",
@@ -97,28 +120,21 @@ export default function ChatScreen({ navigation }: any) {
         setMessages([welcomeMessage]);
       }
     } catch (error) {
-      console.error('Error initializing chat:', error);
-    }
-  };
-
-  const loadMessages = async () => {
-    try {
-      const savedMessages = await messageServices.getAll();
-      const formattedMessages: Message[] = savedMessages.map((msg: DBMessage) => ({
-        id: msg.id,
-        text: msg.content,
-        sender: msg.sender as 'user' | 'coach',
-        timestamp: msg.timestamp || new Date().toISOString(),
-        coachType: msg.type as CoachType,
-      }));
-      setMessages(formattedMessages);
-    } catch (error) {
       console.error('Error loading messages:', error);
+      // Show welcome message as fallback
+      const welcomeMessage: Message = {
+        id: 'welcome',
+        text: "Hi! I'm your AI coach. How can I help you today? 🚀",
+        sender: 'coach',
+        timestamp: new Date().toISOString(),
+        coachType: selectedCoach.type,
+      };
+      setMessages([welcomeMessage]);
     }
   };
 
   const handleSend = async () => {
-    if (!inputText.trim()) return;
+    if (!inputText.trim() || isLoading) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -128,6 +144,7 @@ export default function ChatScreen({ navigation }: any) {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const messageText = inputText;
     setInputText('');
     Keyboard.dismiss();
 
@@ -143,17 +160,23 @@ export default function ChatScreen({ navigation }: any) {
           // 🚀 RAG-POWERED RESPONSE with user context!
           console.log('🧠 Getting RAG response for user:', userId);
           
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+          
           const ragResponse = await fetch('http://localhost:8000/chat', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              message: inputText,
+              message: messageText,
               userId: userId,
               coachingType: selectedCoach.type,
             }),
+            signal: controller.signal,
           });
+
+          clearTimeout(timeoutId);
 
           if (ragResponse.ok) {
             const ragData = await ragResponse.json();
@@ -167,8 +190,8 @@ export default function ChatScreen({ navigation }: any) {
               confidence: confidence
             });
             
-            // Track this interaction for future context
-            await trackUserInteraction(userId, 'checkin', inputText);
+            // Track this interaction for future context (don't await to improve performance)
+            trackUserInteraction(userId, 'checkin', messageText).catch(console.error);
             
           } else {
             throw new Error('RAG service unavailable');
@@ -176,40 +199,41 @@ export default function ChatScreen({ navigation }: any) {
         } catch (ragError) {
           console.log('⚠️ RAG failed, falling back to regular service:', ragError);
           // Fallback to existing service
-          response = await messageServices.sendMessage(inputText);
+          response = await messageServices.sendMessage(messageText);
           contextUsed = [];
           confidence = 0.6;
         }
       } else {
         // Use existing service
-        response = await messageServices.sendMessage(inputText);
+        response = await messageServices.sendMessage(messageText);
       }
       
+      // Add coach response
       const coachMessage: Message = {
         id: (Date.now() + 1).toString(),
         text: response,
         sender: 'coach',
         timestamp: new Date().toISOString(),
         coachType: selectedCoach.type,
-        context_used: contextUsed,
+        contextUsed: contextUsed,
         confidence: confidence,
       };
 
       setMessages(prev => [...prev, coachMessage]);
-      flatListRef.current?.scrollToEnd();
+
     } catch (error) {
       console.error('Error sending message:', error);
       
-      // Ultimate fallback
-      const fallbackMessage: Message = {
+      // Add error message
+      const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: "I'm here to support you! Tell me more about what's on your mind today. 💪",
+        text: "I'm having trouble responding right now. Please try again in a moment.",
         sender: 'coach',
         timestamp: new Date().toISOString(),
         coachType: selectedCoach.type,
       };
       
-      setMessages(prev => [...prev, fallbackMessage]);
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }
@@ -227,9 +251,9 @@ export default function ChatScreen({ navigation }: any) {
         <Text style={styles.messageText}>{item.text}</Text>
         
         {/* Show RAG context info for coach messages */}
-        {item.sender === 'coach' && item.context_used && item.context_used.length > 0 && (
+        {item.sender === 'coach' && item.contextUsed && item.contextUsed.length > 0 && (
           <Text style={styles.contextInfo}>
-            📊 Context: {item.context_used.join(', ')}
+            📊 Context: {item.contextUsed.join(', ')}
           </Text>
         )}
         
@@ -284,6 +308,10 @@ export default function ChatScreen({ navigation }: any) {
     </View>
   );
 
+  if (initialLoading) {
+    return null;
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -314,36 +342,33 @@ export default function ChatScreen({ navigation }: any) {
             keyExtractor={item => item.id}
             contentContainerStyle={styles.messagesList}
             onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
+            removeClippedSubviews={true}
+            maxToRenderPerBatch={10}
+            windowSize={10}
           />
-
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-            style={styles.inputContainer}
-          >
+          
+          <View style={styles.inputContainer}>
             <TextInput
-              style={styles.input}
-              placeholder={ragEnabled ? "I remember your goals and progress..." : "Type your message..."}
+              style={styles.textInput}
               value={inputText}
               onChangeText={setInputText}
+              placeholder="Ask your coach anything..."
               multiline
               maxLength={500}
-              returnKeyType="send"
-              onSubmitEditing={handleSend}
               editable={!isLoading}
             />
             <TouchableOpacity
-              style={[styles.sendButton, (!inputText.trim() || isLoading) && styles.disabledButton]}
+              style={[styles.sendButton, isLoading && styles.sendButtonDisabled]} 
               onPress={handleSend}
-              disabled={!inputText.trim() || isLoading}
+              disabled={isLoading || !inputText.trim()}
             >
               {isLoading ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator size="small" color="#FFF" />
               ) : (
                 <Text style={styles.sendButtonText}>Send</Text>
               )}
             </TouchableOpacity>
-          </KeyboardAvoidingView>
+          </View>
         </>
       )}
     </SafeAreaView>
@@ -507,7 +532,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#e0e0e0',
   },
-  input: {
+  textInput: {
     flex: 1,
     backgroundColor: '#f0f0f0',
     borderRadius: 20,
@@ -530,7 +555,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  disabledButton: {
+  sendButtonDisabled: {
     backgroundColor: '#ccc',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#666',
   },
 }); 

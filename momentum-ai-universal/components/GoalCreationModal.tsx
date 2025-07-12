@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { goalServices } from '../lib/services';
+import { supabase } from '../lib/supabase';
 
 interface Milestone {
   title: string;
@@ -134,22 +135,42 @@ export const GoalCreationModal = ({ visible, onClose, onSuccess }: Props) => {
 
     try {
       setIsSubmitting(true);
+      
+      // Check if user is authenticated
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        Alert.alert('Error', 'Please log in to create goals');
+        return;
+      }
+
+      // Only include fields that are essential and likely to exist
       const goalData = {
         title: goal.title,
-        description: goal.description,
-        category: goal.category,
-        priority: goal.priority as 'low' | 'medium' | 'high',
+        description: goal.description || '',
+        user_id: user.id,
+        category: goal.category.toLowerCase(),
+        status: 'active',
+        priority: goal.priority || 'medium',
         target_date: goal.target_date.toISOString(),
-        reminder_frequency: goal.reminder_frequency as 'daily' | 'weekly' | 'none',
-        milestones: goal.milestones,
-        progress: 0,
-        status: 'active' as 'completed' | 'active',
         created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
 
-      await goalServices.create(goalData);
+      // Try to create the goal with minimal data first
+      const { data, error } = await supabase
+        .from('goals')
+        .insert([goalData])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Goal creation error:', error);
+        Alert.alert('Error', `Failed to create goal: ${error.message}`);
+        return;
+      }
+
       Alert.alert('Success', 'Goal created successfully! +25 XP');
-      onSuccess(goalData);
+      onSuccess(data);
       onClose();
     } catch (error) {
       console.error('Error creating goal:', error);
