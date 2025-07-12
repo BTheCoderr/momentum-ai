@@ -17,17 +17,22 @@
     },
     "production": {
       "node": "20.18.3",
-      "image": "macos-sequoia-15.3-xcode-16.2",
       "env": {
         "APP_ENV": "production",
         "OFFLINE_MODE": "false"
+      },
+      "ios": {
+        "image": "macos-sequoia-15.3-xcode-16.2"
       }
     },
     "production-ios-stable": {
       "extends": "production",
       "resourceClass": "large",
       "node": "20.18.3",
-      "image": "macos-sequoia-15.3-xcode-16.2"
+      "ios": {
+        "image": "macos-sequoia-15.3-xcode-16.2",
+        "resourceClass": "large"
+      }
     }
   },
   "submit": {
