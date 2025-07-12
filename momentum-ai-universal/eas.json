@@ -1,99 +1,39 @@
 {
   "cli": {
-    "version": ">= 5.9.1",
-    "appVersionSource": "remote"
+    "version": ">= 7.8.6"
   },
   "build": {
     "development": {
-      "developmentClient": true,
       "distribution": "internal",
-      "ios": {
-        "resourceClass": "m-medium"
-      },
       "android": {
-        "buildType": "apk"
+        "gradleCommand": ":app:assembleDebug"
+      },
+      "ios": {
+        "buildConfiguration": "Debug"
       }
     },
     "preview": {
-      "distribution": "internal",
-      "ios": {
-        "resourceClass": "m-medium"
-      },
-      "android": {
-        "buildType": "apk"
-      }
+      "distribution": "internal"
     },
     "production": {
-      "distribution": "store",
-      "node": "20.11.0",
+      "node": "20.18.3",
+      "image": "macos-sequoia-15.3-xcode-16.2",
       "env": {
         "APP_ENV": "production",
-        "OFFLINE_MODE": "true"
-      },
-      "ios": {
-        "resourceClass": "m-medium",
-        "autoIncrement": true,
-        "simulator": false
-      },
-      "android": {
-        "autoIncrement": true
-      }
-    },
-    "production-ios": {
-      "extends": "production",
-      "node": "20.11.0",
-      "ios": {
-        "resourceClass": "m-medium",
-        "autoIncrement": true,
-        "simulator": false,
-        "buildConfiguration": "Release"
-      }
-    },
-    "production-android": {
-      "extends": "production",
-      "android": {
-        "autoIncrement": true
-      }
-    },
-    "appstore": {
-      "distribution": "store",
-      "node": "20.11.0",
-      "env": {
-        "APP_ENV": "appstore",
-        "OFFLINE_MODE": "true",
-        "DEMO_MODE": "true"
-      },
-      "ios": {
-        "resourceClass": "large",
-        "autoIncrement": true,
-        "simulator": false,
-        "buildConfiguration": "Release"
+        "OFFLINE_MODE": "false"
       }
     },
     "production-ios-stable": {
-      "distribution": "store",
-      "node": "20.11.0",
-      "env": {
-        "APP_ENV": "production",
-        "OFFLINE_MODE": "true"
-      },
-      "ios": {
-        "resourceClass": "large",
-        "autoIncrement": true,
-        "simulator": false,
-        "buildConfiguration": "Release"
-      }
+      "extends": "production",
+      "resourceClass": "large",
+      "node": "20.18.3",
+      "image": "macos-sequoia-15.3-xcode-16.2"
     }
   },
   "submit": {
     "production": {
       "ios": {
-        "ascAppId": "6747629250",
-        "appleTeamId": "2PF2FNX9X6"
-      }
-    },
-    "production-ios-stable": {
-      "ios": {
+        "appleId": "bferrell514@gmail.com",
         "ascAppId": "6747629250",
         "appleTeamId": "2PF2FNX9X6"
       }
