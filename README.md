@@ -1,5 +1,11 @@
 # 🚀 Momentum AI Universal
 
+<!-- repo-intro:start -->
+**Project snapshot:** Momentum AI is a cross-platform goal and accountability product combining goal tracking, AI coaching, daily check-ins, progress analytics, community motivation, and shared web/mobile data.
+
+**What it demonstrates:** Next.js · Expo/React Native · Supabase · shared code · cross-platform product architecture.
+<!-- repo-intro:end -->
+
 **Cross-platform AI-powered goal tracking and accountability app**
 
 Your intelligent companion for achieving goals across web and mobile platforms.
